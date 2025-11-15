@@ -1,0 +1,51 @@
+﻿<div class="min-h-screen px-4 py-8 md:px-8 lg:px-12">
+  <header class="mb-8">
+    <h1 class="text-2xl font-semibold text-slate-800">Panel principal</h1>
+    <p class="mt-1 text-slate-600">Elige una categoría para comenzar</p>
+  </header>
+
+  <section class="mb-10">
+    <div class="mb-3 flex items-center justify-between">
+      <h2 class="text-lg font-medium text-slate-800">Maestros</h2>
+      <span class="text-xs text-slate-500">Catálogos y configuraciones base</span>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <a
+        *ngFor="let item of maestros"
+        [routerLink]="item.route || '/dashboard'"
+        class="group flex flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-600"
+      >
+        <div class="mb-2 flex items-center gap-2">
+          <ng-icon [name]="item.icon" size="22" class="text-slate-700 group-hover:text-primary-700"></ng-icon>
+          <h3 class="text-base font-semibold text-slate-800 group-hover:text-primary-700">
+            {{ item.title }}
+          </h3>
+        </div>
+        <p class="text-sm text-slate-600">{{ item.description }}</p>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <div class="mb-3 flex items-center justify-between">
+      <h2 class="text-lg font-medium text-slate-800">Funcionalidades</h2>
+      <span class="text-xs text-slate-500">Operación y control</span>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <a
+        *ngFor="let item of funcionalidades"
+        [routerLink]="item.route || '/dashboard'"
+        class="group flex flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-600"
+      >
+        <div class="mb-2 flex items-center gap-2">
+          <ng-icon [name]="item.icon" size="22" class="text-slate-700 group-hover:text-primary-700"></ng-icon>
+          <h3 class="text-base font-semibold text-slate-800 group-hover:text-primary-700">
+            {{ item.title }}
+          </h3>
+        </div>
+        <p class="text-sm text-slate-600">{{ item.description }}</p>
+      </a>
+    </div>
+  </section>
+</div>
+

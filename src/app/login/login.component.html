@@ -1,0 +1,60 @@
+﻿<div class="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4">
+  <div class="w-full max-w-md space-y-8">
+    <div class="flex justify-center">
+      <div class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-100/60 px-4 py-1.5 shadow-sm">
+        <span class="h-2 w-2 rounded-full bg-red-500"></span>
+        <span class="text-sm font-semibold text-red-900">RunaLogic TMS</span>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <h1 class="text-2xl font-semibold text-slate-800">Iniciar sesión</h1>
+      <p class="mt-2 text-sm text-slate-600">Ingresa tus credenciales para continuar</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="mt-6 space-y-6">
+      <div class="-space-y-px rounded-md shadow-sm">
+        <div>
+          <label for="email" class="sr-only">Correo</label>
+          <input
+            id="email"
+            type="email"
+            autocomplete="email"
+            formControlName="email"
+            class="relative block w-full rounded-t-md border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:z-10 focus:border-red-600 focus:outline-none focus:ring-red-600"
+            placeholder="Correo electrónico"
+          />
+        </div>
+        <div>
+          <label for="password" class="sr-only">Contraseña</label>
+          <input
+            id="password"
+            type="password"
+            autocomplete="current-password"
+            formControlName="password"
+            class="relative block w-full rounded-b-md border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:z-10 focus:border-red-600 focus:outline-none focus:ring-red-600"
+            placeholder="Contraseña"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <label class="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" formControlName="remember" class="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-600" />
+          Recuérdame
+        </label>
+        <a href="#" class="text-sm font-medium text-red-700 hover:text-red-600">Olvidé mi contraseña</a>
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="form.invalid || loading"
+        class="group relative flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50"
+      >
+        {{ loading ? 'Ingresando…' : 'Ingresar' }}
+      </button>
+
+      <p *ngIf="error" class="text-sm text-red-600">{{ error }}</p>
+    </form>
+  </div>
+</div>

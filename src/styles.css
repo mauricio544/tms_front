@@ -1,0 +1,7 @@
+@import "tailwindcss";   /* forma recomendada en Tailwind v4 */
+
+/* Opcional: usa CSS normal en vez de @apply */
+body {
+  background-color: rgb(248 250 252); /* bg-slate-50 */
+  color: rgb(15 23 42);               /* text-slate-800 */
+}
