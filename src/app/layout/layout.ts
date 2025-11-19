@@ -60,6 +60,10 @@ export class LayoutComponent {
     return this.auth.getUserLabel() || 'Usuario';
   }
 
+  get cia(): string {
+    return this.auth.getCompania() || 'Compañía';
+  }
+
   onLogout() {
     this.auth.logout();
   }

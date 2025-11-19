@@ -1,0 +1,7 @@
+﻿<div *ngIf="show" class="px-6" role="alert">
+  <div [ngClass]="containerClasses" class="relative rounded-md px-4 py-2 text-sm flex items-start justify-between gap-4">
+    <span class="whitespace-pre-line">{{ message }}</span>
+    <button type="button" (click)="onClose()" class="ml-4 text-slate-500 hover:text-slate-700">×</button>
+  </div>
+</div>
+

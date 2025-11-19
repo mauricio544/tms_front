@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { ApiClientService } from './api-client.service';
+import { UsuarioMe } from '../mapped';
 
 export interface LoginRequest {
   email: string;
@@ -81,11 +82,16 @@ export class AuthService {
     }
   }
 
+  getCompania(): string | null {
+    const cia = localStorage.getItem('cia');
+    return cia;
+  }
+
   isAuthenticated(): Observable<boolean> {
     return of(Boolean(this.getToken()));
   }
 
   me() {
-    return this.api.get<UserRead>('/auth/me')
+    return this.api.get<UsuarioMe>('/auth/me')
   }
 }

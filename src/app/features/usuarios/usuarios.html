@@ -34,7 +34,9 @@
     </div>
   </div>
 </div>
+<ui-alert [show]="!!notif" [message]="notif || ''" [type]="notifType" [autoHideMs]="3000" (closed)="notif=null"></ui-alert>
 
+<ui-confirm [show]="confirmOpen" [title]="confirmTitle" [message]="confirmMessage" [confirmText]="'Eliminar'" [type]="'danger'" (confirm)="onConfirmDelete()" (cancel)="onCancelDelete()"></ui-confirm>
 <section class="px-6 pb-2" *ngIf="!loading && !error; else stateTpl">
   <ng-container *ngIf="pageItems?.length; else empty">
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -63,8 +65,8 @@
         </div>
 
         <div class="mt-4 flex items-center justify-end gap-2">
-          <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50">Editar</button>
-          <button class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100">Desactivar</button>
+          <button (click)="openEdit(item)" class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50">Editar</button>
+          <button (click)="askDelete(item)" class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100">Eliminar</button>
         </div>
       </div>
     </div>
@@ -97,11 +99,9 @@
   </div>
 </ng-template>
 
-<!-- Modal Nuevo usuario -->
 <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center">
   <div class="absolute inset-0 bg-black/30" (click)="closeModal()"></div>
   <div class="relative z-10 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-    <h3 class="text-lg font-semibold text-slate-800">Nuevo usuario</h3>
 
     <div class="mt-4 space-y-4">
       <div>
@@ -109,17 +109,38 @@
         <input type="email" [(ngModel)]="newUser.email" placeholder="correo@dominio.com"
                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
       </div>
+      <div>
+        <label class="block text-sm text-slate-700">Contraseña</label>
+        <input type="password" [(ngModel)]="newUser.password" placeholder="********"
+               autocomplete="new-password"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        <div class="text-xs text-red-600" *ngIf="newUser.password && newUser.password.length < 6">Mínimo 6 caracteres</div>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Persona</label>
+        <select [(ngModel)]="newUser.person_id"
+                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+          <option [ngValue]="null">Sin persona</option>
+          <option *ngFor="let p of personas" [ngValue]="p.id">
+            {{ p.razon_social || (p.nombre + ' ' + (p.apellido || '')) }}
+          </option>
+        </select>
+      </div>
       <label class="inline-flex items-center gap-2 text-sm text-slate-700">
         <input type="checkbox" [(ngModel)]="newUser.is_active" class="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-600" />
         Activo
       </label>
-    </div>
 
-    <div class="mt-6 flex items-center justify-end gap-2">
+    <div class="mt-6 flex items-center justify-between gap-2">
       <button (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
-      <button (click)="submitNewUser()" [disabled]="!newUser.email"
+      <button (click)="submitNewUser()" [disabled]="!isValidUser || saving"
               class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">Guardar</button>
     </div>
   </div>
 </div>
+
+
+
+
+
 

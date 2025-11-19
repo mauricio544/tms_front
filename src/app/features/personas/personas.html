@@ -1,4 +1,159 @@
 ﻿<div class="p-6">
-  <h1 class="text-xl font-semibold text-slate-800 capitalize">personas</h1>
-  <p class="mt-2 text-slate-600">Vista base para personas.</p>
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-slate-800">Personas</h1>
+      <p class="mt-1 text-slate-600">Gestiona personas y contactos.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <input
+        type="text"
+        [(ngModel)]="search"
+        (ngModelChange)="onFilterChange()"
+        placeholder="Buscar persona"
+        class="h-10 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+
+      <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)"
+              class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+        <option [ngValue]="8">8</option>
+        <option [ngValue]="12">12</option>
+        <option [ngValue]="20">20</option>
+      </select>
+
+      <button (click)="openModal()"
+              class="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600">
+        Nueva
+      </button>
+    </div>
+  </div>
 </div>
+<ui-alert [show]="!!notif" [message]="notif || ''" [type]="notifType" [autoHideMs]="3000" (closed)="notif=null"></ui-alert>
+
+<ui-confirm [show]="confirmOpen" [title]="confirmTitle" [message]="confirmMessage" [confirmText]="'Eliminar'" [type]="'danger'" (confirm)="onConfirmDelete()" (cancel)="onCancelDelete()"></ui-confirm>
+<section class="px-6 pb-2" *ngIf="!loading && !error; else stateTpl">
+  <ng-container *ngIf="pageItems?.length; else empty">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div *ngFor="let item of pageItems; index as i" class="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <div class="mb-3 flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-200 text-red-800 font-semibold">
+              {{ ((item.nombre || item.razon_social || item.email || '?' ) + '' ).slice(0,1).toUpperCase() }}
+            </div>
+            <div class="min-w-0">
+              <div class="font-medium text-slate-800 truncate max-w-[12rem]">
+                {{ item.razon_social || (item.nombre + ' ' + (item.apellido || '')) || item.email }}
+              </div>
+              <!--<div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>-->
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+          <span *ngIf="item.tipo_documento && item.nro_documento" class="inline-block rounded bg-slate-100 px-2 py-0.5">
+            {{ item.tipo_documento }} {{ item.nro_documento }}
+          </span>
+          <span *ngIf="item.email" class="inline-block rounded bg-slate-100 px-2 py-0.5">{{ item.email }}</span>
+          <span *ngIf="item.celular" class="inline-block rounded bg-slate-100 px-2 py-0.5">{{ item.celular }}</span>
+        </div>
+          <span *ngIf="item.direccion" class="inline-block rounded bg-slate-100 px-2 py-0.5">{{ item.direccion }}</span>
+
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <button (click)="openEdit(item)" class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50">Editar</button>
+          <button (click)="askDelete(item)" class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100">Eliminar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Páginación -->
+    <div class="mt-6 flex items-center justify-between text-sm text-slate-600">
+      <div>
+        Mostrando {{ pageStart }}-{{ pageEnd }} de {{ total }} personas
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="setPage(page-1)" [disabled]="page===1"
+                class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Anterior</button>
+        <span>Página {{ page }} / {{ totalPages }}</span>
+        <button (click)="setPage(page+1)" [disabled]="page===totalPages"
+                class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Siguiente</button>
+      </div>
+    </div>
+  </ng-container>
+  <ng-template #empty>
+    <div class="flex items-center justify-center rounded-md border border-dashed border-slate-300 bg-white py-16 text-slate-500">
+      No hay personas para mostrar.
+    </div>
+  </ng-template>
+</section>
+
+<ng-template #stateTpl>
+  <div class="px-6 pb-6">
+    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando…</div>
+    <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
+  </div>
+</ng-template>
+
+<!-- Modal Nueva persona -->
+<div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/30" (click)="closeModal()"></div>
+  <div class="relative z-10 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+    <h3 class="text-lg font-semibold text-slate-800">{{ editing ? "Editar persona" : "Nueva persona" }}</h3>
+
+    <div class="mt-4 space-y-4">
+      <div>
+        <label class="block text-sm text-slate-700">Nombre</label>
+        <input type="text" [(ngModel)]="newPersona.nombre" placeholder="Nombre"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Apellido</label>
+        <input type="text" [(ngModel)]="newPersona.apellido" placeholder="Apellido"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Tipo de documento</label>
+        <select [(ngModel)]="newPersona.tipo_documento" (ngModelChange)="onTipoDocumentoChange($event)"
+                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+          <option [ngValue]="'DNI'">DNI</option>
+          <option [ngValue]="'RUC'">RUC</option>
+          <option [ngValue]="'CE'">Carné Extranjería</option>
+          <option [ngValue]="'P'">Pasaporte</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Número de documento</label>
+        <input type="text" #docInput [(ngModel)]="newPersona.nro_documento" (ngModelChange)="onDocNumberChange($event)" inputmode="numeric" pattern="[0-9]*" placeholder="Documento"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        <div class="text-xs text-red-600" *ngIf="newPersona.tipo_documento === 'RUC' && (newPersona.nro_documento || '').length > 0 && (newPersona.nro_documento || '').length < 11">RUC mínimo 11 caracteres</div>
+      </div>
+      <div *ngIf="newPersona.tipo_documento === 'RUC'">
+        <label class="block text-sm text-slate-700">Razón social</label>
+        <input type="text" [(ngModel)]="newPersona.razon_social" placeholder="Razón social"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        <div class="text-xs text-red-600" *ngIf="newPersona.tipo_documento === 'RUC' && !(newPersona.razon_social || '').trim()">Requerido para RUC</div>
+      </div>      <div>
+        <label class="block text-sm text-slate-700">Email</label>
+        <input type="email" [(ngModel)]="newPersona.email" placeholder="correo@dominio.com"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Celular</label>
+        <input type="text" [(ngModel)]="newPersona.celular" placeholder="099 000 000"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+      </div>
+    </div>
+
+    <div class="mt-6 flex items-center justify-between gap-2">
+      <div class="text-sm text-red-600" *ngIf="saveError">{{ saveError }}</div>
+      <button (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
+      <button (click)="submitNewPersona()" [disabled]="!(newPersona.nombre || newPersona.razon_social) || (newPersona.tipo_documento === 'RUC' && (!((newPersona.razon_social || '').trim()) || (newPersona.nro_documento || '').length < 11)) || saving"
+              class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+

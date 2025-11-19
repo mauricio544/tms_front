@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { UsuarioMe } from '../../../core/mapped';
+import {empty} from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -14,7 +16,7 @@ export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-
+  usuario_me: UsuarioMe | null = null;
   loading = false;
   error: string | null = null;
 
@@ -43,7 +45,10 @@ export class LoginComponent {
           this.loading = false;
           this.auth.me().subscribe({
             next: (response) => {
-              console.log(response);
+              this.usuario_me = response;
+              localStorage.setItem('me', JSON.stringify(this.usuario_me));
+              localStorage.setItem('cia', this.usuario_me.companies[0].nombre);
+              console.log(this.usuario_me);
             },
             error: (err) => {
 
