@@ -1,4 +1,106 @@
 ﻿<div class="p-6">
-  <h1 class="text-xl font-semibold text-slate-800 capitalize">rutas</h1>
-  <p class="mt-2 text-slate-600">Vista base para rutas.</p>
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-slate-800">Puntos</h1>
+      <p class="mt-1 text-slate-600">Origen, destino y tarifas</p>
+    </div>
+    <ui-alert [show]="!!notif" [message]="notif || ''" [type]="notifType" [autoHideMs]="3000" (closed)="notif=null"></ui-alert>
+  </div>
+
+  <div class="mt-4 flex flex-wrap items-center gap-2">
+    <input
+      type="text"
+      [(ngModel)]="search"
+      (ngModelChange)="onFilterChange()"
+      placeholder="Buscar punto"
+      class="h-10 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+
+    <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)"
+            class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+      <option [ngValue]="8">8</option>
+      <option [ngValue]="12">12</option>
+      <option [ngValue]="20">20</option>
+    </select>
+
+    <button (click)="openModal()"
+            class="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600">
+      Nuevo
+    </button>
+  </div>
+</div>
+
+<ui-confirm [show]="confirmOpen" [title]="confirmTitle" [message]="confirmMessage" [confirmText]="'Eliminar'" [type]="'danger'" (confirm)="onConfirmDelete()" (cancel)="onCancelDelete()"></ui-confirm>
+
+<section class="px-6 pb-2" *ngIf="!loading && !error; else stateTpl">
+  <ng-container *ngIf="pageItems?.length; else empty">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div *ngFor="let item of pageItems; index as i" class="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <div class="mb-3 flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-200 text-red-800 font-semibold">
+              {{ (item.nombre || '?').slice(0,1).toUpperCase() }}
+            </div>
+            <div class="min-w-0">
+              <div class="font-medium text-slate-800 truncate max-w-[12rem]">{{ item.nombre }}</div>
+              <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
+          <button class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 flex items-center justify-between text-sm text-slate-600">
+      <div>
+        Mostrando {{ pageStart }}-{{ pageEnd }} de {{ total }} puntos
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="setPage(page-1)" [disabled]="page===1"
+                class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Anterior</button>
+        <span>Página {{ page }} / {{ totalPages }}</span>
+        <button (click)="setPage(page+1)" [disabled]="page===totalPages"
+                class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Siguiente</button>
+      </div>
+    </div>
+  </ng-container>
+  <ng-template #empty>
+    <div class="flex items-center justify-center rounded-md border border-dashed border-slate-300 bg-white py-16 text-slate-500">
+      No hay puntos para mostrar.
+    </div>
+  </ng-template>
+</section>
+
+<ng-template #stateTpl>
+  <div class="px-6 pb-6">
+    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando…</div>
+    <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
+  </div>
+</ng-template>
+
+<!-- Modal Nuevo/Editar punto -->
+<div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/30" (click)="closeModal()"></div>
+  <div class="relative z-10 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+    <h3 class="text-lg font-semibold text-slate-800">{{ editing ? 'Editar punto' : 'Nuevo punto' }}</h3>
+
+    <div class="mt-4 space-y-4">
+      <div>
+        <label class="block text-sm text-slate-700">Nombre</label>
+        <input type="text" [(ngModel)]="newPunto.nombre" placeholder="Nombre del punto"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        <div class="text-xs text-red-600" *ngIf="!isValidPunto">Ingrese un nombre válido</div>
+      </div>
+    </div>
+
+    <div class="mt-6 flex items-center justify-between gap-2">
+      <button (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
+      <div class="text-sm text-red-600" *ngIf="saveError">{{ saveError }}</div>
+      <button (click)="submitPunto()" [disabled]="!isValidPunto || saving"
+              class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">Guardar</button>
+    </div>
+  </div>
 </div>

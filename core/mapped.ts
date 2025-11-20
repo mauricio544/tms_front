@@ -80,3 +80,17 @@ export interface Vehiculo {
   fecha_vigencia_soat: string,
   anio_fabricacion: number
 }
+
+export interface Puntos {
+  id: number;
+  nombre: string;
+}
+
+export interface Manifiesto {
+  id: number;
+  conductor_id: number;
+  codigo_ounto_origen: number;
+  codigo_punto_destino: number;
+  serie: string;
+  numero:string;
+}

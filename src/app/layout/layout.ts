@@ -74,7 +74,7 @@ export class LayoutComponent {
     { label: 'Usuarios', route: '/usuarios', icon: 'heroUserCircle' },
     { label: 'Personas', route: '/personas', icon: 'heroIdentification' },
     { label: 'Roles', route: '/roles', icon: 'heroShieldCheck' },
-    { label: 'Rutas', route: '/rutas', icon: 'heroMap' },
+    { label: 'Puntos', route: '/puntos', icon: 'heroMap' },
     { label: 'Sedes', route: '/sedes', icon: 'heroBuildingOffice' },
   ];
 
@@ -111,3 +111,4 @@ export class LayoutComponent {
     return this.buildBreadcrumbs(child, url, crumbs);
   }
 }
+

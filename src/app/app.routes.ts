@@ -32,7 +32,7 @@ export const routes: Routes = [
       { path: 'usuarios', component: UsuariosFeature, data: { breadcrumb: 'Usuarios' } },
       { path: 'personas', component: PersonasFeature, data: { breadcrumb: 'Personas' } },
       { path: 'roles', component: RolesFeature, data: { breadcrumb: 'Roles' } },
-      { path: 'rutas', component: RutasFeature, data: { breadcrumb: 'Rutas' } },
+      { path: 'puntos', component: RutasFeature, data: { breadcrumb: 'Puntos' } },
       { path: 'sedes', component: SedesFeature, data: { breadcrumb: 'Sedes' } },
       // Funcionalidades
       { path: 'manifiestos', component: ManifiestosFeature, data: { breadcrumb: 'Manifiestos' } },
