@@ -5,9 +5,11 @@ import { UiAlertComponent } from '../../shared/ui/alert/alert';
 import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
 import { Manifiestos } from '../../../../core/services/manifiestos';
 import { Manifiesto } from '../../../../core/mapped';
-
 import { Puntos } from '../../../../core/services/puntos';
 import { Puntos as Points } from '../../../../core/mapped';
+import { Conductores as ConductoresService } from '../../../../core/services/conductores';
+import { Conductor } from '../../../../core/mapped';
+
 export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; };
 
 @Component({
@@ -20,6 +22,7 @@ export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen:
 export class ManifiestosFeature implements OnInit {
   private readonly manifiestosSrv = inject(Manifiestos);
   private readonly puntosSrv = inject(Puntos);
+  private readonly conductoresSrv = inject(ConductoresService);
 
   // Datos
   lista_manifiestos: Manifiesto[] = [];
@@ -47,8 +50,9 @@ export class ManifiestosFeature implements OnInit {
   notif: string | null = null;
   notifType: 'success' | 'error' = 'success';
 
-  // Puntos
+  // Puntos y conductores
   puntos: Points[] = [];
+  conductores: Conductor[] = [];
 
   // Edición
   editing = false;
@@ -229,10 +233,23 @@ export class ManifiestosFeature implements OnInit {
     return (f as any)?.nombre || String(id);
   }
 
+  loadConductores() {
+    this.conductoresSrv.getConductores().subscribe({
+      next: (res) => { this.conductores = res || []; },
+      error: () => { this.conductores = []; },
+    });
+  }
+
+  conductorLabel(id: number | null | undefined): string {
+    if (!id) return '';
+    const c = (this.conductores || []).find((cc:any) => cc.id === id);
+    if (!c) return String(id);
+    return `${c.licencia || 'Conductor'} - ${c.tipo_licencia || ''}`.trim();
+  }
+
   ngOnInit(): void {
     this.loadManifiestos();
     this.loadPuntos();
+    this.loadConductores();
   }
 }
-
-

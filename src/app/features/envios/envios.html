@@ -1,4 +1,207 @@
 ﻿<div class="p-6">
-  <h1 class="text-xl font-semibold text-slate-800 capitalize">envios</h1>
-  <p class="mt-2 text-slate-600">Vista base para envios.</p>
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h1 class="text-xl font-semibold text-slate-800">Envíos</h1>
+        <p class="mt-1 text-slate-600">Órdenes y tracking.</p>
+      </div>
+  <ui-alert [show]="!!notif" [message]="notif || ''" [type]="notifType" [autoHideMs]="3000" (closed)="notif=null"></ui-alert>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar envío" class="h-10 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+
+    <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)"
+            class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+      <option [ngValue]="8">8</option>
+      <option [ngValue]="12">12</option>
+      <option [ngValue]="20">20</option>
+    </select>
+
+    <button (click)="openModal()"
+            class="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600">
+      Nuevo
+    </button>
+  </div>
 </div>
+
+<ui-confirm [show]="confirmOpen" [title]="confirmTitle" [message]="confirmMessage" [confirmText]="'Eliminar'" [type]="'danger'" (confirm)="onConfirmDelete()" (cancel)="onCancelDelete()"></ui-confirm>
+<section class="px-6 pb-2" *ngIf="!loading && !error; else stateTpl">
+  <ng-container *ngIf="pageItems?.length; else empty">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div *ngFor="let item of pageItems; index as i" class="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <div class="mb-3 flex items-start justify-between">
+          <div class="min-w-0">
+            <div class="font-medium text-slate-800 truncate max-w-[14rem]">Guía: {{ item.guia || '-' }}</div>
+            <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
+          </div>
+        </div>
+
+        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Remitente: {{ item.remitente }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Destinatario: {{ item.destinatario }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Peso: {{ item.peso }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Fecha envío: {{ item.fecha_envio }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Origen: {{ getPuntoNombre(item.punto_origen_id) }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Destino: {{ getPuntoNombre(item.punto_destino_id) }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5" *ngIf="item.estado_pago">Pagado</span>
+        </div>
+
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <a *ngIf="item.comprobante_id" [routerLink]="['/comprobantes']" [queryParams]="{ id: item.comprobante_id }" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50">Ver comprobante</a>
+          <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
+          <button class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 flex items-center justify-between text-sm text-slate-600">
+      <div>
+        Mostrando {{ pageStart }}-{{ pageEnd }} de {{ total }} envíos
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="setPage(page-1)" [disabled]="page===1"
+                class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Anterior</button>
+        <span>Página {{ page }} / {{ totalPages }}</span>
+        <button (click)="setPage(page+1)" [disabled]="page===totalPages"
+                class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Siguiente</button>
+      </div>
+    </div>
+  </ng-container>
+  <ng-template #empty>
+    <div class="flex items-center justify-center rounded-md border border-dashed border-slate-300 bg-white py-16 text-slate-500">
+      No hay envíos para mostrar.
+    </div>
+  </ng-template>
+</section>
+
+<ng-template #stateTpl>
+  <div class="px-6 pb-6">
+    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando…</div>
+    <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
+  </div>
+</ng-template>
+
+<!-- Modal Nuevo/Editar envío -->
+<div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/30" (click)="closeModal()"></div>
+  <div class="relative z-10 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+    <h3 class="text-lg font-semibold text-slate-800">{{ editing ? 'Editar envío' : 'Nuevo envío' }}</h3>
+
+    <div class="mt-4 space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="relative">
+          <label class="block text-sm text-slate-700">Remitente</label>
+          <div class="mt-1 flex items-center gap-2">
+            <input type="text" [(ngModel)]="remitenteQuery" (focus)="showRemitenteOptions=true" (input)="showRemitenteOptions=true" placeholder="Buscar persona" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+            <button type="button" (click)="clearRemitente()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Limpiar</button>
+          </div>
+          <div *ngIf="showRemitenteOptions" class="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow">
+            <div *ngIf="personasLoading" class="px-3 py-2 text-sm text-slate-500">Cargando...</div>
+            <div *ngIf="personasError" class="px-3 py-2 text-sm text-red-600">{{ personasError }}</div>
+            <button *ngFor="let p of filteredRemitentes" type="button" (click)="selectRemitente(p)" class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50">{{ personaLabel(p) }}</button>
+            <div *ngIf="!personasLoading && !filteredRemitentes.length" class="px-3 py-2 text-sm text-slate-500">Sin resultados</div>
+          </div>
+        </div>
+        <div class="relative">
+          <label class="block text-sm text-slate-700">Destinatario</label>
+          <div class="mt-1 flex items-center gap-2">
+            <input type="text" [(ngModel)]="destinatarioQuery" (focus)="showDestinatarioOptions=true" (input)="showDestinatarioOptions=true" placeholder="Buscar persona" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+            <button type="button" (click)="clearDestinatario()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Limpiar</button>
+          </div>
+          <div *ngIf="showDestinatarioOptions" class="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow">
+            <div *ngIf="personasLoading" class="px-3 py-2 text-sm text-slate-500">Cargando...</div>
+            <div *ngIf="personasError" class="px-3 py-2 text-sm text-red-600">{{ personasError }}</div>
+            <button *ngFor="let p of filteredDestinatarios" type="button" (click)="selectDestinatario(p)" class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50">{{ personaLabel(p) }}</button>
+            <div *ngIf="!personasLoading && !filteredDestinatarios.length" class="px-3 py-2 text-sm text-slate-500">Sin resultados</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm text-slate-700">Peso</label>
+          <input type="number" [(ngModel)]="newEnvio.peso" min="0" step="0.01" placeholder="5.5" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-700">Fecha envío</label>
+          <input type="date" [(ngModel)]="newEnvio.fecha_envio" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm text-slate-700">Origen</label>
+          <select [(ngModel)]="newEnvio.punto_origen_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+            <option [ngValue]="null">Seleccione...</option>
+            <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+          </select>
+          <div class="text-xs text-slate-500 mt-1" *ngIf="puntosLoading">Cargando puntos...</div>
+          <div class="text-xs text-red-600 mt-1" *ngIf="puntosError">{{ puntosError }}</div>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-700">Destino</label>
+          <select [(ngModel)]="newEnvio.punto_destino_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+            <option [ngValue]="null">Seleccione...</option>
+            <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm text-slate-700">Clave de recojo</label>
+        <input type="text" [(ngModel)]="newEnvio.clave_recojo" placeholder="CLV-XXXX" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" class="h-4 w-4" />
+          Pagado
+        </label>
+        <button *ngIf="newEnvio.estado_pago" (click)="openComprobanteModal()" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs hover:bg-slate-50">Generar comprobante</button>
+        <span class="text-xs text-slate-600" *ngIf="newEnvio.comprobante_id">ID: {{ newEnvio.comprobante_id }}</span>
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" [(ngModel)]="newEnvio.tipo_contenido" class="h-4 w-4" />
+          Contenido especial
+        </label>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm text-slate-700">Guía</label>
+          <input type="number" [(ngModel)]="newEnvio.guia" min="0" step="1" placeholder="123" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-700">Manifiesto</label>
+          <input type="number" [(ngModel)]="newEnvio.manifiesto" min="0" step="1" placeholder="456" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm text-slate-700">Comprobante</label>
+          <input type="number" [(ngModel)]="newEnvio.comprobante_id" min="0" step="1" placeholder="789" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        </div>
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" [(ngModel)]="newEnvio.valida_restricciones" class="h-4 w-4" />
+          Validar restricciones
+        </label>
+      </div>
+
+      <div class="text-xs text-red-600" *ngIf="!isValidEnvio">Complete remitente, destinatario, peso, fecha y puntos</div>
+    </div>
+
+    <div class="mt-6 flex items-center justify-between gap-2">
+      <button (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
+      <div class="text-sm text-red-600" *ngIf="saveError">{{ saveError }}</div>
+      <button (click)="submitEnvio()" [disabled]="!isValidEnvio || saving"
+              class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Comprobantes -->
+<feature-comprobantes-modal [show]="showComprobanteModal" (close)="closeComprobanteModal()" (saved)="onComprobanteSaved($event)"></feature-comprobantes-modal>
+
+
+

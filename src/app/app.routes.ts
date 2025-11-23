@@ -11,12 +11,14 @@ import { UsuariosFeature } from './features/usuarios/usuarios';
 import { PersonasFeature } from './features/personas/personas';
 import { RolesFeature } from './features/roles/roles';
 import { RutasFeature } from './features/rutas/rutas';
-import { SedesFeature } from './features/sedes/sedes';
 import { ManifiestosFeature } from './features/manifiestos/manifiestos';
+import { Conductores } from './features/conductores/conductores';
 import { EnviosFeature } from './features/envios/envios';
 import { LiquidacionesFeature } from './features/liquidaciones/liquidaciones';
 import { GastosFeature } from './features/gastos/gastos';
-import { ReportesFeature } from './features/reportes/reportes';
+
+import { ComprobantesFeature } from './features/comprobantes/comprobantes-feature';
+import {SedesFeature} from './features/sedes/sedes';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: LoginComponent },
@@ -24,8 +26,9 @@ export const routes: Routes = [
     path: '',
     component: LayoutComponent,
     canActivate: [authGuard],
-    children: [
+      children: [
       { path: 'dashboard', component: Dashboard, data: { breadcrumb: 'Dashboard' } },
+      { path: 'conductores', component: Conductores, data: { breadcrumb: 'Conductores' } },
       // Maestros
       { path: 'clientes', component: ClientesFeature, data: { breadcrumb: 'Clientes' } },
       { path: 'vehiculos', component: VehiculosFeature, data: { breadcrumb: 'Vehículos' } },
@@ -39,8 +42,14 @@ export const routes: Routes = [
       { path: 'envios', component: EnviosFeature, data: { breadcrumb: 'Envíos' } },
       { path: 'liquidaciones', component: LiquidacionesFeature, data: { breadcrumb: 'Liquidaciones' } },
       { path: 'gastos', component: GastosFeature, data: { breadcrumb: 'Gastos' } },
-      { path: 'reportes', component: ReportesFeature, data: { breadcrumb: 'Reportes' } },
+      { path: 'comprobantes', component: ComprobantesFeature, data: { breadcrumb: 'Comprobantes' } },
     ],
   },
   { path: '**', redirectTo: '' },
 ];
+
+
+
+
+
+

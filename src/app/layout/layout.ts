@@ -18,6 +18,7 @@ import {
   heroCreditCard,
   heroChartBar,
   heroHome,
+  heroTicket,
 } from '@ng-icons/heroicons/outline';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -44,6 +45,7 @@ interface NavItem { label: string; route: string; icon: string; }
       heroCreditCard,
       heroChartBar,
       heroHome,
+      heroTicket
     }),
   ],
   templateUrl: './layout.html',
@@ -76,7 +78,8 @@ export class LayoutComponent {
     { label: 'Roles', route: '/roles', icon: 'heroShieldCheck' },
     { label: 'Puntos', route: '/puntos', icon: 'heroMap' },
     { label: 'Sedes', route: '/sedes', icon: 'heroBuildingOffice' },
-  ];
+    { label: 'Conductores', route: '/conductores', icon: 'heroUserCircle' },
+  ] ;
 
   funcionalidades: NavItem[] = [
     { label: 'Manifiestos', route: '/manifiestos', icon: 'heroClipboardDocumentList' },
@@ -84,6 +87,7 @@ export class LayoutComponent {
     { label: 'Liquidaciones', route: '/liquidaciones', icon: 'heroDocumentCheck' },
     { label: 'Gastos', route: '/gastos', icon: 'heroCreditCard' },
     { label: 'Reportes', route: '/reportes', icon: 'heroChartBar' },
+    { label: 'Comprobantes', route: '/comprobantes', icon: 'heroTicket' },
   ];
 
   constructor() {
@@ -111,4 +115,6 @@ export class LayoutComponent {
     return this.buildBreadcrumbs(child, url, crumbs);
   }
 }
+
+
 

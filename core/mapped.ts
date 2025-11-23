@@ -92,5 +92,98 @@ export interface Manifiesto {
   codigo_ounto_origen: number;
   codigo_punto_destino: number;
   serie: string;
+  numero: string;
+}
+
+export interface Conductor {
+  id: number;
+  licencia: string;
+  tipo_licencia: string;
+  persona_id: number;
+  compania_id: number;
+}
+
+export interface Envio {
+  id: number;
+  remitente: number;
+  destinatario: number;
+  estado_pago: boolean;
+  clave_recojo: string;
+  peso: number;
+  fecha_envio: string;
+  fecha_recepcion: string;
+  tipo_contenido: boolean;
+  guia: number;
+  manifiesto: number;
+  valida_restricciones: boolean;
+  punto_origen_id: number;
+  punto_destino_id: number;
+  comprobante_id: number;
+}
+
+export interface EnvioCreate {
+  remitente: number;
+  destinatario: number;
+  estado_pago: boolean;
+  clave_recojo: string;
+  peso: number;
+  fecha_envio: string;
+  /*fecha_recepcion: string;*/
+  tipo_contenido: boolean;
+  guia: number;
+  manifiesto: number;
+  valida_restricciones: boolean;
+  punto_origen_id: number;
+  punto_destino_id: number;
+  comprobante_id: number;
+}
+
+export interface Comprobante {
+  id: number;
+  tipo_comprobante: number;
+  numero_comprobante: string;
+  forma_pago: number;
+  precio_total?: number;
+  fecha_comprobante: string;
+  impuesto?: number;
+  serie: string;
   numero:string;
+}
+
+export interface ComprobanteCreate {
+  tipo_comprobante: number;
+  numero_comprobante: string;
+  forma_pago: number;
+  precio_total: number;
+  fecha_comprobante: string;
+  impuesto: number;
+  serie: string;
+  numero:string;
+}
+
+export interface DetalleComprobante {
+  id: number;
+  numero_item: number;
+  cantidad: number;
+  descripcion: number;
+  precio_unitario: number;
+  comprobante_id: number;
+}
+
+export interface DetalleComprobanteCreate {
+  id: number;
+  numero_item: number;
+  cantidad: number;
+  descripcion: number;
+  precio_unitario: number;
+  comprobante_id: number;
+}
+
+export interface General {
+  id: number;
+  codigo_grupo: string;
+  codigo_principal: number;
+  nombre: string;
+  orden: number;
+  es_cabecera: boolean;
 }

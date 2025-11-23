@@ -48,6 +48,7 @@ export class LoginComponent {
               this.usuario_me = response;
               localStorage.setItem('me', JSON.stringify(this.usuario_me));
               localStorage.setItem('cia', this.usuario_me.companies[0].nombre);
+              localStorage.setItem('cia_id', this.usuario_me.companies[0].id.toString());
               console.log(this.usuario_me);
             },
             error: (err) => {

@@ -57,6 +57,7 @@ export class Dashboard {
     { key: 'roles', title: 'Roles', description: 'Perfiles y autorizaciones', route: '/roles', icon: 'heroShieldCheck' },
     { key: 'rutas', title: 'Puntos', description: 'Origen, destino y tarifas', route: '/puntos', icon: 'heroMap' },
     { key: 'sedes', title: 'Sedes', description: 'Sucursales y bodegas', route: '/sedes', icon: 'heroBuildingOffice' },
+    { key: 'conductores', title: 'Conductores', description: 'Licencias y asignacion', route: '/conductores', icon: 'heroUserCircle' },
   ];
 
   funcionalidades: Item[] = [
@@ -65,5 +66,8 @@ export class Dashboard {
     { key: 'liquidaciones', title: 'Liquidaciones', description: 'Cierres y cobros', route: '/liquidaciones', icon: 'heroDocumentCheck' },
     { key: 'gastos', title: 'Gastos', description: 'Costos operativos', route: '/gastos', icon: 'heroCreditCard' },
     { key: 'reportes', title: 'Reportes', description: 'KPIs y análisis', route: '/reportes', icon: 'heroChartBar' },
+    { key: 'comprobantes', title: 'Comprobantes', description: 'Comprobantes Emitidos', route: '/comprobantes', icon: 'heroTicket' },
   ];
 }
+
+

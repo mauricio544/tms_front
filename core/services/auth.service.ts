@@ -87,6 +87,11 @@ export class AuthService {
     return cia;
   }
 
+  getCompaniaId(): number | null {
+    const cia_id = parseInt(<string>localStorage.getItem('cia_id'));
+    return cia_id;
+  }
+
   isAuthenticated(): Observable<boolean> {
     return of(Boolean(this.getToken()));
   }

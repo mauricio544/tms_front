@@ -30,6 +30,7 @@
     "@angular/router": "^20.3.0",
     "@ng-icons/core": "^32.4.0",
     "@ng-icons/heroicons": "^32.4.0",
+    "jspdf": "^2.5.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"

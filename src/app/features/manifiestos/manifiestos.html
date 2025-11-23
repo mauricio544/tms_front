@@ -43,7 +43,7 @@
         </div>
 
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Conductor: {{ item.conductor_id }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Conductor: {{ conductorLabel(item.conductor_id) }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Origen: {{ nameFrom(safeOrigen(item)) }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Destino: {{ nameFrom(safeDestino(item)) }}</span>
         </div>
@@ -91,9 +91,11 @@
     <div class="mt-4 space-y-4">
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-sm text-slate-700">Conductor ID</label>
-          <input type="number" [(ngModel)]="newManifiesto.conductor_id" min="1" step="1" placeholder="1"
-                 class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+          <label class="block text-sm text-slate-700">Conductor</label>
+          <select [(ngModel)]="newManifiesto.conductor_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+            <option [ngValue]="null">Seleccione conductor</option>
+            <option *ngFor="let c of conductores" [ngValue]="c.id">{{ c.licencia }} - {{ c.tipo_licencia }}</option>
+          </select>
         </div>
         <div>
            <label class="block text-sm text-slate-700">Origen (código punto)</label>
@@ -135,4 +137,7 @@
     </div>
   </div>
 </div>
+
+
+
 
