@@ -4,6 +4,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Comprobantes } from '../../../../core/services/comprobantes';
+import { Generales } from '../../../../core/services/generales';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
 import { Comprobante, DetalleComprobante } from '../../../../core/mapped';
 
@@ -17,6 +18,8 @@ export class ComprobantesFeature implements OnInit {
   private readonly comprobantesSrv = inject(Comprobantes);
   private readonly detallesSrv = inject(DetallesComprobante);
   private readonly route = inject(ActivatedRoute);
+  
+  private readonly generalesSrv = inject(Generales);
   initialSelectId: number | null = null;
 
   lista: Comprobante[] = [];
@@ -32,6 +35,22 @@ export class ComprobantesFeature implements OnInit {
   detalles: DetalleComprobante[] = [];
   detallesLoading = false;
   detallesError: string | null = null;
+
+  // Catálogos
+  generales: any[] = [];
+  tiposComprobante: any[] = [];
+  formasPago: any[] = [];
+
+  tipoNombre(id: number | null | undefined): string {
+    if (id == null) return '';
+    const f = (this.tiposComprobante || []).find((g: any) => Number(g.id) === Number(id));
+    return (f as any)?.nombre ?? String(id);
+  }
+  formaNombre(id: number | null | undefined): string {
+    if (id == null) return '';
+    const f = (this.formasPago || []).find((g: any) => Number(g.id) === Number(id));
+    return (f as any)?.nombre ?? String(id);
+  }
 
   
 
@@ -103,6 +122,15 @@ export class ComprobantesFeature implements OnInit {
       this.initialSelectId = idStr ? Number(idStr) : null;
       if (this.lista && this.lista.length) { this.trySelectById(); }
     });
+    // Cargar catálogos para nombres legibles
+    this.generalesSrv.getGenerales().subscribe({
+      next: (gs: any[]) => {
+        this.generales = gs || [];
+        this.tiposComprobante = (this.generales || []).filter((g: any) => Number(g.codigo_principal) === 1);
+        this.formasPago = (this.generales || []).filter((g: any) => Number(g.codigo_principal) === 3);
+      },
+      error: () => { /* no-op */ }
+    });
     this.load();
   }
 
@@ -122,7 +150,7 @@ export class ComprobantesFeature implements OnInit {
   <h1>${title}</h1>
   <div class="meta">
     <div><span class="muted">Fecha:</span> ${c.fecha_comprobante||''}</div>
-    <div><span class="muted">Tipo:</span> ${c.tipo_comprobante||''} &nbsp; <span class="muted">Forma de pago:</span> ${c.forma_pago||''}</div>
+    <div><span class="muted">Tipo:</span> \ &nbsp; <span class="muted">Forma de pago:</span> \</div>
     <div><span class="muted">Impuesto:</span> ${this.format(c.impuesto)}</div>
     <div><span class="muted">Total:</span> <b>${this.format(c.precio_total)}</b></div>
   </div>
@@ -140,8 +168,8 @@ export class ComprobantesFeature implements OnInit {
     const lines: string[] = [];
     lines.push('Comprobante,' + esc(`${c.serie||'-'}-${c.numero||'-'}`));
     lines.push('Fecha,' + esc(c.fecha_comprobante));
-    lines.push('Tipo,' + esc(c.tipo_comprobante));
-    lines.push('Forma de pago,' + esc(c.forma_pago));
+    lines.push('Tipo,' + esc(this.tipoNombre(c.tipo_comprobante)));
+    lines.push('Forma de pago,' + esc(this.formaNombre(c.forma_pago)));
     lines.push('Impuesto,' + esc(c.impuesto));
     lines.push('Total,' + esc(c.precio_total));
     lines.push('');
@@ -200,6 +228,7 @@ export class ComprobantesFeature implements OnInit {
     doc.save(filename);
   }
 }
+
 
 
 

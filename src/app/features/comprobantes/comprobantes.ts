@@ -7,6 +7,8 @@ import { FormsModule } from '@angular/forms';
 import { Generales } from '../../../../core/services/generales';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
 import { Comprobante, ComprobanteCreate, DetalleComprobante, DetalleComprobanteCreate, General } from '../../../../core/mapped';
+import {Movimientos} from '../../../../core/services/movimientos';
+import {DetalleMovimientos} from '../../../../core/services/detalle-movimientos';
 
 @Component({
   selector: 'feature-comprobantes-modal',
@@ -48,11 +50,13 @@ export class ComprobantesModalComponent implements OnInit {
   tiposComprobante: General[] = [];
   formasPago: General[] = [];
 
-  constructor(
-    private readonly comprobantesSrv: Comprobantes,
+  finalizando = false;
+  movimientoCreado = false;
+  errorMovimiento = "";
+
+  constructor(private readonly comprobantesSrv: Comprobantes,
     private readonly detallesSrv: DetallesComprobante,
-    private readonly generalesSrv: Generales,
-  ) {}
+    private readonly generalesSrv: Generales, private readonly movimientosSrv: Movimientos, private readonly detalleMovSrv: DetalleMovimientos) {}
 
   ngOnInit(): void {
     this.generalesSrv.getGenerales().subscribe({
@@ -166,18 +170,52 @@ export class ComprobantesModalComponent implements OnInit {
     });
   }
 
-  finalizar() {
-    if (this.cabeceraId) {
-      // Asegurar total actualizado pero no bloquear
-      this.actualizarTotal();
-      this.saved.emit(this.cabeceraId);
-      this.onClose();
-    }
+    finalizar() {
+    if (!this.cabeceraId || this.finalizando || this.movimientoCreado) { if (this.cabeceraId && !this.finalizando && this.movimientoCreado){ this.saved.emit(this.cabeceraId); this.onClose(); } return; }
+    this.finalizando = true;
+    this.errorMovimiento = "";
+    const total = this.totalCalculado;
+    const tipoComp = Number((this.cabecera as any).tipo_comprobante);
+    const serie = String((this.cabecera as any).serie || '').trim();
+    const numero = String((this.cabecera as any).numero || '').trim();
+    const numeroComprobante = `${serie}${numero}`;
+
+    const afterUpdate = () => {
+      this.movimientosSrv.createMovimientos({ tipo_movimiento: 'I', monto: total } as any).subscribe({
+        next: (cab: any) => {
+          const cabId = (cab as any)?.id;
+          if (!cabId) { this.errorMovimiento = 'No se obtuvo ID de cabecera de movimiento'; this.finalizando = false; return; }
+          this.detalleMovSrv.createDetalles({
+            tipo_comprobante: tipoComp,
+            numero_comprobante: numeroComprobante,
+            tipo_gasto: null as any,
+            descripcion: null as any,
+            monto: total,
+            cabecera_id: cabId,
+          } as any).subscribe({
+            next: () => {
+              this.movimientoCreado = true;
+              this.finalizando = false;
+              this.saved.emit(this.cabeceraId!);
+              this.onClose();
+            },
+            error: () => {
+              this.finalizando = false;
+              this.errorMovimiento = 'No se pudo crear el detalle del movimiento';
+            }
+          });
+        },
+        error: () => {
+          this.finalizando = false;
+          this.errorMovimiento = 'No se pudo crear la cabecera del movimiento';
+        }
+      });
+    };
+
+    // Intenta actualizar total en el comprobante antes de crear el movimiento
+    this.comprobantesSrv.updateComprobantes(this.cabeceraId, { precio_total: total } as any).subscribe({
+      next: () => afterUpdate(),
+      error: () => afterUpdate(),
+    });
   }
 }
-
-
-
-
-
-

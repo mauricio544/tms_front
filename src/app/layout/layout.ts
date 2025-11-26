@@ -85,7 +85,7 @@ export class LayoutComponent {
     { label: 'Manifiestos', route: '/manifiestos', icon: 'heroClipboardDocumentList' },
     { label: 'Envíos', route: '/envios', icon: 'heroCube' },
     { label: 'Liquidaciones', route: '/liquidaciones', icon: 'heroDocumentCheck' },
-    { label: 'Gastos', route: '/gastos', icon: 'heroCreditCard' },
+    { label: 'Movimientos', route: '/gastos', icon: 'heroCreditCard' },
     { label: 'Reportes', route: '/reportes', icon: 'heroChartBar' },
     { label: 'Comprobantes', route: '/comprobantes', icon: 'heroTicket' },
   ];

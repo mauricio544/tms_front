@@ -1,7 +1,10 @@
 ﻿import { Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, ViewContainerRef, TemplateRef, ViewChild } from '@angular/core';
+import { Overlay, OverlayConfig, OverlayModule, OverlayRef } from '@angular/cdk/overlay';
+import { PortalModule, TemplatePortal } from '@angular/cdk/portal';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { UiAlertComponent } from '../../shared/ui/alert/alert';
 import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
 import { Envios } from '../../../../core/services/envios';
@@ -9,11 +12,12 @@ import { Personas } from '../../../../core/services/personas';
 import { Puntos as PuntosService } from '../../../../core/services/puntos';
 import { Envio, Persona, Puntos as PuntoModel } from '../../../../core/mapped';
 import { ComprobantesModalComponent } from '../comprobantes/comprobantes';
+import { Utils } from '../../../../core/services/utils';
 
 @Component({
   selector: 'feature-envios',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, UiAlertComponent, UiConfirmComponent, ComprobantesModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, UiAlertComponent, UiConfirmComponent, ComprobantesModalComponent, Utils, OverlayModule, PortalModule],
   templateUrl: './envios.html',
   styleUrl: './envios.css',
 })
@@ -21,6 +25,11 @@ export class EnviosFeature implements OnInit {
   private readonly enviosSrv = inject(Envios);
   private readonly personasSrv = inject(Personas);
   private readonly puntosSrv = inject(PuntosService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly overlay = inject(Overlay);
+  private readonly vcr = inject(ViewContainerRef);
+  // cdr injected above
 
   // Estado principal
   lista_envios: Envio[] = [];
@@ -31,6 +40,7 @@ export class EnviosFeature implements OnInit {
   search = '';
   page = 1;
   pageSize = 8;
+  entregaFilter: string = "all";
 
   // Modal nuevo/editar
   showModal = false;
@@ -51,6 +61,15 @@ export class EnviosFeature implements OnInit {
   // Edición
   editing = false;
   editingId: number | null = null;
+  // Modal entrega
+  entregaOpen = false;
+  entregaItem: Envio | null = null;
+  entregaClaveInput = '';
+  entregaFecha = '';
+  entregaSaving = false;
+  entregaError: string | null = null;
+  private entregaRef: OverlayRef | null = null;
+  @ViewChild('entregaTpl') entregaTpl!: TemplateRef<any>;
 
   // Envío en edición/creación
   newEnvio: Partial<Envio> = {
@@ -94,10 +113,17 @@ export class EnviosFeature implements OnInit {
   get filteredEnvios(): Envio[] {
     const term = (this.search || '').trim().toLowerCase();
     return (this.lista_envios || []).filter((e: any) => {
+      const entregado = !!(e?.fecha_recepcion || e?.estado_entrega);
+      if (this.entregaFilter === "delivered" && !entregado) return false;
+      if (this.entregaFilter === "pending" && entregado) return false;
       if (!term) return true;
+      const remit = (this.personaLabelById(e?.remitente) || '').toLowerCase();
+      const dest = (this.personaLabelById(e?.destinatario) || '').toLowerCase();
       const values = [
         String(e.remitente ?? ''),
         String(e.destinatario ?? ''),
+        remit,
+        dest,
         String(e.peso ?? ''),
         String(e.fecha_envio ?? ''),
         String(e.punto_origen_id ?? ''),
@@ -108,7 +134,8 @@ export class EnviosFeature implements OnInit {
       ].join(' ').toLowerCase();
       return values.includes(term);
     });
-  }
+  };
+
   get total(): number { return this.filteredEnvios.length; }
   get totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
   get pageItems(): Envio[] {
@@ -138,7 +165,7 @@ export class EnviosFeature implements OnInit {
     const razon = (p.razon_social || '').trim();
     const base = (razon || nombre || '').trim();
     const doc = (p.nro_documento || '').trim();
-    return [base, doc].filter(Boolean).join(' · ');
+    return [base, doc].filter(Boolean).join(' - ');
   }
   selectRemitente(p: Persona) {
     (this.newEnvio as any).remitente = (p as any).id;
@@ -155,10 +182,16 @@ export class EnviosFeature implements OnInit {
 
   // Comprobante modal
   showComprobanteModal = false;
-  openComprobanteModal() { this.showComprobanteModal = true; }
+  private comprobanteFromEntrega = false;
+  private entregaComprobanteId: number | null = null;
+  openComprobanteModal(fromEntrega: boolean = false) { this.comprobanteFromEntrega = !!fromEntrega; this.showComprobanteModal = true; }
   closeComprobanteModal() { this.showComprobanteModal = false; }
   onComprobanteSaved(id: number) {
-    (this.newEnvio as any).comprobante_id = id;
+    if (this.comprobanteFromEntrega) {
+      this.entregaComprobanteId = id;
+    } else {
+      (this.newEnvio as any).comprobante_id = id;
+    }
     this.showComprobanteModal = false;
     this.showNotif('Comprobante generado');
   }
@@ -215,7 +248,7 @@ export class EnviosFeature implements OnInit {
     this.remitenteQuery = this.personaLabelById((item as any).remitente) || '';
     this.destinatarioQuery = this.personaLabelById((item as any).destinatario) || '';
   }
-  private personaLabelById(id: number): string | null {
+  personaLabelById(id: number): string | null {
     const p = (this.personas || []).find(x => (x as any).id === Number(id));
     return p ? this.personaLabel(p) : null;
   }
@@ -295,9 +328,77 @@ export class EnviosFeature implements OnInit {
     });
   }
 
+
+  get entregaClaveOk(): boolean {
+    const it: any = this.entregaItem as any;
+    const stored = String((it?.clave_recojo ?? '')).trim();
+    return !!this.entregaItem && this.entregaClaveInput.trim() === stored;
+  }
+
+  openEntrega(item: Envio) {
+    this.entregaItem = item;
+    this.entregaClaveInput = '';
+    this.entregaError = null;
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    this.entregaFecha = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    if (!this.entregaRef) {
+      const cfg: OverlayConfig = {
+        hasBackdrop: true,
+        backdropClass: 'cdk-overlay-dark-backdrop',
+        scrollStrategy: this.overlay.scrollStrategies.block(),
+        positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
+      };
+      this.entregaRef = this.overlay.create(cfg);
+      this.entregaRef.backdropClick().subscribe(() => this.closeEntrega());
+    }
+    if (this.entregaRef && this.entregaTpl) {
+      if (!this.entregaRef.hasAttached()) {
+        this.entregaRef.attach(new TemplatePortal(this.entregaTpl, this.vcr));
+      }
+    }
+    this.entregaOpen = true;
+    this.cdr.detectChanges();
+  }
+  closeEntrega() {
+    if (this.entregaRef?.hasAttached()) this.entregaRef.detach();
+    this.entregaOpen = false;
+    this.entregaItem = null;
+    this.entregaClaveInput = '';
+    this.entregaError = null;
+    this.entregaComprobanteId = null; this.comprobanteFromEntrega = false;
+  }
+
+  submitEntrega() {
+    if (!this.entregaItem || !this.entregaClaveOk) return;
+    const id = (this.entregaItem as any).id;
+    if (!id) return;
+    this.entregaSaving = true;
+    this.entregaError = null;
+    this.entregaItem.fecha_recepcion = this.entregaFecha;
+    this.entregaItem.estado_entrega = true;
+    if (this.entregaComprobanteId) {
+      (this.entregaItem as any).comprobante_id = this.entregaComprobanteId;
+      (this.entregaItem as any).estado_pago = true;
+    }
+    this.enviosSrv.updateEnvios(Number(id), this.entregaItem).subscribe({
+      next: (res: any) => {
+        const fecha = res?.fecha_recepcion ?? this.entregaFecha;
+        this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === id ? ({ ...v, fecha_recepcion: fecha }) : v);
+        this.entregaSaving = false;
+        this.closeEntrega();
+        this.showNotif('Entrega confirmada');
+      },
+      error: () => {
+        this.entregaSaving = false;
+        this.entregaError = 'No se pudo registrar la entrega';
+        this.showNotif(this.entregaError as string, 'error');
+      },
+    });
+  }
   askDelete(item: Envio) {
     this.pendingDeleteId = (item as any).id ?? null;
-    const label = `${(item as any).guia ?? ''}`.trim() || `#${(item as any).id}`;
+    const label = `${(item as any).guia ?? ''}`.trim() || `${(item as any).id}`;
     this.pendingDeleteLabel = label as string;
     this.confirmMessage = `¿Eliminar envío ${this.pendingDeleteLabel}?`;
     this.confirmOpen = true;
@@ -338,7 +439,15 @@ export class EnviosFeature implements OnInit {
     this.loading = true;
     this.error = null;
     this.enviosSrv.getEnvios().subscribe({
-      next: (response) => { this.lista_envios = response || []; this.loading = false; },
+      next: (response) => {
+        this.lista_envios = response || [];
+        this.loading = false;
+        const qpId = Number(this.route.snapshot.queryParamMap.get("id") || 0);
+        if (qpId) {
+          const it = (this.lista_envios || []).find((v: any) => Number((v as any).id) === qpId);
+          if (it) { this.openEdit(it as any); }
+        }
+      },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los envíos'; },
     });
   }
@@ -367,4 +476,16 @@ export class EnviosFeature implements OnInit {
     this.loadPuntos();
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 

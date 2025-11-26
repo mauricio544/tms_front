@@ -95,6 +95,14 @@ export interface Manifiesto {
   numero: string;
 }
 
+export interface ManifiestoCreate {
+  conductor_id: number;
+  codigo_ounto_origen?: number;
+  codigo_punto_destino?: number;
+  serie: string;
+  numero: string;
+}
+
 export interface Conductor {
   id: number;
   licencia: string;
@@ -119,6 +127,7 @@ export interface Envio {
   punto_origen_id: number;
   punto_destino_id: number;
   comprobante_id: number;
+  estado_entrega: boolean;
 }
 
 export interface EnvioCreate {
@@ -186,4 +195,54 @@ export interface General {
   nombre: string;
   orden: number;
   es_cabecera: boolean;
+}
+
+
+export interface Cabecera {
+  id: number;
+  tipo_movimiento: string;
+  monto: number;
+  persona_id: number;
+  placa: string;
+  autorizado:number;
+  manifiesto_id: number;
+}
+
+export interface CabeceraCreate {
+  tipo_movimiento: string;
+  monto: number;
+  persona_id?: number;
+  placa?: string;
+  autorizado?:number;
+  manifiesto_id?: number;
+}
+
+export interface Detalle {
+  id: number;
+  tipo_comprobante: number;
+  numero_comprobante: string;
+  descripcion: string;
+  tipo_gasto: number;
+  cabecera_id: number;
+  monto: number;
+}
+
+export interface DetalleFull {
+  id: number;
+  tipo_comprobante: number;
+  numero_comprobante: string;
+  descripcion: string;
+  tipo_gasto: number;
+  cabecera_id: number;
+  monto: number;
+  cabecera: Cabecera
+}
+
+export interface DetalleCreate {
+  tipo_comprobante: number;
+  numero_comprobante: string;
+  descripcion: string;
+  tipo_gasto?: number;
+  cabecera_id: number;
+  monto: number;
 }

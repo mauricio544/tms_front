@@ -1,4 +1,4 @@
-﻿<div *ngIf="show" class="fixed inset-0 z-50 flex items-center justify-center">
+﻿<div *ngIf="show" class="fixed inset-0 z-[2000] flex items-center justify-center">
   <div class="absolute inset-0 bg-black/30" (click)="onClose()"></div>
   <div class="relative z-10 w-full max-w-3xl rounded-lg bg-white p-6 shadow-lg">
     <div class="mb-4 flex items-center justify-between">
@@ -117,10 +117,11 @@
         <div class="flex items-center gap-2">
           <span class="text-xs text-slate-600" *ngIf="cabeceraId">Actualiza precio_total con el total calculado</span>
           <button (click)="actualizarTotal()" [disabled]="!cabeceraId" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Actualizar total</button>
-          <button (click)="finalizar()" [disabled]="!cabeceraId" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">Finalizar</button>
+          <button (click)="finalizar()" [disabled]="!cabeceraId || finalizando" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">Finalizar</button><span class="text-xs text-red-600" *ngIf="errorMovimiento">{{ errorMovimiento }}</span>
         </div>
       </div>
     </div>
   </div>
 </div>
+
 

@@ -16,6 +16,12 @@
       <option [ngValue]="12">12</option>
       <option [ngValue]="20">20</option>
     </select>
+    <select [(ngModel)]="entregaFilter" (ngModelChange)="onFilterChange()"
+            class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+      <option [ngValue]="'all'">Todos</option>
+      <option [ngValue]="'delivered'">Entregados</option>
+      <option [ngValue]="'pending'">Pendientes</option>
+    </select>
 
     <button (click)="openModal()"
             class="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600">
@@ -31,25 +37,27 @@
       <div *ngFor="let item of pageItems; index as i" class="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <div class="mb-3 flex items-start justify-between">
           <div class="min-w-0">
-            <div class="font-medium text-slate-800 truncate max-w-[14rem]">Guía: {{ item.guia || '-' }}</div>
+            <div class="font-medium text-slate-800 truncate max-w-[14rem]">Envío: {{ item.guia || '-' }}</div>
             <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
           </div>
         </div>
 
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Remitente: {{ item.remitente }}</span>
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Destinatario: {{ item.destinatario }}</span>
+          <span class="inline-block rounded border border-blue-200 bg-blue-50 text-blue-700 px-2 py-0.5">Remitente: {{ personaLabelById(item.remitente) || item.remitente }}</span>
+          <span class="inline-block rounded border border-indigo-200 bg-indigo-50 text-indigo-700 px-2 py-0.5">Destinatario: {{ personaLabelById(item.destinatario) || item.destinatario }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Peso: {{ item.peso }}</span>
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Fecha envío: {{ item.fecha_envio }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Fecha envío: {{ item.fecha_envio | ymd }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Origen: {{ getPuntoNombre(item.punto_origen_id) }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Destino: {{ getPuntoNombre(item.punto_destino_id) }}</span>
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5" *ngIf="item.estado_pago">Pagado</span>
+          <span class="inline-block rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5" *ngIf="item.estado_pago">Pagado</span>
+          <span class="inline-block rounded border border-red-200 bg-red-50 text-red-700 px-2 py-0.5" *ngIf="!item.estado_pago">No pagado</span>
         </div>
 
-        <div class="mt-4 flex items-center justify-end gap-2">
-          <a *ngIf="item.comprobante_id" [routerLink]="['/comprobantes']" [queryParams]="{ id: item.comprobante_id }" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50">Ver comprobante</a>
-          <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
-          <button class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>
+        <div class="mt-4 flex items-center justify-end gap-2 flex-wrap">
+          <a *ngIf="item.estado_pago && item.comprobante_id" [routerLink]="['/comprobantes']" [queryParams]="{ id: item.comprobante_id }" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50">Ver comprobante</a>
+          <span *ngIf="item.fecha_recepcion" class="rounded-md border border-red-200 bg-red-300 px-2.5 py-1.5 text-xs text-red-900 hover:bg-red-100">Entregado <i class=""></i></span>
+          <button type="button" *ngIf="!item.fecha_recepcion" class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100" (click)="openEntrega(item); $event.stopPropagation()">Entregar</button><button type="button" class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
+          <button type="button" class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>
         </div>
       </div>
     </div>
@@ -76,7 +84,7 @@
 
 <ng-template #stateTpl>
   <div class="px-6 pb-6">
-    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando…</div>
+    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando...</div>
     <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
   </div>
 </ng-template>
@@ -165,19 +173,10 @@
         </label>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm text-slate-700">Guía</label>
-          <input type="number" [(ngModel)]="newEnvio.guia" min="0" step="1" placeholder="123" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-700">Manifiesto</label>
-          <input type="number" [(ngModel)]="newEnvio.manifiesto" min="0" step="1" placeholder="456" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
-        </div>
-      </div>
+        <div *ngIf="newEnvio.estado_pago">
 
       <div class="grid grid-cols-2 gap-3">
-        <div>
+        <div *ngIf="newEnvio.estado_pago">
           <label class="block text-sm text-slate-700">Comprobante</label>
           <input type="number" [(ngModel)]="newEnvio.comprobante_id" min="0" step="1" placeholder="789" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
         </div>
@@ -199,9 +198,53 @@
   </div>
 </div>
 
-
+      </div>
 <!-- Modal Comprobantes -->
-<feature-comprobantes-modal [show]="showComprobanteModal" (close)="closeComprobanteModal()" (saved)="onComprobanteSaved($event)"></feature-comprobantes-modal>
+<feature-comprobantes-modal [show]="showComprobanteModal" (close)="closeComprobanteModal()" (saved)="onComprobanteSaved($event)">
+<!-- Modal Entrega -->
+</feature-comprobantes-modal>
 
 
 
+
+
+
+
+
+
+<!-- Overlay template for entrega (CDK) -->
+<ng-template cdkPortal #entregaTpl>
+  <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+    <h3 class="text-lg font-semibold text-slate-800">Confirmar entrega</h3>
+    <div class="mt-4 space-y-4" *ngIf="entregaItem as it">
+      <div class="text-sm text-slate-700 space-y-1">
+        <div>Guía: <span class="font-medium">{{ it.guia || '-' }}</span></div>
+        <div>Remitente: <span class="font-medium">{{ personaLabelById(it.remitente) || it.remitente }}</span></div>
+        <div>Destinatario: <span class="font-medium">{{ personaLabelById(it.destinatario) || it.destinatario }}</span></div>
+        <div class="flex items-center gap-2">Pagado:
+          <span class="inline-block rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5" *ngIf="it.estado_pago">Sí</span>
+          <span class="inline-block rounded border border-red-200 bg-red-50 text-red-700 px-2 py-0.5" *ngIf="!it.estado_pago">No</span>
+        </div>
+        <button type="button" *ngIf="it && !it.estado_pago" (click)="openComprobanteModal(true)" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Generar comprobante</button>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Clave de recojo</label>
+        <input type="text" [(ngModel)]="entregaClaveInput" placeholder="Ingrese la clave de recojo" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        <div class="mt-1 text-xs" [class.text-emerald-700]="entregaClaveOk" [class.text-red-600]="!entregaClaveOk && entregaClaveInput">
+          {{ entregaClaveInput ? (entregaClaveOk ? 'Clave válida' : 'Clave incorrecta') : 'Ingrese la clave para validar' }}
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Fecha de recepción</label>
+        <input type="date" [(ngModel)]="entregaFecha" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        <div class="mt-1 text-xs text-slate-500">Se registrará como la fecha de recepción.</div>
+      </div>
+      <div class="text-sm text-red-600" *ngIf="entregaError">{{ entregaError }}</div>
+    </div>
+    <div class="mt-6 flex items-center justify-between gap-2">
+      <button type="button" (click)="closeEntrega()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
+      <button type="button" (click)="submitEntrega()" [disabled]="!entregaClaveOk || entregaSaving"
+              class="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">Confirmar entrega</button>
+    </div>
+  </div>
+</ng-template>

@@ -32,13 +32,13 @@
             </div>
             <div class="min-w-0">
               <div class="font-medium text-slate-800 truncate max-w-[12rem]">{{ item.licencia }}</div>
-              <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
+              <!--<div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>-->
             </div>
           </div>
         </div>
 
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Tipo: {{ item.tipo_licencia }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Licencia: {{ item.tipo_licencia }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Persona: {{ personaName(item.persona_id) }}</span>
         </div>
 

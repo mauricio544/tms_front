@@ -64,7 +64,7 @@ export class Dashboard {
     { key: 'manifiestos', title: 'Manifiestos', description: 'Planificación de viajes', route: '/manifiestos', icon: 'heroClipboardDocumentList' },
     { key: 'envios', title: 'Envíos', description: 'Órdenes y tracking', route: '/envios', icon: 'heroCube' },
     { key: 'liquidaciones', title: 'Liquidaciones', description: 'Cierres y cobros', route: '/liquidaciones', icon: 'heroDocumentCheck' },
-    { key: 'gastos', title: 'Gastos', description: 'Costos operativos', route: '/gastos', icon: 'heroCreditCard' },
+    { key: 'gastos', title: 'Movimientos', description: 'Ingresos / Egresos', route: '/gastos', icon: 'heroCreditCard' },
     { key: 'reportes', title: 'Reportes', description: 'KPIs y análisis', route: '/reportes', icon: 'heroChartBar' },
     { key: 'comprobantes', title: 'Comprobantes', description: 'Comprobantes Emitidos', route: '/comprobantes', icon: 'heroTicket' },
   ];

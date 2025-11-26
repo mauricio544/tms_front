@@ -1,4 +1,175 @@
 ﻿<div class="p-6">
-  <h1 class="text-xl font-semibold text-slate-800 capitalize">gastos</h1>
-  <p class="mt-2 text-slate-600">Vista base para gastos.</p>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-slate-800">Ingresos / Egresos</h1>
+      <p class="mt-1 text-slate-600">Detalle de movimientos</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar" class="h-9 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+      <button (click)="load()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Refrescar</button>
+      <button (click)="openAddMovimiento()" class="h-9 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700">Agregar movimiento</button>
+      <button (click)="exportCSV()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Exportar CSV</button>
+    </div>
+  </div>
 </div>
+
+<div class="px-6 pb-6">
+  <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando…</div>
+  <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
+
+<div *ngIf="!loading && !error" class="px-6 pb-2">
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="rounded-md border border-emerald-200 bg-emerald-50 p-3">
+      <div class="text-xs text-emerald-700">Ingresos</div>
+      <div class="text-lg font-semibold text-emerald-700">{{ totalIngresos | number:'1.2-2' }}</div>
+    </div>
+    <div class="rounded-md border border-red-200 bg-red-50 p-3">
+      <div class="text-xs text-red-700">Egresos</div>
+      <div class="text-lg font-semibold text-red-700">-{{ totalEgresos | number:'1.2-2' }}</div>
+    </div>
+    <div class="rounded-md border border-slate-200 bg-white p-3">
+      <div class="text-xs text-slate-600">Neto</div>
+      <div class="text-lg font-semibold" [ngClass]="{ 'text-emerald-700': totalNeto >= 0, 'text-red-700': totalNeto < 0 }">{{ totalNeto | number:'1.2-2' }}</div>
+    </div>
+  </div>
+</div>
+
+  <div *ngIf="!loading && !error" class="overflow-x-auto rounded-md border border-slate-200 bg-white">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 text-left text-slate-600">
+        <tr>
+          <th class="px-3 py-2">ID</th>
+          <th class="px-3 py-2">Tipo Comprobante</th>
+          <th class="px-3 py-2">N° Comprobante</th>
+          <th class="px-3 py-2">Descripción</th>
+          <th class="px-3 py-2">Tipo Gasto</th>
+          <th class="px-3 py-2">Tipo</th>
+          <th class="px-3 py-2 text-right">Monto</th>
+          <th class="px-3 py-2">Cabecera ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let it of pageItems" class="border-t border-slate-200">
+          <td class="px-3 py-2">{{ it.id }}</td>
+          <td class="px-3 py-2">{{ it.tipo_comprobante }}</td>
+          <td class="px-3 py-2">{{ it.numero_comprobante }}</td>
+          <td class="px-3 py-2">{{ it.descripcion || '-' }}</td>
+          <td class="px-3 py-2">{{ it.tipo_gasto || '-' }}</td>
+          <td class="px-3 py-2"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" [ngClass]="{ 'bg-emerald-100 text-emerald-700': (it.cabecera.tipo_movimiento||'') === 'I', 'bg-red-100 text-red-700': (it.cabecera.tipo_movimiento||'') === 'E' }">{{ (it.cabecera.tipo_movimiento||'') === 'I' ? 'Ingreso' : 'Egreso' }}</span></td>
+          <td class="px-3 py-2 text-right font-medium" [ngClass]="{ 'text-emerald-700': (it.cabecera.tipo_movimiento||'') === 'I', 'text-red-700': (it.cabecera.tipo_movimiento||'') === 'E' }">{{ (((it.cabecera.tipo_movimiento||'') === 'E' ? -1 : 1) * (it.monto || 0)) | number:'1.2-2' }}</td>
+          <td class="px-3 py-2">{{ it.cabecera_id }}</td>
+        </tr>
+        <tr *ngIf="!filtered.length">
+          <td colspan="7" class="px-3 py-6 text-center text-slate-500">No hay movimientos para mostrar.</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr class="border-t bg-slate-50">
+          <td class="px-3 py-2 text-right text-slate-700" colspan="6">Total</td>
+          <td class="px-3 py-2 text-right font-semibold" [ngClass]="{ 'text-emerald-700': totalNeto >= 0, 'text-red-700': totalNeto < 0 }">{{ totalNeto | number:'1.2-2' }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="mt-3 flex items-center gap-2 text-sm text-slate-600">
+    <div class="flex items-center gap-2">
+      <span>Mostrar</span>
+      <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)" class="h-8 rounded-md border border-slate-300 bg-white px-2 text-sm">
+        <option [ngValue]="10">10</option>
+        <option [ngValue]="20">20</option>
+        <option [ngValue]="50">50</option>
+      </select>
+      <span>por página</span>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <div>Página {{ page }} / {{ totalPages }}</div>
+      <button (click)="setPage(page-1)" [disabled]="page===1"
+              class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Anterior</button>
+      <button (click)="setPage(page+1)" [disabled]="page===totalPages"
+              class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Siguiente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Agregar Movimiento -->
+<div *ngIf="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/30" (click)="closeAddMovimiento()"></div>
+  <div class="relative z-10 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
+    <h3 class="text-lg font-semibold text-slate-800">Nuevo movimiento</h3>
+
+    <div class="mt-4 space-y-6">
+      <div>
+        <div class="text-sm font-medium text-slate-700">Cabecera</div>
+        <div class="mt-2 grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm text-slate-700">Tipo movimiento</label>
+            <select [(ngModel)]="cabeceraForm.tipo_movimiento" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600">
+              <option [ngValue]="'I'">Ingreso</option>
+              <option [ngValue]="'E'">Egreso</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-slate-700">Monto</label>
+            <input type="number" [(ngModel)]="cabeceraForm.monto" min="0" step="0.01" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
+          </div>
+          <div class="col-span-2 relative">
+            <label class="block text-sm text-slate-700">Persona</label>
+            <div class="mt-1 flex items-center gap-2">
+              <input type="text" [(ngModel)]="personaQuery" (focus)="showPersonaOptions=true" (input)="showPersonaOptions=true" placeholder="Buscar persona" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
+              <button type="button" (click)="clearPersona()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Limpiar</button>
+            </div>
+            <div class="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow" *ngIf="showPersonaOptions">
+              <div *ngIf="personasLoading" class="px-3 py-2 text-sm text-slate-500">Cargando personas…</div>
+              <div *ngIf="personasError" class="px-3 py-2 text-sm text-red-600">{{ personasError }}</div>
+              <button *ngFor="let p of filteredPersonas" type="button" (click)="selectPersona(p)" class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50">{{ personaLabel(p) }}</button>
+              <div *ngIf="!personasLoading && !filteredPersonas.length" class="px-3 py-2 text-sm text-slate-500">Sin resultados</div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm text-slate-700">Placa (opcional)</label>
+            <input type="text" [(ngModel)]="cabeceraForm.placa" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-sm font-medium text-slate-700">Detalle</div>
+        <div class="mt-2 grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm text-slate-700">Tipo comprobante</label>
+            <select [(ngModel)]="detalleForm.tipo_comprobante" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option [ngValue]="undefined">Seleccione…</option>
+              <option *ngFor="let t of tiposComprobante" [ngValue]="t.id">{{ t.nombre }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-slate-700">N° comprobante</label>
+            <input type="text" [(ngModel)]="detalleForm.numero_comprobante" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm text-slate-700">Descripción (opcional)</label>
+            <input type="text" [(ngModel)]="detalleForm.descripcion" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-sm text-slate-700">Tipo gasto (opcional)</label>
+            <input type="number" [(ngModel)]="detalleForm.tipo_gasto" min="0" step="1" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-sm text-slate-700">Monto detalle</label>
+            <input type="number" [(ngModel)]="detalleForm.monto" min="0" step="0.01" placeholder="Por defecto usa el monto de cabecera" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          </div>
+        </div>
+      </div>
+
+      <div class="text-sm text-red-600" *ngIf="addError">{{ addError }}</div>
+    </div>
+
+    <div class="mt-6 flex items-center justify-end gap-2">
+      <button (click)="closeAddMovimiento()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
+      <button (click)="submitAddMovimiento()" [disabled]="!isValidAdd || savingAdd" class="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">Guardar</button>
+    </div>
+  </div>
+</div>
+

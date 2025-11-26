@@ -35,8 +35,8 @@
           </div>
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Tipo: {{ c.tipo_comprobante }}</span>
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Forma: {{ c.forma_pago }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Tipo: {{ tipoNombre(c.tipo_comprobante) }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Forma: {{ formaNombre(c.forma_pago) }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Total: {{ c.precio_total | number:'1.2-2' }}</span>
         </div>
       </div>
@@ -71,8 +71,8 @@
 <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
     <div class="grid grid-cols-2 gap-3 text-sm">
       <div>Fecha: <span class="font-medium">{{ selected.fecha_comprobante }}</span></div>
-      <div>Tipo: <span class="font-medium">{{ selected.tipo_comprobante }}</span></div>
-      <div>Forma de pago: <span class="font-medium">{{ selected.forma_pago }}</span></div>
+      <div>Tipo: <span class="font-medium">{{ tipoNombre(selected.tipo_comprobante) }}</span></div>
+      <div>Forma de pago: <span class="font-medium">{{ formaNombre(selected.forma_pago) }}</span></div>
       <div>Impuesto: <span class="font-medium">{{ selected.impuesto | number:'1.2-2' }}</span></div>
       <div>Total: <span class="font-semibold">{{ selected.precio_total | number:'1.2-2' }}</span></div>
     </div>
