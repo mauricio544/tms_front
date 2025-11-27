@@ -19,6 +19,7 @@ import { GastosFeature } from './features/gastos/gastos';
 
 import { ComprobantesFeature } from './features/comprobantes/comprobantes-feature';
 import {SedesFeature} from './features/sedes/sedes';
+import {ReportesFeature} from './features/reportes/reportes';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: LoginComponent },
@@ -43,6 +44,7 @@ export const routes: Routes = [
       { path: 'liquidaciones', component: LiquidacionesFeature, data: { breadcrumb: 'Liquidaciones' } },
       { path: 'gastos', component: GastosFeature, data: { breadcrumb: 'Gastos' } },
       { path: 'comprobantes', component: ComprobantesFeature, data: { breadcrumb: 'Comprobantes' } },
+      { path: 'reportes', component: ReportesFeature, data: { breadcrumb: 'Reportes' } },
     ],
   },
   { path: '**', redirectTo: '' },

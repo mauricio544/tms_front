@@ -51,6 +51,7 @@
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Destino: {{ getPuntoNombre(item.punto_destino_id) }}</span>
           <span class="inline-block rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5" *ngIf="item.estado_pago">Pagado</span>
           <span class="inline-block rounded border border-red-200 bg-red-50 text-red-700 px-2 py-0.5" *ngIf="!item.estado_pago">No pagado</span>
+          <span class="inline-block rounded border border-amber-200 bg-amber-50 text-amber-700 px-2 py-0.5" *ngIf="item.comprobante_id && !item.estado_pago">Comprobante: Borrador</span>
         </div>
 
         <div class="mt-4 flex items-center justify-end gap-2 flex-wrap">
@@ -164,8 +165,10 @@
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" class="h-4 w-4" />
           Pagado
+        <button *ngIf="!newEnvio.estado_pago" (click)="openComprobanteModal(false, 'B')" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs hover:bg-slate-50">Generar comprobante (borrador)</button>
         </label>
-        <button *ngIf="newEnvio.estado_pago" (click)="openComprobanteModal()" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs hover:bg-slate-50">Generar comprobante</button>
+        <button *ngIf="newEnvio.estado_pago" (click)="openComprobanteModal(false, 'P')" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs hover:bg-slate-50">Generar comprobante</button>
+        <span class="inline-block rounded border border-amber-200 bg-amber-50 text-amber-700 px-2 py-0.5" *ngIf="newEnvio.comprobante_id && !newEnvio.estado_pago">Comprobante: Borrador</span>
         <span class="text-xs text-slate-600" *ngIf="newEnvio.comprobante_id">ID: {{ newEnvio.comprobante_id }}</span>
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" [(ngModel)]="newEnvio.tipo_contenido" class="h-4 w-4" />
@@ -200,7 +203,7 @@
 
       </div>
 <!-- Modal Comprobantes -->
-<feature-comprobantes-modal [show]="showComprobanteModal" (close)="closeComprobanteModal()" (saved)="onComprobanteSaved($event)">
+<feature-comprobantes-modal [show]="showComprobanteModal" [comprobanteId]="comprobanteInicialId" [estado]="comprobanteEstado" (close)="closeComprobanteModal()" (saved)="onComprobanteSaved($event)">
 <!-- Modal Entrega -->
 </feature-comprobantes-modal>
 
@@ -224,8 +227,9 @@
         <div class="flex items-center gap-2">Pagado:
           <span class="inline-block rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5" *ngIf="it.estado_pago">Sí</span>
           <span class="inline-block rounded border border-red-200 bg-red-50 text-red-700 px-2 py-0.5" *ngIf="!it.estado_pago">No</span>
+        <div class="text-xs text-amber-700" *ngIf="it.comprobante_id && !it.estado_pago">Comprobante: Borrador</div>
         </div>
-        <button type="button" *ngIf="it && !it.estado_pago" (click)="openComprobanteModal(true)" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Generar comprobante</button>
+          <button type="button" *ngIf="it && !it.estado_pago" (click)="openComprobanteModal(true, 'P', it.comprobante_id || null)" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">{{ it.comprobante_id ? 'Abrir comprobante' : 'Generar comprobante' }}</button>
       </div>
       <div>
         <label class="block text-sm text-slate-700">Clave de recojo</label>
@@ -248,3 +252,6 @@
     </div>
   </div>
 </ng-template>
+
+
+

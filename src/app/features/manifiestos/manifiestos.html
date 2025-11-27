@@ -28,7 +28,7 @@
       <div *ngFor="let item of pageItems; index as i" class="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <div class="mb-3 flex items-start justify-between">
           <div class="min-w-0">
-            <div class="font-medium text-slate-800 truncate max-w-[14rem]">{{ item.serie }}-{{ item.numero }}</div>
+            <div class="max-w-[14rem] truncate font-medium text-slate-800">{{ item.serie }}-{{ item.numero }}</div>
             <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
           </div>
         </div>
@@ -74,59 +74,50 @@
   </div>
 </ng-template>
 
-<!-- Modal Nuevo/Editar manifiesto -->
-<div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center">
+<!-- Modal crear/editar manifiesto -->
+<div *ngIf="showModal" class="fixed inset-0 z-[1000] flex items-center justify-center">
   <div class="absolute inset-0 bg-black/30" (click)="closeModal()"></div>
-  <div class="relative z-10 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-    <h3 class="text-lg font-semibold text-slate-800">{{ editing ? 'Editar manifiesto' : 'Nuevo manifiesto' }}</h3>
-
-    <div class="mt-4 space-y-4">
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm text-slate-700">Conductor</label>
-          <select [(ngModel)]="newManifiesto.conductor_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
-            <option [ngValue]="null">Seleccione conductor</option>
-            <option *ngFor="let c of conductores" [ngValue]="c.id">{{ c.licencia }} - {{ c.tipo_licencia }}</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm text-slate-700">Origen (código punto)</label>
-          <select [(ngModel)]="newManifiesto.codigo_punto_origen" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
-            <option [ngValue]="null">Seleccione origen</option>
-            <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm text-slate-700">Destino (código punto)</label>
-          <select [(ngModel)]="newManifiesto.codigo_punto_destino" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
-            <option [ngValue]="null">Seleccione destino</option>
-            <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm text-slate-700">Serie</label>
-          <input type="text" [(ngModel)]="newManifiesto.serie" placeholder="M001" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-700">Número</label>
-          <input type="text" [(ngModel)]="newManifiesto.numero" placeholder="000123" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
-        </div>
-      </div>
-
-      <div class="text-xs text-red-600" *ngIf="!isValidManifiesto">Complete todos los campos con valores válidos</div>
+  <div class="relative z-10 w-full max-w-xl rounded-lg bg-white p-6 shadow-xl">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-slate-800">{{ editing ? 'Editar Manifiesto' : 'Nuevo Manifiesto' }}</h3>
+      <button (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Cerrar</button>
     </div>
-
-    <div class="mt-6 flex items-center justify-between gap-2">
-      <button (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
-      <div class="text-sm text-red-600" *ngIf="saveError">{{ saveError }}</div>
-      <button (click)="submitManifiesto()" [disabled]="!isValidManifiesto || saving" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">Guardar</button>
-    </div>
+    <form (ngSubmit)="submitManifiesto()" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div class="md:col-span-2">
+        <label class="block text-sm text-slate-700">Conductor</label>
+        <select [(ngModel)]="newManifiesto.conductor_id" name="conductor" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+          <option [ngValue]="null">Seleccione conductor</option>
+          <option *ngFor="let c of conductores" [ngValue]="c.id">{{ conductorLabel(c.id) }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Origen</label>
+        <select [(ngModel)]="newManifiesto.codigo_punto_origen" name="origen" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+          <option [ngValue]="null">Seleccione origen</option>
+          <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Destino</label>
+        <select [(ngModel)]="newManifiesto.codigo_punto_destino" name="destino" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+        <option [ngValue]="null">Seleccione destino</option>
+        <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Serie</label>
+        <input type="text" [(ngModel)]="newManifiesto.serie" name="serie" placeholder="F001" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Número</label>
+        <input type="text" [(ngModel)]="newManifiesto.numero" name="numero" placeholder="000123" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+      </div>
+      <div class="md:col-span-2 mt-2 flex items-center justify-end gap-2">
+        <button type="button" (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
+        <button type="submit" [disabled]="!isValidManifiesto || saving" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">{{ editing ? 'Actualizar' : 'Crear' }}</button>
+      </div>
+      <div *ngIf="saveError" class="md:col-span-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ saveError }}</div>
+    </form>
   </div>
 </div>
 
@@ -142,7 +133,7 @@
     <div *ngIf="enviosLoading" class="rounded-md border border-slate-200 bg-white p-4 text-slate-600">Cargando…</div>
     <div *ngIf="enviosError" class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ enviosError }}</div>
 
-    <div *ngIf="!enviosLoading && !enviosError" class="max-h-[75vh] overflow-auto rounded-md border border-slate-200">
+    <div *ngIf="!enviosLoading && !enviosError" class="max-h-[75vh] overflow-x-auto overflow-y-auto rounded-md border border-slate-200">
       <table class="min-w-max text-sm">
         <thead class="bg-slate-50 text-left text-slate-600">
           <tr>
@@ -150,7 +141,9 @@
             <th class="px-3 py-2">Remitente</th>
             <th class="px-3 py-2">Destinatario</th>
             <th class="px-3 py-2">Peso</th>
-            <th class="px-3 py-2">Fecha envío</th>            <th class="px-3 py-2">Origen</th>            <th class="px-3 py-2">Destino</th>
+            <th class="px-3 py-2">Fecha envío</th>
+            <th class="px-3 py-2">Origen</th>
+            <th class="px-3 py-2">Destino</th>
             <th class="px-3 py-2">Pagado</th>
             <th class="px-3 py-2 text-center">Operaciones</th>
           </tr>
@@ -161,7 +154,9 @@
             <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.destinatario) || e.destinatario }}</td>
             <td class="px-3 py-2">{{ e.peso }}</td>
-            <td class="px-3 py-2">{{ e.fecha_envio }}</td>            <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>            <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
+            <td class="px-3 py-2">{{ e.fecha_envio }}</td>
+            <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>
+            <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
             <td class="px-3 py-2">{{ e.estado_pago ? 'Sí' : 'No' }}</td>
             <td class="px-3 py-2">
               <div class="flex items-center justify-end gap-2">
@@ -172,7 +167,7 @@
             </td>
           </tr>
           <tr *ngIf="!enviosLista.length">
-            <td colspan="7" class="px-3 py-6 text-center text-slate-500">No hay envíos para este manifiesto.</td>
+            <td colspan="9" class="px-3 py-6 text-center text-slate-500">No hay envíos para este manifiesto.</td>
           </tr>
         </tbody>
       </table>
@@ -192,9 +187,9 @@
       <input type="text" [(ngModel)]="addSearch" placeholder="Buscar" class="h-9 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
       <button (click)="addSearch=''" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Limpiar</button>
     </div>
-    <div *ngIf="addEnviosLoading" class="rounded-md border border-slate-200 bg-white p-4 text-slate-600">Cargando.</div>
+    <div *ngIf="addEnviosLoading" class="rounded-md border border-slate-200 bg-white p-4 text-slate-600">Cargando…</div>
     <div *ngIf="addEnviosError" class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ addEnviosError }}</div>
-    <div *ngIf="!addEnviosLoading && !addEnviosError" class="max-h-[75vh] overflow-auto rounded-md border border-slate-200">
+    <div *ngIf="!addEnviosLoading && !addEnviosError" class="max-h-[75vh] overflow-x-auto overflow-y-auto rounded-md border border-slate-200">
       <table class="min-w-max text-sm">
         <thead class="bg-slate-50 text-left text-slate-600">
           <tr>
@@ -202,7 +197,9 @@
             <th class="px-3 py-2">Remitente</th>
             <th class="px-3 py-2">Destinatario</th>
             <th class="px-3 py-2">Peso</th>
-            <th class="px-3 py-2">Fecha envío</th>            <th class="px-3 py-2">Origen</th>            <th class="px-3 py-2">Destino</th>
+            <th class="px-3 py-2">Fecha envío</th>
+            <th class="px-3 py-2">Origen</th>
+            <th class="px-3 py-2">Destino</th>
             <th class="px-3 py-2 text-center">Operaciones</th>
           </tr>
         </thead>
@@ -212,7 +209,9 @@
             <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.destinatario) || e.destinatario }}</td>
             <td class="px-3 py-2">{{ e.peso }}</td>
-            <td class="px-3 py-2">{{ e.fecha_envio }}</td>            <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>            <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
+            <td class="px-3 py-2">{{ e.fecha_envio }}</td>
+            <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>
+            <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
             <td class="px-3 py-2">
               <div class="flex items-center justify-end">
                 <button (click)="attachEnvioToManifiesto(e)" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Añadir</button>
@@ -220,7 +219,7 @@
             </td>
           </tr>
           <tr *ngIf="!filteredAddEnvios.length">
-            <td colspan="6" class="px-3 py-6 text-center text-slate-500">No hay envíos disponibles.</td>
+            <td colspan="8" class="px-3 py-6 text-center text-slate-500">Sin envíos disponibles.</td>
           </tr>
         </tbody>
       </table>
@@ -228,4 +227,58 @@
   </div>
 </div>
 
-
+<!-- Modal Generar Guía -->
+<div *ngIf="showGuiaModal" class="fixed inset-0 z-[1200] flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/30" (click)="closeGuia()"></div>
+  <div class="relative z-10 w-full max-w-4xl rounded-lg bg-white p-6 shadow-xl">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-slate-800">Guía del Manifiesto {{ guiaSerie }}-{{ guiaNumero }}</h3>
+      <div class="flex items-center gap-2">
+        <button (click)="exportGuiaPDF()" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50">Exportar PDF</button>
+        <button (click)="closeGuia()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Cerrar</button>
+      </div>
+    </div>
+    <div *ngIf="guiaLoading" class="rounded-md border border-slate-200 bg-white p-4 text-slate-600">Cargando…</div>
+    <div *ngIf="guiaError" class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ guiaError }}</div>
+    <div *ngIf="!guiaLoading && !guiaError" class="max-h-[75vh] overflow-x-auto overflow-y-auto rounded-md border border-slate-200 p-3">
+      <div *ngFor="let g of guiaItems; index as gi" class="mb-6 rounded-md border border-slate-200">
+        <div class="border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800">Envío: {{ g.envio.guia || g.envio.id }}</div>
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-left text-slate-600">
+            <tr>
+              <th class="px-3 py-2">Ítem</th>
+              <th class="px-3 py-2">Cant.</th>
+              <th class="px-3 py-2">Descripción</th>
+              <th class="px-3 py-2">P. Unit</th>
+              <th class="px-3 py-2">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let it of g.detalles" class="border-t border-slate-200">
+              <td class="px-3 py-2">{{ it.numero_item }}</td>
+              <td class="px-3 py-2">{{ it.cantidad }}</td>
+              <td class="px-3 py-2">{{ it.descripcion }}</td>
+              <td class="px-3 py-2">{{ it.precio_unitario | number:'1.2-2' }}</td>
+              <td class="px-3 py-2">{{ (it.cantidad * it.precio_unitario) | number:'1.2-2' }}</td>
+            </tr>
+            <tr *ngIf="!g.detalles?.length">
+              <td colspan="5" class="px-3 py-2 text-slate-500">Sin detalles</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Firmas -->
+      <div class="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
+        <div>
+          <div class="mb-10 border-b border-slate-300"></div>
+          <div class="text-center text-sm text-slate-700">Firma del Conductor</div>
+          <div class="mt-1 text-center text-xs text-slate-500">{{ conductorLabel(guiaConductorId) }}</div>
+        </div>
+        <div>
+          <div class="mb-10 border-b border-slate-300"></div>
+          <div class="text-center text-sm text-slate-700">Recibido por</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

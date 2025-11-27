@@ -1,6 +1,6 @@
 ﻿import { Comprobantes } from '../../../../core/services/comprobantes';
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
@@ -16,11 +16,13 @@ import {DetalleMovimientos} from '../../../../core/services/detalle-movimientos'
   imports: [CommonModule, FormsModule],
   templateUrl: './comprobantes.html',
 })
-export class ComprobantesModalComponent implements OnInit {
+export class ComprobantesModalComponent implements OnInit, OnChanges {
   @Input() show = false;
+  @Input() estado: 'P' | 'B' = 'P';
+  @Input() comprobanteId: number | null = null;
   @Output() close = new EventEmitter<void>();
   @Output() saved = new EventEmitter<number>();
-
+ 
   cabecera: Partial<ComprobanteCreate> = {
     tipo_comprobante: undefined as any,
     numero_comprobante: undefined as any,
@@ -31,34 +33,63 @@ export class ComprobantesModalComponent implements OnInit {
     serie: '',
     numero: '',
   } as any;
-
+ 
   cabeceraId: number | null = null;
   detalle: DetalleComprobante[] = [];
-
+ 
   nuevoItem: Partial<DetalleComprobanteCreate> = {
     cantidad: undefined as any,
     descripcion: undefined as any,
     precio_unitario: undefined as any,
   } as any;
-
+ 
   guardandoCabecera = false;
   errorCabecera: string | null = null;
   errorDetalle: string | null = null;
-
+ 
   // Generales catálogos
   generales: General[] = [];
   tiposComprobante: General[] = [];
   formasPago: General[] = [];
-
+ 
   finalizando = false;
   movimientoCreado = false;
   errorMovimiento = "";
-
-  constructor(private readonly comprobantesSrv: Comprobantes,
+ 
+  constructor(
+    private readonly comprobantesSrv: Comprobantes,
     private readonly detallesSrv: DetallesComprobante,
-    private readonly generalesSrv: Generales, private readonly movimientosSrv: Movimientos, private readonly detalleMovSrv: DetalleMovimientos) {}
-
+    private readonly generalesSrv: Generales,
+    private readonly movimientosSrv: Movimientos,
+    private readonly detalleMovSrv: DetalleMovimientos,
+  ) {}
+ 
+  private loadExisting(id: number){
+    this.cabeceraId = id;
+    this.comprobantesSrv.getComprobantes().subscribe({
+      next: (list:any[]) => {
+        const f = (list||[]).find(x=> Number((x as any).id)===Number(id));
+        if(f){
+          const c: any = f;
+          this.cabecera = {
+            tipo_comprobante: c.tipo_comprobante,
+            numero_comprobante: c.numero_comprobante,
+            forma_pago: c.forma_pago,
+            precio_total: c.precio_total,
+            fecha_comprobante: c.fecha_comprobante,
+            impuesto: c.impuesto,
+            serie: c.serie,
+            numero: c.numero,
+          } as any;
+        }
+        this.detallesSrv.getDetalles(Number(id)).subscribe({ next: (ds)=>{ this.detalle = ds||[]; }, error: ()=>{} });
+      },
+      error: ()=>{ /* no-op */ }
+    });
+  }
+ 
   ngOnInit(): void {
+    if (this.comprobanteId) { this.loadExisting(this.comprobanteId); }
     this.generalesSrv.getGenerales().subscribe({
       next: (gs: General[]) => {
         this.generales = gs || [];
@@ -68,7 +99,7 @@ export class ComprobantesModalComponent implements OnInit {
       error: () => { /* no-op */ }
     });
   }
-
+ 
   get validaCabecera(): boolean {
     const c: any = this.cabecera;
     const okTipo = Number(c.tipo_comprobante) >= 0;
@@ -106,6 +137,7 @@ export class ComprobantesModalComponent implements OnInit {
       impuesto: Number(c.impuesto) || 0,
       serie: String(c.serie || '').trim(),
       numero: String(c.numero || '').trim(),
+      estado_comprobante: this.estado,
     } as any;
 
     this.comprobantesSrv.createComprobantes(body).subscribe({
@@ -180,7 +212,7 @@ export class ComprobantesModalComponent implements OnInit {
     const numero = String((this.cabecera as any).numero || '').trim();
     const numeroComprobante = `${serie}${numero}`;
 
-    const afterUpdate = () => {
+    const afterUpdatePago = () => {
       this.movimientosSrv.createMovimientos({ tipo_movimiento: 'I', monto: total } as any).subscribe({
         next: (cab: any) => {
           const cabId = (cab as any)?.id;
@@ -212,10 +244,28 @@ export class ComprobantesModalComponent implements OnInit {
       });
     };
 
-    // Intenta actualizar total en el comprobante antes de crear el movimiento
-    this.comprobantesSrv.updateComprobantes(this.cabeceraId, { precio_total: total } as any).subscribe({
-      next: () => afterUpdate(),
-      error: () => afterUpdate(),
+        // Actualiza total y, según estado, crea (o no) movimiento
+    const doAfterUpdate = () => {
+      if (this.estado === 'P') {
+        afterUpdatePago();
+      } else {
+        this.finalizando = false;
+        this.saved.emit(this.cabeceraId!);
+        this.onClose();
+      }
+    };
+
+    this.comprobantesSrv.updateComprobantes(this.cabeceraId, { precio_total: total, estado_comprobante: this.estado } as any).subscribe({
+      next: () => doAfterUpdate(),
+      error: () => doAfterUpdate(),
     });
+  }
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['comprobanteId'] && changes['comprobanteId'].currentValue) {
+      const id = Number(changes['comprobanteId'].currentValue);
+      if (id && (!this.cabeceraId || this.cabeceraId !== id)) {
+        this.loadExisting(id);
+      }
+    }
   }
 }

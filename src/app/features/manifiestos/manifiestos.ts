@@ -1,4 +1,5 @@
 ﻿import { Component, OnInit, inject } from '@angular/core';
+import jsPDF from 'jspdf';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiAlertComponent } from '../../shared/ui/alert/alert';
@@ -7,9 +8,11 @@ import { Manifiestos } from '../../../../core/services/manifiestos';
 import { Envios } from '../../../../core/services/envios';
 import { Puntos } from '../../../../core/services/puntos';
 import { Conductores as ConductoresService } from '../../../../core/services/conductores';
-import { Manifiesto, Envio, Puntos as Points, Persona } from '../../../../core/mapped';
+import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante } from '../../../../core/mapped';
 import { Conductor } from '../../../../core/mapped';
 import { Personas } from '../../../../core/services/personas';
+import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
+import { forkJoin, of } from 'rxjs';
 import { RouterLink } from '@angular/router';
 
 export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; };
@@ -27,6 +30,7 @@ export class ManifiestosFeature implements OnInit {
   private readonly conductoresSrv = inject(ConductoresService);
   private readonly enviosSrv = inject(Envios);
   private readonly personasSrv = inject(Personas);
+  private readonly detCompSrv = inject(DetallesComprobante);
 
   // Datos
   lista_manifiestos: Manifiesto[] = [];
@@ -43,7 +47,7 @@ export class ManifiestosFeature implements OnInit {
   saving = false;
   saveError: string | null = null;
 
-  // Confirmación eliminación
+  // Confirmación eliminacion
   confirmOpen = false;
   confirmTitle = 'Confirmar eliminación';
   confirmMessage = '';
@@ -199,8 +203,8 @@ export class ManifiestosFeature implements OnInit {
 
   askDelete(item: Manifiesto) {
     this.pendingDeleteId = (item as any).id ?? null;
-    this.pendingDeleteLabel = (item as any).serie || '';
-    this.confirmMessage = "¿Eliminar manifiesto ?";
+    this.pendingDeleteLabel = `${(item as any).serie || ''}-${(item as any).numero || ''}`;
+    this.confirmMessage = `¿Eliminar manifiesto ${this.pendingDeleteLabel}?`;
     this.confirmOpen = true;
   }
   onCancelDelete() {
@@ -245,7 +249,7 @@ export class ManifiestosFeature implements OnInit {
   }
 
   safeOrigen(item: any): number | null {
-    return (item?.codigo_punto_origen ?? item?.codigo_ounto_origen) ?? null;
+    return item?.codigo_punto_origen ?? null;
   }
   safeDestino(item: any): number | null {
     return item?.codigo_punto_destino ?? null;
@@ -270,7 +274,6 @@ export class ManifiestosFeature implements OnInit {
       error: () => { this.conductores = []; },
     });
   }
-
   loadPersonas() {
     this.personasSrv.getPersonas().subscribe({
       next: (res) => { this.personas = res || []; },
@@ -282,8 +285,9 @@ export class ManifiestosFeature implements OnInit {
     if (!id) return '';
     const c = (this.conductores || []).find((cc:any) => cc.id === id);
     if (!c) return String(id);
-    return c.licencia || 'Conductor'.trim();
+    return `${c.licencia || 'Conductor'} - ${c.tipo_licencia || ''}`.trim();
   }
+
 
   ngOnInit(): void {
     this.loadManifiestos();
@@ -307,7 +311,100 @@ export class ManifiestosFeature implements OnInit {
     });
   }
   closeEnvios() { this.showEnviosModal = false; }
-  generarGuia(item: Manifiesto) { this.showNotif('Generar guía: pendiente de implementación'); }
+
+  // Generar guía
+  showGuiaModal = false;
+  guiaLoading = false;
+  guiaError: string | null = null;
+  guiaItems: { envio: Envio, detalles: DetalleComprobante[] }[] = [];
+  guiaManifiestoId: number | null = null;
+  guiaSerie: string = '';
+  guiaNumero: string = '';
+  guiaOrigenId: number | null = null;
+  guiaDestinoId: number | null = null;
+  guiaConductorId: number | null = null;
+
+  generarGuia(item: Manifiesto) {
+    const id = (item as any)?.id;
+    if (!id) return;
+    this.guiaManifiestoId = Number(id);
+    this.guiaSerie = String(((item as any).serie || ''));
+    this.guiaNumero = String(((item as any).numero || ''));
+    this.guiaOrigenId = this.safeOrigen(item as any);
+    this.guiaDestinoId = this.safeDestino(item as any);
+    this.guiaConductorId = (item as any).conductor_id ?? null;
+    this.showGuiaModal = true;
+    this.guiaLoading = true;
+    this.guiaError = null;
+    this.guiaItems = [];
+    this.enviosSrv.getEnviosManifiesto(Number(id)).subscribe({
+      next: (envs: any[]) => {
+        const envios = envs || [];
+        const calls = envios.map((e:any) => (e?.comprobante_id ? this.detCompSrv.getDetalles(Number(e.comprobante_id)) : of([])));
+        forkJoin(calls).subscribe({
+          next: (detList: any[]) => {
+            this.guiaItems = envios.map((e:any, idx:number) => ({ envio: e as any, detalles: (detList[idx] || []) as any[] }));
+            this.guiaLoading = false;
+          },
+          error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los detalles de comprobante'; }
+        });
+      },
+      error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los envíos del manifiesto'; }
+    });
+  }
+  closeGuia() { this.showGuiaModal = false; }
+
+  exportGuiaPDF() {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    let y = 40;
+    const marginX = 40; const line = 16;
+    const add = (t:string, bold=false) => { doc.setFont('helvetica', bold?'bold':'normal'); doc.text(t, marginX, y); y += line; };
+    add('Manifiesto ' + (this.guiaSerie || '') + '-' + (this.guiaNumero || ''), true);
+    add('Conductor: ' + this.conductorLabel(this.guiaConductorId), false);
+    add('Origen: ' + this.nameFrom(this.guiaOrigenId) + '   Destino: ' + this.nameFrom(this.guiaDestinoId), false);
+    (this.guiaItems || []).forEach((g, gi) => {
+      if (y > 760) { doc.addPage(); y = 40; }
+      add('Envío: ' + (((g as any).envio?.guia ?? (g as any).envio?.id) || ''), true);
+      const dets:any[] = (g as any).detalles || [];
+      if (!dets.length) { add('Sin detalle'); return; }
+      doc.setFont('helvetica','bold');
+      doc.text('Ítem', marginX, y); doc.text('Cant.', marginX+50, y); doc.text('Descripción', marginX+110, y); doc.text('P. Unit', marginX+360, y); doc.text('Subtotal', marginX+450, y); y += 8; doc.line(marginX, y, marginX+520, y); y += 12; doc.setFont('helvetica','normal');
+      dets.forEach((d:any) => {
+        if (y > 780) { doc.addPage(); y = 40; }
+        const subtotal = (Number(d.cantidad)||0) * (Number(d.precio_unitario)||0);
+        doc.text(String(d.numero_item ?? ''), marginX, y);
+        doc.text(String(d.cantidad ?? ''), marginX+50, y);
+        doc.text(String(d.descripcion ?? ''), marginX+110, y, { maxWidth: 220 });
+        doc.text(String(Number(d.precio_unitario||0).toFixed(2)), marginX+360, y);
+        doc.text(String(Number(subtotal).toFixed(2)), marginX+450, y);
+        y += 14;
+      });
+      y += 6;
+    });
+    // Firmas
+    y += 20; if (y > 700) { doc.addPage(); y = 60; }
+    // Conductor
+    doc.setLineWidth(0.5);
+    doc.line(marginX+40, y+2, marginX+280, y+2);
+    doc.text('Firma del Conductor', marginX+80, y+16);
+    doc.text(String(this.conductorLabel(this.guiaConductorId)), marginX+60, y-6);
+    // Recibido por
+    y += 50; if (y > 760) { doc.addPage(); y = 60; }
+    const allDests = ((this.guiaItems||[]) as any[]).map((g:any)=> (this.personaLabelById((g as any).envio?.destinatario) || "").trim()).filter((n:string)=> !!n);
+    const uniq = Array.from(new Set(allDests));
+    let destShow = "";
+    if (uniq.length === 1) { destShow = uniq[0]; }
+    else if (uniq.length > 1 && uniq.length <= 3) { destShow = uniq.join(", "); }
+    else if (uniq.length > 3) { destShow = uniq.slice(0,3).join(", ") + " +" + (uniq.length-3) + " más"; }
+    doc.line(marginX+40, y+2, marginX+280, y+2);
+    if (destShow) { doc.text('Recibido por: ' + destShow, marginX+60, y-6); }
+    doc.text('Recibido por', marginX+110, y+16);
+    const today = new Date(); const f = today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
+    doc.text('Fecha: ' + f, marginX+340, y+6);
+    const fname = `guia_manifiesto_${this.guiaSerie || ''}-${this.guiaNumero || ''}.pdf`;
+    doc.save(fname);
+  }
+
   anadirEnvio(item: Manifiesto) {
     const id = (item as any)?.id;
     if (!id) return;

@@ -182,10 +182,12 @@ export class EnviosFeature implements OnInit {
 
   // Comprobante modal
   showComprobanteModal = false;
+  comprobanteEstado: 'P' | 'B' = 'P';
+  comprobanteInicialId: number | null = null;
   private comprobanteFromEntrega = false;
   private entregaComprobanteId: number | null = null;
-  openComprobanteModal(fromEntrega: boolean = false) { this.comprobanteFromEntrega = !!fromEntrega; this.showComprobanteModal = true; }
-  closeComprobanteModal() { this.showComprobanteModal = false; }
+  openComprobanteModal(fromEntrega: boolean = false, estado: 'P'|'B' = 'P', id: number | null = null) { this.comprobanteFromEntrega = !!fromEntrega; this.comprobanteEstado = estado; this.comprobanteInicialId = id; this.showComprobanteModal = true; }
+  closeComprobanteModal() { this.showComprobanteModal = false; this.comprobanteInicialId = null; }
   onComprobanteSaved(id: number) {
     if (this.comprobanteFromEntrega) {
       this.entregaComprobanteId = id;
@@ -476,6 +478,7 @@ export class EnviosFeature implements OnInit {
     this.loadPuntos();
   }
 }
+
 
 
 

@@ -157,6 +157,10 @@ export interface Comprobante {
   impuesto?: number;
   serie: string;
   numero:string;
+  estado_comprobante: string;
+  fecha_pago: string;
+  emisor: number;
+  cliente: number;
 }
 
 export interface ComprobanteCreate {
@@ -168,6 +172,10 @@ export interface ComprobanteCreate {
   impuesto: number;
   serie: string;
   numero:string;
+  estado_comprobante: string;
+  fecha_pago: string;
+  emisor: number;
+  cliente: number;
 }
 
 export interface DetalleComprobante {
