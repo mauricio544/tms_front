@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://tms.mi-dominio.com', // cuando lo tengas
+  apiUrl: 'https://tms-front-tlrz.vercel.app', // cuando lo tengas
 };
