@@ -1,0 +1,416 @@
+   0: import { Component, OnInit, inject, ChangeDetectorRef, ViewContainerRef, TemplateRef, ViewChild } from '@angular/core';
+   1: import { CommonModule } from '@angular/common';
+   2: import { FormsModule } from '@angular/forms';
+   3: import { RouterModule, ActivatedRoute } from '@angular/router';
+   4: import { Overlay, OverlayConfig, OverlayModule, OverlayRef } from '@angular/cdk/overlay';
+   5: import { PortalModule, TemplatePortal } from '@angular/cdk/portal';
+   6: import { UiAlertComponent } from '../../shared/ui/alert/alert';
+   7: import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
+   8: import { Utils } from '../../../../core/services/utils';
+   9: import { Envios } from '../../../../core/services/envios';
+  10: import { Personas } from '../../../../core/services/personas';
+  11: import { Puntos as PuntosService } from '../../../../core/services/puntos';
+  12: import { DetalleEnvio as DetalleEnvioService } from '../../../../core/services/detalle-envio';
+  13: import { Generales } from '../../../../core/services/generales';
+  14: import { Comprobantes } from '../../../../core/services/comprobantes';
+  15: import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General } from '../../../../core/mapped';
+  16: import { forkJoin } from 'rxjs';
+  17: 
+  18: @Component({
+  19:   selector: 'feature-envios',
+  20:   standalone: true,
+  21:   imports: [CommonModule, FormsModule, RouterModule, UiAlertComponent, UiConfirmComponent, Utils, OverlayModule, PortalModule],
+  22:   templateUrl: './envios.html',
+  23:   styleUrl: './envios.css',
+  24: })
+  25: export class EnviosFeature implements OnInit {
+  26:   private readonly enviosSrv = inject(Envios);
+  27:   private readonly personasSrv = inject(Personas);
+  28:   private readonly puntosSrv = inject(PuntosService);
+  29:   private readonly route = inject(ActivatedRoute);
+  30:   private readonly cdr = inject(ChangeDetectorRef);
+  31:   private readonly overlay = inject(Overlay);
+  32:   private readonly vcr = inject(ViewContainerRef);
+  33:   private readonly detalleSrv = inject(DetalleEnvioService);
+  34:   private readonly generalesSrv = inject(Generales);
+  35:   private readonly comprobantesSrv = inject(Comprobantes);
+  36: 
+  37:   // Estado principal
+  38:   lista_envios: Envio[] = [];
+  39:   loading = false;
+  40:   error: string | null = null;
+  41: 
+  42:   // Vista (tarjetas/tabla) con persistencia
+  43:   viewMode: 'cards' | 'table' = 'cards';
+  44:   setViewMode(m: 'cards'|'table') { this.viewMode = m; try { localStorage.setItem('envios.viewMode', m); } catch {} }
+  45: 
+  46:   // Filtros y paginación
+  47:   search = '';
+  48:   page = 1;
+  49:   pageSize = 8;
+  50:   entregaFilter: 'all' | 'delivered' | 'pending' = 'all';
+  51: 
+  52:   // Crear/Editar inline
+  53:   showCreate = false;
+  54:   showEdit = false;
+  55:   saving = false;
+  56:   saveError: string | null = null;
+  57: 
+  58:   // Confirmación de eliminación
+  59:   confirmOpen = false;
+  60:   confirmTitle = 'Confirmar eliminación';
+  61:   confirmMessage = '';
+  62:   pendingDeleteId: number | null = null;
+  63:   pendingDeleteLabel = '';
+  64: 
+  65:   // Notificaciones
+  66:   notif: string | null = null;
+  67:   notifType: 'success' | 'error' = 'success';
+  68: 
+  69:   // Edición
+  70:   editing = false;
+  71:   editingId: number | null = null;
+  72: 
+  73:   // Entrega (overlay)
+  74:   entregaOpen = false;
+  75:   entregaItem: Envio | null = null;
+  76:   entregaClaveInput = '';
+  77:   entregaFecha = '';
+  78:   entregaSaving = false;
+  79:   entregaError: string | null = null;
+  80:   private entregaRef: OverlayRef | null = null;
+  81:   @ViewChild('entregaTpl') entregaTpl!: TemplateRef<any>;
+  82: 
+  83:   // Ticket modal
+  84:   showTicket = false;
+  85:   ticketEnvio: Envio | null = null;
+  86:   ticketDetalles: Array<{ numero_item: number; cantidad: number; descripcion: any; precio_unitario: number }> = [];
+  87:   get ticketTotal(): number { return (this.ticketDetalles || []).reduce((s, d) => s + (Number(d.cantidad)||0) * (Number(d.precio_unitario)||0), 0); }
+  88:   openTicket(env: Envio, fromDetalles: Array<{ cantidad: number; descripcion: any; precio_unitario: number }> = []) {
+  89:     this.ticketEnvio = env;
+  90:     this.ticketDetalles = (fromDetalles || []).map((d, i) => ({ numero_item: i+1, cantidad: Number(d.cantidad)||0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario)||0 }));
+  91:     this.showTicket = true;
+  92:   }
+  93:   closeTicket() { this.showTicket = false; this.ticketEnvio = null; this.ticketDetalles = []; }
+  94:   printTicket() { try { window.print(); } catch {} }
+  95: 
+  96:   // Envío en edición/creación
+  97:   newEnvio: Partial<Envio> = {
+  98:     remitente: null as any,
+  99:     destinatario: null as any,
+ 100:     estado_pago: false,
+ 101:     clave_recojo: '',
+ 102:     peso: null as any,
+ 103:     fecha_envio: '',
+ 104:     fecha_recepcion: '',
+ 105:     tipo_contenido: false,
+ 106:     guia: null as any,
+ 107:     manifiesto: null as any,
+ 108:     valida_restricciones: false,
+ 109:     punto_origen_id: null as any,
+ 110:     punto_destino_id: null as any,
+ 111:   } as any;
+ 112: 
+ 113:   // Detalle de envío (creación)
+ 114:   stagedDetalles: Array<{ cantidad: number; descripcion: any; precio_unitario: number }> = [];
+ 115:   newDet: { cantidad: number | null; descripcion: string; precio_unitario: number | null } = { cantidad: null, descripcion: '', precio_unitario: null };
+ 116:   get stagedSubtotal(): number { return this.stagedDetalles.reduce((s, d) => s + (Number(d.cantidad)||0) * (Number(d.precio_unitario)||0), 0); }
+ 117:   addDetalle() {
+ 118:     const c = Number(this.newDet.cantidad);
+ 119:     const p = Number(this.newDet.precio_unitario);
+ 120:     const desc = (this.newDet.descripcion || '').toString().trim();
+ 121:     if (!c || !p || !desc) return;
+ 122:     this.stagedDetalles.push({ cantidad: c, precio_unitario: p, descripcion: desc });
+ 123:     this.newDet = { cantidad: null, descripcion: '', precio_unitario: null };
+ 124:   }
+ 125:   removeDetalle(i: number) { this.stagedDetalles.splice(i, 1); }
+ 126: 
+ 127:   // Personas (autocomplete)
+ 128:   personas: Persona[] = [];
+ 129:   personasLoading = false;
+ 130:   personasError: string | null = null;
+ 131:   remitenteQuery = '';
+ 132:   destinatarioQuery = '';
+ 133:   showRemitenteOptions = false;
+ 134:   showDestinatarioOptions = false;
+ 135: 
+ 136:   // Doc lookup (crear si no existe) - remitente/destinatario
+ 137:   remitenteDocType: 'RUC'|'DNI' = 'RUC';
+ 138:   remitenteDocNumber: string = '';
+ 139:   destinatarioDocType: 'RUC'|'DNI' = 'RUC';
+ 140:   destinatarioDocNumber: string = '';
+ 141:   remLookupLoading = false; remLookupError: string | null = null;
+ 142:   destLookupLoading = false; destLookupError: string | null = null;
+ 143: 
+ 144:   // Comprobante (creación cuando pagado)
+ 145:   compTipos: General[] = [];
+ 146:   payTipos: General[] = [];
+ 147:   compTipoSel: General | null = null;
+ 148:   compTipoId: number | null = null;
+ 149:   compSerie: string = '';
+ 150:   compCorrelativo: number = 0;
+ 151:   compNumero: string = '';
+ 152:   compNumeroComprobante: string = '';
+ 153:   compFormaPagoId: number | null = null;
+ 154:   compFechaPago: string = '';
+ 155:   compDocType: 'RUC'|'DNI' = 'DNI';
+ 156:   compDocNumber: string = '';
+ 157:   compClienteId: number | null = null;
+ 158:   compLookupLoading = false; compLookupError: string | null = null;
+ 159:   get compImpuesto(): number { const total = this.stagedSubtotal || 0; return this.compTipoNombre().toLowerCase().includes('fact') ? +(total * 0.18).toFixed(2) : 0; }
+ 160:   get compTotal(): number { return this.stagedSubtotal || 0; }
+ 161:   get compTotalConImpuesto(): number { return this.compTipoNombre().toLowerCase().includes('fact') ? (this.compTotal + this.compImpuesto) : this.compTotal; }
+ 162:   compTipoNombre(): string { const t = this.compTipoSel || this.compTipos.find(x => (x as any).codigo_principal === this.compTipoId) || null as any; return (t?.nombre || '').toString(); }
+ 163:   private pad6(n: number): string { const s = String(n||0); return s.padStart(6, '0'); }
+ 164:   onCompTipoChange(selected?: any) {
+ 165:     if (selected && typeof selected === 'object') {
+ 166:       this.compTipoSel = selected as General;
+ 167:       this.compTipoId = Number((this.compTipoSel as any).id || 0);
+ 168:     } else if (selected != null) {
+ 169:       this.compTipoId = Number(selected);
+ 170:       this.compTipoSel = this.compTipos.find(x => Number((x as any).id) === this.compTipoId) || null as any;
+ 171:     } else if (!this.compTipoSel && this.compTipoId != null) {
+ 172:       this.compTipoSel = this.compTipos.find(x => Number((x as any).id) === Number(this.compTipoId)) || null as any;
+ 173:     }
+ 174:     const t: any = this.compTipoSel;
+ 175:     this.compSerie = (t?.serie || '').toString();
+ 176:     this.compCorrelativo = Number(t?.correlativo || 0);
+ 177:     this.compNumero = this.pad6(this.compCorrelativo);
+ 178:     this.compNumeroComprobante = `${this.compSerie}-${this.compNumero}`;
+ 179:     const nombre = (t?.nombre || '').toString().toLowerCase();
+ 180:     this.compDocType = nombre.includes('fact') ? 'RUC' : 'DNI';
+ 181:     this.compDocNumber = '';
+ 182:     this.compClienteId = null;
+ 183:   }
+ 184: 
+ 185:   // Nombres de puntos
+ 186:   puntos: PuntoModel[] = [];
+ 187:   puntosLoading = false;
+ 188:   puntosError: string | null = null;
+ 189:   getPuntoNombre(id: number | null | undefined): string {
+ 190:     const p = (this.puntos || []).find(x => (x as any).id === Number(id));
+ 191:     return p ? (p as any).nombre : (id != null ? String(id) : '-');
+ 192:   }
+ 193: 
+ 194:   // Lista filtrada y paginación
+ 195:   get filteredEnvios(): Envio[] {
+ 196:     const term = (this.search || '').trim().toLowerCase();
+ 197:     return (this.lista_envios || []).filter((e: any) => {
+ 198:       const entregado = !!(e?.fecha_recepcion || e?.estado_entrega);
+ 199:       if (this.entregaFilter === 'delivered' && !entregado) return false;
+ 200:       if (this.entregaFilter === 'pending' && entregado) return false;
+ 201:       if (!term) return true;
+ 202:       const remit = (this.personaLabelById(e?.remitente) || '').toLowerCase();
+ 203:       const dest = (this.personaLabelById(e?.destinatario) || '').toLowerCase();
+ 204:       const values = [
+ 205:         String(e.remitente ?? ''), String(e.destinatario ?? ''), remit, dest,
+ 206:         String(e.peso ?? ''), String(e.fecha_envio ?? ''), String(e.punto_origen_id ?? ''), String(e.punto_destino_id ?? ''),
+ 207:         String(e.guia ?? ''), String(e.manifiesto ?? ''), String(e.clave_recojo ?? ''),
+ 208:       ].join(' ').toLowerCase();
+ 209:       return values.includes(term);
+ 210:     });
+ 211:   }
+ 212:   get total(): number { return this.filteredEnvios.length; }
+ 213:   get totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
+ 214:   get pageItems(): Envio[] { const start = (this.page - 1) * this.pageSize; return this.filteredEnvios.slice(start, start + this.pageSize); }
+ 215:   get pageStart(): number { return this.total ? (this.page - 1) * this.pageSize + 1 : 0; }
+ 216:   get pageEnd(): number { return Math.min(this.page * this.pageSize, this.total); }
+ 217:   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
+ 218:   onFilterChange() { this.page = 1; }
+ 219: 
+ 220:   // Autocomplete personas helpers
+ 221:   get filteredRemitentes(): Persona[] { const q = (this.remitenteQuery || '').toLowerCase().trim(); const list = this.personas || []; if (!q) return list.slice(0, 10); return list.filter(p => this.personaLabel(p).toLowerCase().includes(q)).slice(0, 10); }
+ 222:   get filteredDestinatarios(): Persona[] { const q = (this.destinatarioQuery || '').toLowerCase().trim(); const list = this.personas || []; if (!q) return list.slice(0, 10); return list.filter(p => this.personaLabel(p).toLowerCase().includes(q)).slice(0, 10); }
+ 223:   personaLabel(p: Persona): string { const nombre = [p.nombre, p.apellido].filter(Boolean).join(' ').trim(); const razon = (p.razon_social || '').trim(); const base = (razon || nombre || '').trim(); const doc = (p.nro_documento || '').trim(); return [base, doc].filter(Boolean).join(' - '); }
+ 224:   personaLabelById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? this.personaLabel(p) : null; }
+ 225:   selectRemitente(p: Persona) { (this.newEnvio as any).remitente = (p as any).id; this.remitenteQuery = this.personaLabel(p); this.showRemitenteOptions = false; }
+ 226:   selectDestinatario(p: Persona) { (this.newEnvio as any).destinatario = (p as any).id; this.destinatarioQuery = this.personaLabel(p); this.showDestinatarioOptions = false; }
+ 227:   clearRemitente() { (this.newEnvio as any).remitente = null as any; this.remitenteQuery = ''; }
+ 228:   clearDestinatario() { (this.newEnvio as any).destinatario = null as any; this.destinatarioQuery = ''; }
+ 229: 
+ 230:   private buildPersonaFromRUC(data: any): Partial<Persona> { return { nombre: '', apellido: '', razon_social: (data?.razon_social || '').toString(), direccion: (data?.direccion || '').toString(), celular: '', email: '', nro_documento: (data?.numero_documento || '').toString(), tipo_documento: 'RUC' } as any; }
+ 231:   private buildPersonaFromDNI(data: any): Partial<Persona> { const nombre = (data?.first_name || '').toString(); const ap1 = (data?.first_last_name || '').toString(); const ap2 = (data?.second_last_name || '').toString(); return { nombre, apellido: [ap1, ap2].filter(Boolean).join(' ').trim(), razon_social: '', direccion: '', celular: '', email: '', nro_documento: (data?.document_number || '').toString(), tipo_documento: 'DNI' } as any; }
+ 232:   private isValidDoc(type: 'RUC'|'DNI', nro: string): boolean { const d = (nro || '').replace(/[^0-9]/g, ''); return type === 'RUC' ? d.length === 11 : d.length === 8; }
+ 233:   lookupRemitente() {
+ 234:     this.remLookupError = null; const type = this.remitenteDocType; const nro = (this.remitenteDocNumber || '').trim();
+ 235:     if (!type || !nro) { this.remLookupError = 'Ingrese tipo y numero'; return; }
+ 236:     if (!this.isValidDoc(type, nro)) { this.remLookupError = (type==='RUC' ? 'RUC debe tener 11 digitos' : 'DNI debe tener 8 digitos'); return; }
+ 237:     const found = (this.personas || []).find(p => (p as any).nro_documento === nro && (p as any).tipo_documento === type);
+ 238:     if (found) { this.selectRemitente(found); return; }
+ 239:     this.remLookupLoading = true;
+ 240:     if (type === 'RUC') {
+ 241:       this.personasSrv.getDatosRUC(type, nro).subscribe({ next: (data: any) => { const body = this.buildPersonaFromRUC(data); if (!(body as any).nro_documento) { this.remLookupLoading = false; this.remLookupError = 'No encontrado'; return; } this.personasSrv.createPersona(body).subscribe({ next: (created: any) => { this.personas = [created as any, ...this.personas]; this.selectRemitente(created as any); this.remLookupLoading = false; }, error: () => { this.remLookupLoading = false; this.remLookupError = 'No se pudo crear'; } }); }, error: () => { this.remLookupLoading = false; this.remLookupError = 'No encontrado'; } });
+ 242:     } else {
+ 243:       this.personasSrv.getDatosDNI(type, nro).subscribe({ next: (data: any) => { const body = this.buildPersonaFromDNI(data); if (!(body as any).nro_documento) { this.remLookupLoading = false; this.remLookupError = 'No encontrado'; return; } this.personasSrv.createPersona(body).subscribe({ next: (created: any) => { this.personas = [created as any, ...this.personas]; this.selectRemitente(created as any); this.remLookupLoading = false; }, error: () => { this.remLookupLoading = false; this.remLookupError = 'No se pudo crear'; } }); }, error: () => { this.remLookupLoading = false; this.remLookupError = 'No encontrado'; } });
+ 244:     }
+ 245:   }
+ 246:   lookupDestinatario() {
+ 247:     this.destLookupError = null; const type = this.destinatarioDocType; const nro = (this.destinatarioDocNumber || '').trim();
+ 248:     if (!type || !nro) { this.destLookupError = 'Ingrese tipo y numero'; return; }
+ 249:     if (!this.isValidDoc(type, nro)) { this.destLookupError = (type==='RUC' ? 'RUC debe tener 11 digitos' : 'DNI debe tener 8 digitos'); return; }
+ 250:     const found = (this.personas || []).find(p => (p as any).nro_documento === nro && (p as any).tipo_documento === type);
+ 251:     if (found) { this.selectDestinatario(found); return; }
+ 252:     this.destLookupLoading = true;
+ 253:     if (type === 'RUC') {
+ 254:       this.personasSrv.getDatosRUC(type, nro).subscribe({ next: (data: any) => { const body = this.buildPersonaFromRUC(data); if (!(body as any).nro_documento) { this.destLookupLoading = false; this.destLookupError = 'No encontrado'; return; } this.personasSrv.createPersona(body).subscribe({ next: (created: any) => { this.personas = [created as any, ...this.personas]; this.selectDestinatario(created as any); this.destLookupLoading = false; }, error: () => { this.destLookupLoading = false; this.destLookupError = 'No se pudo crear'; } }); }, error: () => { this.destLookupLoading = false; this.destLookupError = 'No encontrado'; } });
+ 255:     } else {
+ 256:       this.personasSrv.getDatosDNI(type, nro).subscribe({ next: (data: any) => { const body = this.buildPersonaFromDNI(data); if (!(body as any).nro_documento) { this.destLookupLoading = false; this.destLookupError = 'No encontrado'; return; } this.personasSrv.createPersona(body).subscribe({ next: (created: any) => { this.personas = [created as any, ...this.personas]; this.selectDestinatario(created as any); this.destLookupLoading = false; }, error: () => { this.destLookupLoading = false; this.destLookupError = 'No se pudo crear'; } }); }, error: () => { this.destLookupLoading = false; this.destLookupError = 'No encontrado'; } });
+ 257:     }
+ 258:   }
+ 259: 
+ 260:   lookupCliente() {
+ 261:     this.compLookupError = null; const type = this.compDocType; const nro = (this.compDocNumber || '').trim();
+ 262:     if (!type || !nro) { this.compLookupError = 'Ingrese tipo y numero'; return; }
+ 263:     if (!this.isValidDoc(type, nro)) { this.compLookupError = (type==='RUC' ? 'RUC debe tener 11 digitos' : 'DNI debe tener 8 digitos'); return; }
+ 264:     const found = (this.personas || []).find(p => (p as any).nro_documento === nro && (p as any).tipo_documento === type);
+ 265:     if (found) { this.compClienteId = (found as any).id; return; }
+ 266:     this.compLookupLoading = true;
+ 267:     if (type === 'RUC') {
+ 268:       this.personasSrv.getDatosRUC(type, nro).subscribe({ next: (data: any) => { const body = this.buildPersonaFromRUC(data); if (!(body as any).nro_documento) { this.compLookupLoading = false; this.compLookupError = 'No encontrado'; return; } this.personasSrv.createPersona(body).subscribe({ next: (created: any) => { this.personas = [created as any, ...this.personas]; this.compClienteId = (created as any).id || null; this.compLookupLoading = false; }, error: () => { this.compLookupLoading = false; this.compLookupError = 'No se pudo crear'; } }); }, error: () => { this.compLookupLoading = false; this.compLookupError = 'No encontrado'; } });
+ 269:     } else {
+ 270:       this.personasSrv.getDatosDNI(type, nro).subscribe({ next: (data: any) => { const body = this.buildPersonaFromDNI(data); if (!(body as any).nro_documento) { this.compLookupLoading = false; this.compLookupError = 'No encontrado'; return; } this.personasSrv.createPersona(body).subscribe({ next: (created: any) => { this.personas = [created as any, ...this.personas]; this.compClienteId = (created as any).id || null; this.compLookupLoading = false; }, error: () => { this.compLookupLoading = false; this.compLookupError = 'No se pudo crear'; } }); }, error: () => { this.compLookupLoading = false; this.compLookupError = 'No encontrado'; } });
+ 271:     }
+ 272:   }
+ 273:   get compValid(): boolean { return !!this.compTipoId && !!this.compFormaPagoId && !!this.compNumeroComprobante && (!!this.compDocNumber); }
+ 274:   compClienteLabel(): string | null {
+ 275:     const id = this.compClienteId;
+ 276:     if (!id) return null;
+ 277:     const p = (this.personas || []).find(x => Number((x as any).id) === Number(id));
+ 278:     if (!p) return null;
+ 279:     if (this.compDocType === 'DNI') {
+ 280:       return [p.nombre, p.apellido].filter(Boolean).join(' ').trim() || null;
+ 281:     }
+ 282:     return (p.razon_social || '').toString().trim() || null;
+ 283:   }
+ 284: 
+ 285:   // Modal helpers
+ 286:   openCreate() {
+ 287:     this.editing = false; this.editingId = null;
+ 288:     this.newEnvio = { remitente: null as any, destinatario: null as any, estado_pago: false, clave_recojo: '', peso: null as any, fecha_envio: '', fecha_recepcion: '', tipo_contenido: false, guia: null as any, manifiesto: null as any, valida_restricciones: false, punto_origen_id: null as any, punto_destino_id: null as any } as any;
+ 289:     this.saveError = null; this.showCreate = true; this.remitenteQuery=''; this.destinatarioQuery=''; this.showRemitenteOptions=false; this.showDestinatarioOptions=false; this.stagedDetalles=[]; this.newDet={ cantidad: null, descripcion: '', precio_unitario: null };
+ 290:   }
+ 291:   closeCreate() { this.showCreate = false; }
+ 292: 
+ 293:   openEdit(item: Envio) {
+ 294:     this.editing = true; this.editingId = (item as any).id ?? null;
+ 295:     this.newEnvio = { remitente: (item as any).remitente, destinatario: (item as any).destinatario, estado_pago: (item as any).estado_pago, clave_recojo: (item as any).clave_recojo, peso: (item as any).peso, fecha_envio: (item as any).fecha_envio, fecha_recepcion: (item as any).fecha_recepcion, tipo_contenido: (item as any).tipo_contenido, guia: (item as any).guia, manifiesto: (item as any).manifiesto, valida_restricciones: (item as any).valida_restricciones, punto_origen_id: (item as any).punto_origen_id, punto_destino_id: (item as any).punto_destino_id } as any;
+ 296:     this.saveError = null; this.remitenteQuery = this.personaLabelById((item as any).remitente) || ''; this.destinatarioQuery = this.personaLabelById((item as any).destinatario) || ''; this.showEdit = true;
+ 297:   }
+ 298:   closeEdit() { this.showEdit = false; }
+ 299: 
+ 300:   get isValidEnvio(): boolean {
+ 301:     const e: any = this.newEnvio;
+ 302:     const okRemitente = Number(e.remitente) > 0;
+ 303:     const okDestinatario = Number(e.destinatario) > 0;
+ 304:     const okPeso = Number(e.peso) > 0;
+ 305:     const okFecha = String(e.fecha_envio || '').trim().length > 0;
+ 306:     const okOrigen = Number(e.punto_origen_id) > 0;
+ 307:     const okDestino = Number(e.punto_destino_id) > 0;
+ 308:     return okRemitente && okDestinatario && okPeso && okFecha && okOrigen && okDestino;
+ 309:   }
+ 310: 
+ 311:   submitEnvio() {
+ 312:     if (!this.isValidEnvio) return;
+ 313:     const e: any = this.newEnvio;
+ 314:     const payload: any = {
+ 315:       remitente: Number(e.remitente), destinatario: Number(e.destinatario), estado_pago: !!e.estado_pago, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id)
+ 316:     };
+ 317:     this.saving = true; this.saveError = null;
+ 318:     if (this.editing && this.editingId) {
+ 319:       this.enviosSrv.updateEnvios(this.editingId, payload).subscribe({
+ 320:         next: (res: any) => {
+ 321:           const updated: Envio = { id: res?.id ?? this.editingId!, remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega } as Envio;
+ 322:           this.lista_envios = this.lista_envios.map(v => (v as any).id === this.editingId ? updated : v);
+ 323:           this.saving = false; this.editing = false; this.editingId = null; this.onFilterChange(); this.closeEdit(); this.showNotif('Env\u00edo actualizado');
+ 324:         },
+ 325:         error: () => { this.saving = false; this.saveError = 'No se pudo actualizar el env\u00edo'; this.showNotif(this.saveError as string, 'error'); },
+ 326:       });
+ 327:       return;
+ 328:     }
+ 329:     this.enviosSrv.createEnvios(payload).subscribe({
+ 330:       next: (res: any) => {
+ 331:         const newId = Number(res?.id);
+ 332:         const updated: Envio = { id: newId || (Math.max(0, ...(this.lista_envios.map((x:any)=>x.id).filter(Number))) + 1), remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega } as Envio;
+ 333:         const detalles = (this.stagedDetalles || []).map((d, i) => ({ id: 0, numero_item: i+1, cantidad: Number(d.cantidad)||0, descripcion: (d.descripcion as any), precio_unitario: Number(d.precio_unitario)||0, envio_id: newId })) as DetalleEnvioCreate[];
+ 334:         if (newId && detalles.length) {
+ 335:           forkJoin(detalles.map(d => this.detalleSrv.createDetalleEnvio(d))).subscribe({ next: () => this.afterCreate(updated, newId, payload), error: () => { this.saving = false; this.saveError = 'No se pudo crear el detalle del env\u00edo'; this.showNotif(this.saveError as string, 'error'); } });
+ 336:         } else {
+ 337:           this.afterCreate(updated, newId, payload);
+ 338:         }
+ 339:       },
+ 340:       error: () => { this.saving = false; this.saveError = 'No se pudo crear el env\u00edo'; this.showNotif(this.saveError as string, 'error'); },
+ 341:     });
+ 342:   }
+ 343: 
+ 344:   private afterCreate(updated: Envio, newId: number, payload: any) {
+ 345:     this.lista_envios = [updated, ...this.lista_envios];
+ 346:     this.saving = false; this.editing = false; this.editingId = null; this.onFilterChange();
+ 347:     if (!payload.estado_pago) {
+ 348:       if (newId) {
+ 349:         this.detalleSrv.getDetallesEnvio(newId).subscribe({
+ 350:           next: (list: any[]) => { const mapped = (list || []).map((d: any, i: number) => ({ numero_item: (d.numero_item ?? i+1), cantidad: Number(d.cantidad)||0, descripcion: (d.descripcion as any), precio_unitario: Number(d.precio_unitario)||0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true; },
+ 351:           error: () => { const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i+1, cantidad: Number(d.cantidad)||0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario)||0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true; }
+ 352:         });
+ 353:       } else {
+ 354:         const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i+1, cantidad: Number(d.cantidad)||0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario)||0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true;
+ 355:       }
+ 356:     } else {
+ 357:       const ciaId = Number(localStorage.getItem('cia_id')||0);
+ 358:       const ruc = String(localStorage.getItem('ruc')||'');
+ 359:       const tipoNombre = this.compTipoNombre().toLowerCase();
+ 360:       const estado_comp = tipoNombre.includes('fact') ? 'F' : 'B';
+ 361:       const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0,10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0,10), emisor: ciaId, cliente: this.compClienteId || 0, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: newId };
+ 362:       this.comprobantesSrv.createComprobantes(body).subscribe({ next: () => { this.closeCreate(); }, error: () => { this.closeCreate(); } });
+ 363:     }
+ 364:     this.showNotif('Env\u00edo creado');
+ 365:   }
+ 366: 
+ 367:   // Entrega
+ 368:   get entregaClaveOk(): boolean { const it: any = this.entregaItem as any; const stored = String((it?.clave_recojo ?? '')).trim(); return !!this.entregaItem && this.entregaClaveInput.trim() === stored; }
+ 369:   openEntrega(item: Envio) {
+ 370:     this.entregaItem = item; this.entregaClaveInput = ''; this.entregaError = null; const d = new Date(); const pad = (n: number) => String(n).padStart(2, '0'); this.entregaFecha = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+ 371:     if (!this.entregaRef) { const cfg: OverlayConfig = { hasBackdrop: true, backdropClass: 'cdk-overlay-dark-backdrop', scrollStrategy: this.overlay.scrollStrategies.block(), positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(), }; this.entregaRef = this.overlay.create(cfg); this.entregaRef.backdropClick().subscribe(() => this.closeEntrega()); }
+ 372:     if (this.entregaRef && this.entregaTpl) { if (!this.entregaRef.hasAttached()) { this.entregaRef.attach(new TemplatePortal(this.entregaTpl, this.vcr)); } }
+ 373:     this.entregaOpen = true; this.cdr.detectChanges();
+ 374:   }
+ 375:   closeEntrega() { if (this.entregaRef?.hasAttached()) this.entregaRef.detach(); this.entregaOpen = false; this.entregaItem = null; this.entregaClaveInput = ''; this.entregaError = null; }
+ 376:   submitEntrega() {
+ 377:     if (!this.entregaItem || !this.entregaClaveOk) return; const id = (this.entregaItem as any).id; if (!id) return;
+ 378:     this.entregaSaving = true; this.entregaError = null; this.entregaItem.fecha_recepcion = this.entregaFecha; this.entregaItem.estado_entrega = true;
+ 379:     this.enviosSrv.updateEnvios(Number(id), this.entregaItem).subscribe({ next: (res: any) => { const fecha = res?.fecha_recepcion ?? this.entregaFecha; this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === id ? ({ ...v, fecha_recepcion: fecha }) : v); this.entregaSaving = false; this.closeEntrega(); this.showNotif('Entrega confirmada'); }, error: () => { this.entregaSaving = false; this.entregaError = 'No se pudo registrar la entrega'; this.showNotif(this.entregaError as string, 'error'); }, });
+ 380:   }
+ 381: 
+ 382:   // Eliminar
+ 383:   askDelete(item: Envio) { this.pendingDeleteId = (item as any).id ?? null; const label = `${(item as any).guia ?? ''}`.trim() || `${(item as any).id}`; this.pendingDeleteLabel = label as string; this.confirmMessage = `\u00bfEliminar env\u00edo ${this.pendingDeleteLabel}?`; this.confirmOpen = true; }
+ 384:   onCancelDelete() { this.confirmOpen = false; this.pendingDeleteId = null; this.pendingDeleteLabel = ''; }
+ 385:   onConfirmDelete() { const id = this.pendingDeleteId; if (!id) { this.onCancelDelete(); return; } this.saving = true; this.enviosSrv.deleteEnvios(id).subscribe({ next: () => { this.lista_envios = this.lista_envios.filter((v:any) => v.id !== id); this.saving = false; this.onFilterChange(); this.onCancelDelete(); this.showNotif('Env\u00edo eliminado'); }, error: () => { this.saving = false; this.saveError = 'No se pudo eliminar el env\u00edo'; this.onCancelDelete(); this.showNotif(this.saveError as string, 'error'); } }); }
+ 386: 
+ 387:   showNotif(msg: string, type: 'success' | 'error' = 'success') { this.notifType = type; this.notif = msg; setTimeout(() => { this.notif = null; }, 3000); }
+ 388: 
+ 389:   // Carga inicial
+ 390:   // Carga inicial
+ 391:   loadCatalogos() {
+ 392:     this.generalesSrv.getGenerales().subscribe({
+ 393:       next: (list: General[]) => { const arr = list || []; this.compTipos = arr.filter((g:any) => (g.codigo_grupo||'')==='REC'); this.payTipos = arr.filter((g:any) => (g.codigo_grupo||'')==='PAY'); if (this.compTipos.length && !this.compTipoId) { const def:any = this.compTipos[0]; this.compTipoSel = def; this.compTipoId = def.codigo_principal; this.onCompTipoChange(def); } },
+ 394:       error: () => {},
+ 395:     });
+ 396:   }
+ 397: 
+ 398:   loadEnvios() {
+ 399:     this.loading = true; this.error = null;
+ 400:     this.enviosSrv.getEnvios().subscribe({
+ 401:       next: (response) => { this.lista_envios = response || []; this.loading = false; const qpId = Number(this.route.snapshot.queryParamMap.get('id') || 0); if (qpId) { const it = (this.lista_envios || []).find((v: any) => Number((v as any).id) === qpId); if (it) { this.openEdit(it as any); } } },
+ 402:       error: () => { this.loading = false; this.error = 'No se pudieron cargar los env\\u00edos'; },
+ 403:     });
+ 404:   }
+ 405:   loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }
+ 406:   loadPuntos() { this.puntosLoading = true; this.puntosError = null; this.puntosSrv.getPuntos().subscribe({ next: (res) => { this.puntos = res || []; this.puntosLoading = false; }, error: () => { this.puntosLoading = false; this.puntosError = 'No se pudieron cargar los puntos'; }, }); }
+ 407: 
+ 408:   ngOnInit(): void {
+ 409:     this.loadCatalogos();
+ 410:     try { const vm = localStorage.getItem('envios.viewMode') as any; if (vm==='table' || vm==='cards') this.viewMode = vm; } catch {}
+ 411:     this.loadEnvios(); this.loadPersonas(); this.loadPuntos();
+ 412:   }
+ 413: }
+ 414: 
+

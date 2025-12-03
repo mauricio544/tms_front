@@ -27,7 +27,7 @@ export class GastosFeature implements OnInit {
   // Filtro
   search = '';
 
-  // Paginación
+  // Paginaci�n
   page = 1;
   pageSize = 10;
   get total(): number { return this.filtered.length; }
@@ -82,7 +82,7 @@ export class GastosFeature implements OnInit {
     });
   }
 
-  // Exportación CSV (todos los registros filtrados)
+  // Exportaci�n CSV (todos los registros filtrados)
   exportCSV() {
     const rows = this.filtered;
     const headers = ['ID','Tipo Comprobante','N° Comprobante','Descripción','Tipo Gasto','Monto','Cabecera ID'];

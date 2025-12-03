@@ -63,7 +63,7 @@ export class LayoutComponent {
   }
 
   get cia(): string {
-    return this.auth.getCompania() || 'Compañía';
+    return this.auth.getCompania() || 'Compa��a';
   }
 
   onLogout() {

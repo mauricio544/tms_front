@@ -23,7 +23,7 @@ export class UsuariosFeature implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // // Filtros y paginación
+  // // Filtros y paginaci�n
   search = '';
   status: 'all' | 'active' | 'inactive' = 'all';
   page = 1;

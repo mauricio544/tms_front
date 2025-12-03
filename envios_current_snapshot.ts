@@ -1,147 +1,16 @@
-﻿import { Component, OnInit, inject, ChangeDetectorRef, ViewContainerRef, TemplateRef, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { RouterModule, ActivatedRoute } from '@angular/router';
-import { Overlay, OverlayConfig, OverlayModule, OverlayRef } from '@angular/cdk/overlay';
-import { PortalModule, TemplatePortal } from '@angular/cdk/portal';
-import { UiAlertComponent } from '../../shared/ui/alert/alert';
-import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
-import { Utils } from '../../../../core/services/utils';
-import { Envios } from '../../../../core/services/envios';
-import { Personas } from '../../../../core/services/personas';
-import { Puntos as PuntosService } from '../../../../core/services/puntos';
-import { DetalleEnvio as DetalleEnvioService } from '../../../../core/services/detalle-envio';
-import { Generales } from '../../../../core/services/generales';
-import { Comprobantes } from '../../../../core/services/comprobantes';
-import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General } from '../../../../core/mapped';
-import { forkJoin } from 'rxjs';
-
-@Component({
-  selector: 'feature-envios',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, UiAlertComponent, UiConfirmComponent, Utils, OverlayModule, PortalModule],
-  templateUrl: './envios.html',
-  styleUrl: './envios.css',
-})
-export class EnviosFeature implements OnInit {
-  private readonly enviosSrv = inject(Envios);
-  private readonly personasSrv = inject(Personas);
-  private readonly puntosSrv = inject(PuntosService);
-  private readonly route = inject(ActivatedRoute);
-  private readonly cdr = inject(ChangeDetectorRef);
-  private readonly overlay = inject(Overlay);
-  private readonly vcr = inject(ViewContainerRef);
-  private readonly detalleSrv = inject(DetalleEnvioService);
-  private readonly generalesSrv = inject(Generales);
-  private readonly comprobantesSrv = inject(Comprobantes);
-
-  // Estado principal
-  lista_envios: Envio[] = [];
-  loading = false;
-  error: string | null = null;
-
-  // Vista (tarjetas/tabla) con persistencia
-  viewMode: 'cards' | 'table' = 'cards';
-  setViewMode(m: 'cards'|'table') { this.viewMode = m; try { localStorage.setItem('envios.viewMode', m); } catch {} }
-
-  // Filtros y paginación
-  search = '';
-  page = 1;
-  pageSize = 8;
-  entregaFilter: 'all' | 'delivered' | 'pending' = 'all';
-
-  // Crear/Editar inline
-  showCreate = false;
-  showEdit = false;
-  saving = false;
-  saveError: string | null = null;
-
-  // Confirmación de eliminación
-  confirmOpen = false;
-  confirmTitle = 'Confirmar eliminación';
-  confirmMessage = '';
-  pendingDeleteId: number | null = null;
-  pendingDeleteLabel = '';
-
-  // Notificaciones
-  notif: string | null = null;
-  notifType: 'success' | 'error' = 'success';
-
-  // Edición
-  editing = false;
-  editingId: number | null = null;
+﻿import { Component, OnInit, inject, ChangeDetectorRef, ViewContainerRef, TemplateRef, ViewChild, HostListener } from '@angular/core';
 
 
-  private tipoNombreById(id: number | null | undefined): string {
-    if (id == null) return '';
-    const f = (this.compTipos || []).find((g: any) => Number((g as any).id) === Number(id) || Number((g as any).codigo_principal) === Number(id));
-    return (f as any)?.nombre ?? String(id);
-  }
-  private formaNombreById(id: number | null | undefined): string {
-    if (id == null) return '';
-    const f = (this.payTipos || []).find((g: any) => Number((g as any).id) === Number(id) || Number((g as any).codigo_principal) === Number(id));
-    return (f as any)?.nombre ?? String(id);
-  }
-
-  private format2(n: any): string { try { return (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); } catch { return String(n); } }
-
-  private openComprobanteWindow(header: any, detalles: Array<{ numero_item: number; cantidad: number; descripcion: any; precio_unitario: number }>) {
-    const c: any = header || {};
-    const d = Array.isArray(detalles) ? detalles : [];
-    const tipoNombre = this.tipoNombreById(Number(c.tipo_comprobante)).toLowerCase();
-    const docTitle = tipoNombre.includes('fact') ? 'Factura' : (tipoNombre.includes('bol') ? 'Boleta' : 'Comprobante');
-    const numero = String(c.serie || '-') + '-' + String(c.numero || '-');
-    const ruc = String(localStorage.getItem('ruc') || '');
-    const razon = String(localStorage.getItem('razon_social') || '');
-    const row = (x: any) => {
-      const subtotal = (Number(x.cantidad)||0) * (Number(x.precio_unitario)||0);
-      return '<tr>' +
-        '<td>' + String(x.numero_item||'') + '</td>' +
-        '<td>' + String(x.cantidad||'') + '</td>' +
-        '<td>' + String(x.descripcion||'') + '</td>' +
-        '<td class="right">' + this.format2(x.precio_unitario) + '</td>' +
-        '<td class="right">' + this.format2(subtotal) + '</td>' +
-      '</tr>';
-    };
-    const rows = d.map(row).join('');
-    const impuesto = Number(c.impuesto || 0);
-    const total = Number(c.precio_total || 0);
-    const estilo = ' body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#0f172a} h1{font-size:18px;margin:0 0 10px} .muted{color:#64748b} .wrap{display:flex;justify-content:space-between;gap:16px;align-items:flex-start} .box{border:1px solid #e2e8f0;border-radius:8px;padding:10px;min-width:260px} .label{font-size:12px;color:#475569} .value{font-weight:600;color:#0f172a} .metaL{font-size:13px;line-height:1.4;margin:8px 0 16px} table{border-collapse:collapse;width:100%;font-size:12px} th,td{border:1px solid #e2e8f0;padding:6px;text-align:left} .right{text-align:right} tfoot td{border-top:1px solid #cbd5e1} .totals{width:100%;display:flex;justify-content:flex-end;margin-top:10px} .totals .box{min-width:240px} ';
-    let totalsHtml = '';
-    totalsHtml += '<div class="totals"><div class="box">';
-    if (impuesto > 0) { totalsHtml += '<div class="row"><span class="label">Impuesto</span><span class="value" style="float:right">' + this.format2(impuesto) + '</span></div>'; }
-    totalsHtml += '<div class="row"><span class="label">Total</span><span class="value" style="float:right">' + this.format2(total) + '</span></div>';
-    totalsHtml += '</div></div>';
-    const html = '<!doctype html><html><head><meta charset="utf-8"/>' +
-      '<title>' + docTitle + ' ' + numero + '</title>' +
-      '<style>' + estilo + '</style>' +
-      '</head><body>' +
-      '<div class="wrap">' +
-        '<div class="left">' +
-          '<h1>' + docTitle + '</h1>' +
-          '<div class="metaL">' +
-            '<div><span class="label">Emitido a:</span> <span class="value">' + String(c.cliente_documento || '-') + '</span></div>' +
-            '<div><span class="label">Fecha comprobante:</span> <span class="value">' + String(c.fecha_comprobante || '') + '</span></div>' +
-            '<div><span class="label">Fecha pago:</span> <span class="value">' + String(c.fecha_pago || '') + '</span></div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="box rightBox">' +
-          '<div><span class="label">RUC:</span> <span class="value">' + (ruc || '-') + '</span></div>' +
-          '<div><span class="label">Razón social:</span> <span class="value">' + (razon || '-') + '</span></div>' +
-          '<div><span class="label">Número:</span> <span class="value">' + numero + '</span></div>' +
-        '</div>' +
-      '</div>' +
-      '<table style="margin-top:12px"><thead><tr><th>Ítem</th><th>Cantidad</th><th>Descripción</th><th class="right">P. Unitario</th><th class="right">Subtotal</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table>' +
-      totalsHtml +
-      '<div style="margin-top:12px;text-align:right"><button onclick="window.print()">Imprimir</button></div>' +
-      '</body></html>';
-    const w = window.open('', '_blank');
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-  }  // Entrega (overlay)
+            this.detMovsSrv.createDetalles(detMov).subscribe({
+              next: () => {
+                this.showNotif('Comprobante y movimientos creados');
+                try {
+                  this.generalesSrv.uodateGenerales(Number((this.compTipoSel as any).id || this.compTipoId || 0), { correlativo: (Number(this.compCorrelativo||0) || Number((this.compTipoSel as any).correlativo||0)) + 1 } as any).subscribe({ next: ()=>{}, error: ()=>{} });
+                } catch {}
+                this.closeCreate();
+              },
+              error: () => { this.closeCreate(); }
+            });
   entregaOpen = false;
   entregaItem: Envio | null = null;
   entregaClaveInput = '';
@@ -163,6 +32,7 @@ export class EnviosFeature implements OnInit {
   }
   closeTicket() { this.showTicket = false; this.ticketEnvio = null; this.ticketDetalles = []; }
   printTicket() { try { window.print(); } catch {} }
+  private printTarget: Window | null = null;
 
   // Envío en edición/creación
   newEnvio: Partial<Envio> = {
@@ -232,13 +102,14 @@ export class EnviosFeature implements OnInit {
   get compTotalConImpuesto(): number { return this.compTipoNombre().toLowerCase().includes('fact') ? (this.compTotal + this.compImpuesto) : this.compTotal; }
   compTipoNombre(): string { const t = this.compTipoSel || this.compTipos.find(x => (x as any).codigo_principal === this.compTipoId) || null as any; return (t?.nombre || '').toString(); }
   private pad6(n: number): string { const s = String(n||0); return s.padStart(6, '0'); }
-  onCompTipoChange(selected?: any) {
+    onCompTipoChange(selected?: any) {
     if (selected && typeof selected === 'object') {
       this.compTipoSel = selected as General;
       this.compTipoId = Number((this.compTipoSel as any).id || 0);
     } else if (selected != null) {
-      this.compTipoId = Number(selected);
-      this.compTipoSel = this.compTipos.find(x => Number((x as any).id) === this.compTipoId) || null as any;
+      const code = Number(selected);
+      this.compTipoSel = this.compTipos.find(x => Number((x as any).id) === code) || null as any;
+      this.compTipoId = code || null;
     } else if (!this.compTipoSel && this.compTipoId != null) {
       this.compTipoSel = this.compTipos.find(x => Number((x as any).id) === Number(this.compTipoId)) || null as any;
     }
@@ -355,11 +226,12 @@ export class EnviosFeature implements OnInit {
 
   // Modal helpers
   openCreate() {
-    this.editing = false; this.editingId = null;
-    this.newEnvio = { remitente: null as any, destinatario: null as any, estado_pago: false, clave_recojo: '', peso: null as any, fecha_envio: '', fecha_recepcion: '', tipo_contenido: false, guia: null as any, manifiesto: null as any, valida_restricciones: false, punto_origen_id: null as any, punto_destino_id: null as any } as any;
-    this.saveError = null; this.showCreate = true; this.remitenteQuery=''; this.destinatarioQuery=''; this.showRemitenteOptions=false; this.showDestinatarioOptions=false; this.stagedDetalles=[]; this.newDet={ cantidad: null, descripcion: '', precio_unitario: null };
-  }
-  closeCreate() { this.showCreate = false; }
+  this.editing = false; this.editingId = null;
+  const d = new Date(); const pad = (n: number) => String(n).padStart(2, '0');
+  const today = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  this.newEnvio = { remitente: null as any, destinatario: null as any, estado_pago: false, clave_recojo: '', peso: null as any, fecha_envio: today, fecha_recepcion: '', tipo_contenido: false, guia: null as any, manifiesto: null as any, valida_restricciones: false, punto_origen_id: null as any, punto_destino_id: null as any } as any;
+  this.saveError = null; this.showCreate = true; this.remitenteQuery=''; this.destinatarioQuery=''; this.showRemitenteOptions=false; this.showDestinatarioOptions=false; this.stagedDetalles=[]; this.newDet={ cantidad: null, descripcion: '', precio_unitario: null };
+}  closeCreate() { this.showCreate = false; }
 
   openEdit(item: Envio) {
     this.editing = true; this.editingId = (item as any).id ?? null;
@@ -385,6 +257,17 @@ export class EnviosFeature implements OnInit {
     const payload: any = {
       remitente: Number(e.remitente), destinatario: Number(e.destinatario), estado_pago: !!e.estado_pago, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id)
     };
+    // Preparar ventana emergente anticipadamente si será pagado
+    if (!this.editing && payload.estado_pago) {
+      try {
+        this.printTarget = window.open('', '_blank');
+        if (this.printTarget) {
+          this.printTarget.document.open();
+          this.printTarget.document.write('<!doctype html><html><head><meta charset="utf-8"/><title>Comprobante</title><style>body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#0f172a}</style></head><body>Generando comprobante...</body></html>');
+          this.printTarget.document.close();
+        }
+      } catch {}
+    }
     this.saving = true; this.saveError = null;
     if (this.editing && this.editingId) {
       this.enviosSrv.updateEnvios(this.editingId, payload).subscribe({
@@ -431,20 +314,27 @@ export class EnviosFeature implements OnInit {
       const estado_comp = tipoNombre.includes('fact') ? 'F' : 'B';
       const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0,10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0,10), emisor: ciaId, cliente: null, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: newId };
       this.comprobantesSrv.createComprobantes(body).subscribe({
-  next: (comp: any) => {
-    const compHeader: any = comp && typeof comp === 'object' ? comp : body;
-    const dets = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i+1, cantidad: Number(d.cantidad)||0, descripcion: d.descripcion as any, precio_unitario: Number(d.precio_unitario)||0 }));
-    try { this.openComprobanteWindow(compHeader, dets); } catch {}
-    try {
-      const t: any = this.compTipoSel || (this.compTipos || []).find((g: any) => Number((g as any).codigo_principal) === Number(this.compTipoId));
-      const genId = Number((t as any)?.id || 0);
-      const nextCorr = (Number((t as any)?.correlativo || 0) || Number(this.compCorrelativo||0)) + 1;
-      if (genId) { this.generalesSrv.updateGenerales(genId, { correlativo: nextCorr } as any).subscribe({ next:()=>{}, error:()=>{} }); }
-    } catch {}
-    this.closeCreate();
-  },
-  error: () => { this.closeCreate(); }
-});
+        next: (comp: any) => {
+          const compId = Number(comp?.id || 0);
+          const dets = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i+1, cantidad: Number(d.cantidad)||0, descripcion: d.descripcion as any, precio_unitario: Number(d.precio_unitario)||0, comprobante_id: compId }));
+          const afterDetalles = () => {
+    
+          try { this.openComprobanteWindow(comp as any, dets); } catch {}
+            const cabBody: any = { tipo_movimiento: 'I', monto: this.compTotalConImpuesto };
+            this.movsSrv.createMovimientos(cabBody).subscribe({
+              next: (cab: any) => {
+                const detMov: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, descripcion: '', cabecera_id: Number(cab?.id || 0), monto: this.compTotalConImpuesto };
+                
+              },
+              error: () => { this.closeCreate(); }
+            });
+          };
+          if (compId && dets.length) {
+            forkJoin(dets.map(x => this.detCompSrv.createDetalles(x))).subscribe({ next: () => afterDetalles(), error: () => afterDetalles() });
+          } else { afterDetalles(); }
+        },
+        error: () => { this.closeCreate(); }
+      });
     }
     this.showNotif('Env\u00edo creado');
   }
@@ -475,7 +365,7 @@ export class EnviosFeature implements OnInit {
   // Carga inicial
   loadCatalogos() {
     this.generalesSrv.getGenerales().subscribe({
-      next: (list: General[]) => { const arr = list || []; this.compTipos = arr.filter((g:any) => (g.codigo_grupo||'')==='REC'); this.payTipos = arr.filter((g:any) => (g.codigo_grupo||'')==='PAY'); if (this.compTipos.length && !this.compTipoId) { const def:any = this.compTipos[0]; this.compTipoSel = def; this.compTipoId = def.codigo_principal; this.onCompTipoChange(def); } },
+      next: (list: General[]) => { const arr = list || []; this.compTipos = arr.filter((g:any) => (g.codigo_grupo||'')==='REC'); this.payTipos = arr.filter((g:any) => (g.codigo_grupo||'')==='PAY'); if (this.compTipos.length && !this.compTipoId) { const def:any = this.compTipos[0]; this.compTipoSel = def; this.compTipoId = Number(def.id || def.id || 0); this.onCompTipoChange(def); } },
       error: () => {},
     });
   }
@@ -495,7 +385,36 @@ export class EnviosFeature implements OnInit {
     try { const vm = localStorage.getItem('envios.viewMode') as any; if (vm==='table' || vm==='cards') this.viewMode = vm; } catch {}
     this.loadEnvios(); this.loadPersonas(); this.loadPuntos();
   }
+
+  @HostListener('document:click')
+  onDocClick() {
+    this.showRemitenteOptions = false;
+    this.showDestinatarioOptions = false;
+  }
+  @HostListener('document:keydown.escape')
+  onEsc() {
+    this.showRemitenteOptions = false;
+    this.showDestinatarioOptions = false;
+  }
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
 
 
 

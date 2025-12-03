@@ -1,1 +1,15 @@
 ﻿
+/* Print styles for 80mm ticket */
+@media print {
+  @page { size: 80mm auto; margin: 4mm; }
+  html, body { padding: 0; margin: 0; }
+  /* Hide everything by default */
+  body * { visibility: hidden !important; }
+  /* Only show the ticket content */
+  .ticket, .ticket * { visibility: visible !important; }
+  .ticket { position: absolute; left: 0; top: 0; width: 80mm !important; max-width: 80mm !important; font-size: 11px; line-height: 1.2; }
+  /* Hide action buttons/header in the modal */
+  .ticket-actions { display: none !important; }
+  /* Remove borders/shadows for clean print */
+  .shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .border, [class*="border-"] { box-shadow: none !important; border: 0 !important; }
+}

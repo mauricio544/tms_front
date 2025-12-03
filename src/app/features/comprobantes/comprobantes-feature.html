@@ -1,4 +1,4 @@
-﻿<div class="p-6">
+<div class="px-3 sm:px-4 py-6">
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <h1 class="text-xl font-semibold text-slate-800">Comprobantes</h1>
@@ -6,7 +6,7 @@
     </div>
   </div>
 
-  <div class="mt-3 flex flex-wrap items-center gap-2">
+  <div class="mt-3 flex items-center gap-2 sm:flex-nowrap flex-wrap">
     <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar comprobante"
            class="h-10 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
 
@@ -16,14 +16,26 @@
       <option [ngValue]="12">12</option>
       <option [ngValue]="20">20</option>
     </select>
-  </div>
-</div>
 
-<section class="px-6 pb-6" *ngIf="!loading && !error; else stateTpl">
+    <div class="ml-auto inline-flex rounded-md border border-slate-300 overflow-hidden">
+      <button type="button" (click)="setView('cards')" [class.bg-slate-900]="viewMode === 'cards'" [class.text-white]="viewMode === 'cards'" class="px-3 py-2 text-sm">Tarjetas</button>
+      <button type="button" (click)="setView('grid')" [class.bg-slate-900]="viewMode === 'grid'" [class.text-white]="viewMode === 'grid'" class="border-l border-slate-300 px-3 py-2 text-sm">Tabla</button>
+    </div>
+  </div>
+
+<ng-template #stateTpl>
+  <div class="px-3 sm:px-4 pb-6">
+    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando.</div>
+    <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
+  </div>
+</ng-template>
+
+<section class="px-3 sm:px-4 pb-6 mt-4" *ngIf="!loading && !error; else stateTpl">
   <ng-container *ngIf="pageItems?.length; else empty">
+  <ng-container *ngIf="viewMode === 'cards'; else gridView">
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       <div *ngFor="let c of pageItems" (click)="select(c)"
-           class="group cursor-pointer rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+           class="group cursor-pointer rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <div class="flex items-start justify-between">
           <div class="min-w-0">
             <div class="truncate text-sm text-slate-700">Serie-Número</div>
@@ -31,7 +43,7 @@
           </div>
           <div class="text-right text-xs text-slate-500">
             <div>ID: {{ c.id }}</div>
-            <div>{{ c.fecha_comprobante }}</div>
+            <div>{{ c.fecha_comprobante | ymd }}</div>
           </div>
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
@@ -42,8 +54,37 @@
       </div>
     </div>
 
+  </ng-container>
+  <ng-template #gridView>
+    <div class="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <table class="min-w-full text-sm text-slate-700">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-3 py-2 text-left">Serie-Número</th>
+            <th class="px-3 py-2 text-left">Fecha</th>
+            <th class="px-3 py-2 text-left">Tipo</th>
+            <th class="px-3 py-2 text-left">Forma</th>
+            <th class="px-3 py-2 text-left">Total</th>
+            <th class="px-3 py-2 text-left">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of pageItems" class="border-t border-slate-100">
+            <td class="px-3 py-2">{{ c.serie || "-" }}-{{ c.numero || "-" }}</td>
+            <td class="px-3 py-2">{{ c.fecha_comprobante | ymd }}</td>
+            <td class="px-3 py-2">{{ tipoNombre(c.tipo_comprobante) }}</td>
+            <td class="px-3 py-2">{{ formaNombre(c.forma_pago) }}</td>
+            <td class="px-3 py-2">{{ c.precio_total | number:"1.2-2" }}</td>
+            <td class="px-3 py-2">
+              <button (click)="select(c)" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-template>
     <div class="mt-6 flex items-center justify-between text-sm text-slate-600">
-      <div>Mostrando {{ pageStart }}-{{ pageEnd }} de {{ total }} comprobantes</div>
+      <div>Mostrando {{ pageStart }}-{{ pageEnd }} de {{ total }} Comprobantes</div>
       <div class="flex items-center gap-2">
         <button (click)="setPage(page-1)" [disabled]="page===1"
                 class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Anterior</button>
@@ -121,12 +162,8 @@
   </div>
 </ng-template>
 
-<ng-template #stateTpl>
-  <div class="px-6 pb-6">
-    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando.</div>
-    <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
-  </div>
-</ng-template>
+
+
 
 
 

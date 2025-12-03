@@ -1,0 +1,15 @@
+*** Begin Patch
+*** Update File: src/app/features/envios/envios.ts
+@@
+   ngOnInit(): void {
+     this.setCreateViewFromUrl();
++    // Fecha por defecto en creación
++    if (this.isCreateView && !(this.newEnvio as any).fecha_envio) {
++      const d = new Date(); const pad = (n: number) => String(n).padStart(2, '0');
++      (this.newEnvio as any).fecha_envio = ${d.getFullYear()}--;
++    }
+     try {
+       const saved = (localStorage.getItem('envios.viewMode') || '').toLowerCase();
+       if (saved === 'grid' || saved === 'cards') this.viewMode = saved as any;
+     } catch {}
+*** End Patch

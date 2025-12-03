@@ -7,18 +7,19 @@ import { Comprobantes } from '../../../../core/services/comprobantes';
 import { Generales } from '../../../../core/services/generales';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
 import { Comprobante, DetalleComprobante } from '../../../../core/mapped';
+import { Utils } from '../../../../core/services/utils';
 
 @Component({
   selector: 'feature-comprobantes',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, Utils],
   templateUrl: './comprobantes-feature.html',
 })
 export class ComprobantesFeature implements OnInit {
   private readonly comprobantesSrv = inject(Comprobantes);
   private readonly detallesSrv = inject(DetallesComprobante);
   private readonly route = inject(ActivatedRoute);
-  
+
   private readonly generalesSrv = inject(Generales);
   initialSelectId: number | null = null;
 
@@ -29,6 +30,9 @@ export class ComprobantesFeature implements OnInit {
   search = '';
   page = 1;
   pageSize = 8;
+
+  // Vista: 'cards' o 'grid'
+  viewMode: 'cards' | 'grid' = 'cards';
 
   // Selección y detalle actual
   selected: Comprobante | null = null;
@@ -52,9 +56,9 @@ export class ComprobantesFeature implements OnInit {
     return (f as any)?.nombre ?? String(id);
   }
 
-  
 
-  
+
+
 
   get subtotal(): number { return (this.detalles || []).reduce((acc, it: any) => acc + (Number(it.cantidad)||0)*(Number(it.precio_unitario)||0), 0); }
 
@@ -84,6 +88,8 @@ export class ComprobantesFeature implements OnInit {
   get pageEnd(): number { return Math.min(this.page * this.pageSize, this.total); }
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
   onFilterChange() { this.page = 1; }
+
+  setView(mode: 'cards' | 'grid') { this.viewMode = mode; try { localStorage.setItem('comprobantes.viewMode', mode); } catch {} }
 
   select(c: Comprobante) {
     this.selected = c;
@@ -115,14 +121,14 @@ export class ComprobantesFeature implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    // Leer id de comprobante por query param para auto-selección
+  ngOnInit(): void { try { const saved = (localStorage.getItem('comprobantes.viewMode') || '').toLowerCase(); if (saved === 'grid' || saved === 'cards') this.viewMode = saved as any; } catch {}
+    // Leer id de comprobante por query param para auto-selecci�n
     this.route.queryParamMap.subscribe(pm => {
       const idStr = pm.get('id');
       this.initialSelectId = idStr ? Number(idStr) : null;
       if (this.lista && this.lista.length) { this.trySelectById(); }
     });
-    // Cargar catálogos para nombres legibles
+    // Cargar cat�logos para nombres legibles
     this.generalesSrv.getGenerales().subscribe({
       next: (gs: any[]) => {
         this.generales = gs || [];
@@ -134,7 +140,7 @@ export class ComprobantesFeature implements OnInit {
     this.load();
   }
 
-  // Utilidad para formato e impresión/exportación
+  // Utilidad para formato e impresi�n/exportaci�n
   private format(n: number): string {
     try { return (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); } catch { return String(n); }
   }
@@ -228,6 +234,7 @@ export class ComprobantesFeature implements OnInit {
     doc.save(filename);
   }
 }
+
 
 
 

@@ -2,23 +2,23 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import { GeneralUpdate, General } from '../mapped';
+import {Detalle, DetalleEnvio as Detail, DetalleEnvioCreate} from '../mapped';
 import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root',
 })
-export class Generales {
+export class DetalleEnvio {
   private readonly api = inject(ApiClientService);
   private readonly router = inject(Router);
-  private readonly general: General[] = [];
+  private readonly details: Detail[] = [];
   private readonly auth = inject(AuthService);
 
-  getGenerales(): Observable<General[]> {
-    return this.api.get('/envios/catalogo/general');
+  getDetallesEnvio(envio_id: number): Observable<Detail[]> {
+    return this.api.get(`/envios/lista/${envio_id}/detalle`);
   }
 
-  updateGenerales(id: number, body: GeneralUpdate): Observable<General> {
-    return this.api.patch(`/envios/catalogo/general/${id}`, body);
+  createDetalleEnvio(body: DetalleEnvioCreate): Observable<Detail> {
+    return this.api.post('/envios/detalle-envio/save', body);
   }
 }

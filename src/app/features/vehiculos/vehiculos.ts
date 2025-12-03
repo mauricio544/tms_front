@@ -5,11 +5,12 @@ import { UiAlertComponent } from '../../shared/ui/alert/alert';
 import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
 import { Vehiculos } from '../../../../core/services/vehiculos';
 import { Vehiculo } from '../../../../core/mapped';
+import { Utils } from '../../../../core/services/utils';
 
 @Component({
   selector: 'feature-vehiculos',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent],
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, Utils],
   templateUrl: './vehiculos.html',
   styleUrl: './vehiculos.css',
 })
@@ -20,7 +21,7 @@ export class VehiculosFeature implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // Filtros y paginación
+  // Filtros y paginaci�n
   search = '';
   filterPlaca = '';
   filterAnio: number | null = null;
@@ -67,7 +68,7 @@ export class VehiculosFeature implements OnInit {
     });
   }
 
-  // Derivados de paginación
+  // Derivados de paginaci�n
   get total(): number { return this.filteredVehiculos.length; }
   get totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
   get pageItems(): Vehiculo[] {
@@ -159,12 +160,12 @@ export class VehiculosFeature implements OnInit {
         this.editingId = null;
         this.onFilterChange();
         this.closeModal();
-        this.showNotif(wasEditing ? 'Vehículo actualizado' : 'Vehículo creado');
+        this.showNotif(wasEditing ? 'Veh�culo actualizado' : 'Veh�culo creado');
       },
       error: () => {
         this.saving = false;
-        this.saveError = this.editing ? 'No se pudo actualizar' : 'No se pudo crear el vehículo';
-        this.showNotif('No se pudo crear/actualizar el vehículo', 'error');
+        this.saveError = this.editing ? 'No se pudo actualizar' : 'No se pudo crear el veh�culo';
+        this.showNotif('No se pudo crear/actualizar el veh�culo', 'error');
       },
     });
   }
@@ -172,7 +173,7 @@ export class VehiculosFeature implements OnInit {
   askDelete(item: Vehiculo) {
     this.pendingDeleteId = item.id ?? null;
     this.pendingDeleteLabel = item.placa || '';
-    this.confirmMessage = `¿Eliminar vehículo ${this.pendingDeleteLabel}?`;
+    this.confirmMessage = `¿Eliminar veh�culo ${this.pendingDeleteLabel}?`;
     this.confirmOpen = true;
   }
 
@@ -192,13 +193,13 @@ export class VehiculosFeature implements OnInit {
         this.saving = false;
         this.onFilterChange();
         this.onCancelDelete();
-        this.showNotif('Vehículo eliminado');
+        this.showNotif('Veh�culo eliminado');
       },
       error: () => {
         this.saving = false;
-        this.saveError = 'No se pudo eliminar el vehículo';
+        this.saveError = 'No se pudo eliminar el veh�culo';
         this.onCancelDelete();
-        this.showNotif('No se pudo eliminar el vehículo', 'error');
+        this.showNotif('No se pudo eliminar el veh�culo', 'error');
       }
     })
   }
@@ -214,7 +215,7 @@ export class VehiculosFeature implements OnInit {
     this.error = null;
     this.vehiculoSrv.getVehiculos().subscribe({
       next: (response) => { this.lista_vehiculos = response || []; this.loading = false; },
-      error: () => { this.loading = false; this.error = 'No se pudieron cargar los vehículos'; },
+      error: () => { this.loading = false; this.error = 'No se pudieron cargar los veh�culos'; },
     });
   }
 

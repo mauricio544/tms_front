@@ -49,19 +49,20 @@ export class LoginComponent {
               localStorage.setItem('me', JSON.stringify(this.usuario_me));
               localStorage.setItem('cia', this.usuario_me.companies[0].nombre);
               localStorage.setItem('cia_id', this.usuario_me.companies[0].id.toString());
+              localStorage.setItem('ruc', this.usuario_me?.companies[0].ruc);
               console.log(this.usuario_me);
             },
             error: (err) => {
 
             }
           });
-          // Ajusta la ruta de destino según tu app
+          // Ajusta la ruta de destino seg�n tu app
           this.router.navigateByUrl('dashboard');
         },
         error: (err) => {
           this.loading = false;
-          const message = err?.error?.detail || err?.error?.message || 'Credenciales inválidas';
-          this.error = typeof message === 'string' ? message : 'Error al iniciar sesión';
+          const message = err?.error?.detail || err?.error?.message || 'Credenciales inv�lidas';
+          this.error = typeof message === 'string' ? message : 'Error al iniciar sesi�n';
         },
       });
   }

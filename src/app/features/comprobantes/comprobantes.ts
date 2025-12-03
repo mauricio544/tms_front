@@ -22,7 +22,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
   @Input() comprobanteId: number | null = null;
   @Output() close = new EventEmitter<void>();
   @Output() saved = new EventEmitter<number>();
- 
+
   cabecera: Partial<ComprobanteCreate> = {
     tipo_comprobante: undefined as any,
     numero_comprobante: undefined as any,
@@ -33,29 +33,29 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
     serie: '',
     numero: '',
   } as any;
- 
+
   cabeceraId: number | null = null;
   detalle: DetalleComprobante[] = [];
- 
+
   nuevoItem: Partial<DetalleComprobanteCreate> = {
     cantidad: undefined as any,
     descripcion: undefined as any,
     precio_unitario: undefined as any,
   } as any;
- 
+
   guardandoCabecera = false;
   errorCabecera: string | null = null;
   errorDetalle: string | null = null;
- 
-  // Generales catálogos
+
+  // Generales cat�logos
   generales: General[] = [];
   tiposComprobante: General[] = [];
   formasPago: General[] = [];
- 
+
   finalizando = false;
   movimientoCreado = false;
   errorMovimiento = "";
- 
+
   constructor(
     private readonly comprobantesSrv: Comprobantes,
     private readonly detallesSrv: DetallesComprobante,
@@ -63,7 +63,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
     private readonly movimientosSrv: Movimientos,
     private readonly detalleMovSrv: DetalleMovimientos,
   ) {}
- 
+
   private loadExisting(id: number){
     this.cabeceraId = id;
     this.comprobantesSrv.getComprobantes().subscribe({
@@ -87,7 +87,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
       error: ()=>{ /* no-op */ }
     });
   }
- 
+
   ngOnInit(): void {
     if (this.comprobanteId) { this.loadExisting(this.comprobanteId); }
     this.generalesSrv.getGenerales().subscribe({
@@ -99,7 +99,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
       error: () => { /* no-op */ }
     });
   }
- 
+
   get validaCabecera(): boolean {
     const c: any = this.cabecera;
     const okTipo = Number(c.tipo_comprobante) >= 0;
@@ -177,7 +177,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
         this.detalle = [...this.detalle, created];
         this.nuevoItem = { } as any;
       },
-      error: () => { this.errorDetalle = 'No se pudo agregar el ítem'; }
+      error: () => { this.errorDetalle = 'No se pudo agregar el Ítem'; }
     });
   }
 
@@ -189,7 +189,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
         this.detalle = this.detalle.filter(d => (d as any).id !== (it as any).id)
           .map((d, idx) => ({ ...d, numero_item: idx + 1 } as any));
       },
-      error: () => { this.errorDetalle = 'No se pudo eliminar el ítem'; }
+      error: () => { this.errorDetalle = 'No se pudo eliminar el Ítem'; }
     });
   }
 
@@ -244,7 +244,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
       });
     };
 
-        // Actualiza total y, según estado, crea (o no) movimiento
+        // Actualiza total y, seg�n estado, crea (o no) movimiento
     const doAfterUpdate = () => {
       if (this.estado === 'P') {
         afterUpdatePago();

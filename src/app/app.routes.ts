@@ -1,4 +1,4 @@
-﻿import { Routes } from '@angular/router';
+import { Routes } from '@angular/router';
 import { LoginComponent } from './login/login.component';
 import { Dashboard } from './dashboard/dashboard';
 import { authGuard } from '../../core/guards/auth.guard';
@@ -18,8 +18,8 @@ import { LiquidacionesFeature } from './features/liquidaciones/liquidaciones';
 import { GastosFeature } from './features/gastos/gastos';
 
 import { ComprobantesFeature } from './features/comprobantes/comprobantes-feature';
-import {SedesFeature} from './features/sedes/sedes';
-import {ReportesFeature} from './features/reportes/reportes';
+import { SedesFeature } from './features/sedes/sedes';
+import { ReportesFeature } from './features/reportes/reportes';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: LoginComponent },
@@ -27,7 +27,7 @@ export const routes: Routes = [
     path: '',
     component: LayoutComponent,
     canActivate: [authGuard],
-      children: [
+    children: [
       { path: 'dashboard', component: Dashboard, data: { breadcrumb: 'Dashboard' } },
       { path: 'conductores', component: Conductores, data: { breadcrumb: 'Conductores' } },
       // Maestros
@@ -41,6 +41,8 @@ export const routes: Routes = [
       // Funcionalidades
       { path: 'manifiestos', component: ManifiestosFeature, data: { breadcrumb: 'Manifiestos' } },
       { path: 'envios', component: EnviosFeature, data: { breadcrumb: 'Envíos' } },
+      { path: 'envios/nuevo', component: EnviosFeature, data: { breadcrumb: 'Nuevo Envío' } },
+      { path: 'envios/:id/editar', component: EnviosFeature, data: { breadcrumb: 'Editar Envío' } },
       { path: 'liquidaciones', component: LiquidacionesFeature, data: { breadcrumb: 'Liquidaciones' } },
       { path: 'gastos', component: GastosFeature, data: { breadcrumb: 'Gastos' } },
       { path: 'comprobantes', component: ComprobantesFeature, data: { breadcrumb: 'Comprobantes' } },
@@ -49,9 +51,3 @@ export const routes: Routes = [
   },
   { path: '**', redirectTo: '' },
 ];
-
-
-
-
-
-

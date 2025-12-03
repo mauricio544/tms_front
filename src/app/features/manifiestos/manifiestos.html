@@ -1,4 +1,4 @@
-﻿<div class="p-6">
+<div class="px-3 sm:px-4 py-6">
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <h1 class="text-xl font-semibold text-slate-800">Manifiestos</h1>
@@ -8,7 +8,7 @@
   </div>
 
   <div class="mt-4 flex flex-wrap items-center gap-2">
-    <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar (serie, número, conductor, puntos)" class="h-10 w-80 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+    <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar (serie, Número, conductor, puntos)" class="h-10 w-80 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
 
     <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)" class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
       <option [ngValue]="8">8</option>
@@ -17,42 +17,81 @@
     </select>
 
     <button (click)="openModal()" class="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600">Nuevo</button>
+
+    <div class="ml-auto inline-flex rounded-md border border-slate-300 overflow-hidden">
+      <button type="button" (click)="setView('cards')" [class.bg-slate-900]="viewMode === 'cards'" [class.text-white]="viewMode === 'cards'" class="px-3 py-2 text-sm">Tarjetas</button>
+      <button type="button" (click)="setView('grid')" [class.bg-slate-900]="viewMode === 'grid'" [class.text-white]="viewMode === 'grid'" class="border-l border-slate-300 px-3 py-2 text-sm">Tabla</button>
+    </div>
   </div>
 </div>
 
+<ng-template #stateTpl>
+  <div class="px-3 sm:px-4 pb-6">
+    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando...</div>
+    <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
+  </div>
+</ng-template>
 <ui-confirm [show]="confirmOpen" [title]="confirmTitle" [message]="confirmMessage" [confirmText]="'Eliminar'" [type]="'danger'" (confirm)="onConfirmDelete()" (cancel)="onCancelDelete()"></ui-confirm>
-
-<section class="px-6 pb-2" *ngIf="!loading && !error; else stateTpl">
+<section class="px-3 sm:px-4 pb-4 mt-4" *ngIf="!loading && !error; else stateTpl">
   <ng-container *ngIf="pageItems?.length; else empty">
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      <div *ngFor="let item of pageItems; index as i" class="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-        <div class="mb-3 flex items-start justify-between">
-          <div class="min-w-0">
-            <div class="max-w-[14rem] truncate font-medium text-slate-800">{{ item.serie }}-{{ item.numero }}</div>
-            <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
+    <ng-container *ngIf="viewMode === 'cards'; else gridView">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div *ngFor="let item of pageItems; index as i" class="group rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <div class="mb-3 flex items-start justify-between">
+            <div class="min-w-0">
+              <div class="max-w-[14rem] truncate font-medium text-slate-800">{{ item.serie }}-{{ item.numero }}</div>
+              <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
+            </div>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+            <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Conductor: {{ conductorLabel(item.conductor_id) }}</span>
+            <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Origen: {{ nameFrom(safeOrigen(item)) }}</span>
+            <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Destino: {{ nameFrom(safeDestino(item)) }}</span>
+          </div>
+          <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
+            <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="generarGuia(item)">Generar Guía</button>
+            <button class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100" (click)="verEnvios(item)">Ver Envíos</button>
+            <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
+            <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
+            <button class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>
           </div>
         </div>
-
-        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Conductor: {{ conductorLabel(item.conductor_id) }}</span>
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Origen: {{ nameFrom(safeOrigen(item)) }}</span>
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Destino: {{ nameFrom(safeDestino(item)) }}</span>
-        </div>
-
-        <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
-          <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="generarGuia(item)">Generar guía</button>
-          <button class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100" (click)="verEnvios(item)">Ver Envíos</button>
-          <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
-          <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
-          <button class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>
-        </div>
       </div>
-    </div>
-
+    </ng-container>
+    <ng-template #gridView>
+      <div class="overflow-x-auto rounded-md border border-slate-200 bg-white">
+        <table class="min-w-full text-sm text-slate-700">
+          <thead class="bg-slate-50 text-slate-600">
+            <tr>
+              <th class="px-3 py-2 text-left">Serie-Número</th>
+              <th class="px-3 py-2 text-left">Conductor</th>
+              <th class="px-3 py-2 text-left">Origen</th>
+              <th class="px-3 py-2 text-left">Destino</th>
+              <th class="px-3 py-2 text-left">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of pageItems" class="border-t border-slate-100">
+              <td class="px-3 py-2">{{ item.serie }}-{{ item.numero }}</td>
+              <td class="px-3 py-2">{{ conductorLabel(item.conductor_id) }}</td>
+              <td class="px-3 py-2">{{ nameFrom(safeOrigen(item)) }}</td>
+              <td class="px-3 py-2">{{ nameFrom(safeDestino(item)) }}</td>
+              <td class="px-3 py-2">
+                <div class="flex items-center gap-2">
+                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Guía</button>
+                  <button class="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100" (click)="verEnvios(item)">Ver Envíos</button>
+                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
+                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
+                  <button class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-template>
     <div class="mt-6 flex items-center justify-between text-sm text-slate-600">
-      <div>
-        Mostrando {{ pageStart }}-{{ pageEnd }} de {{ total }} manifiestos
-      </div>
+      <div>Mostrando {{ pageStart }}-{{ pageEnd }} de {{ total }} manifiestos</div>
       <div class="flex items-center gap-2">
         <button (click)="setPage(page-1)" [disabled]="page===1" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Anterior</button>
         <span>Página {{ page }} / {{ totalPages }}</span>
@@ -61,18 +100,10 @@
     </div>
   </ng-container>
   <ng-template #empty>
-    <div class="flex items-center justify-center rounded-md border border-dashed border-slate-300 bg-white py-16 text-slate-500">
-      No hay manifiestos para mostrar.
-    </div>
+    <div class="flex items-center justify-center rounded-md border border-dashed border-slate-300 bg-white py-16 text-slate-500">No hay manifiestos para mostrar.</div>
   </ng-template>
-</section>
 
-<ng-template #stateTpl>
-  <div class="px-6 pb-6">
-    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando…</div>
-    <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
-  </div>
-</ng-template>
+
 
 <!-- Modal crear/editar manifiesto -->
 <div *ngIf="showModal" class="fixed inset-0 z-[1000] flex items-center justify-center">
@@ -117,23 +148,19 @@
         <button type="submit" [disabled]="!isValidManifiesto || saving" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">{{ editing ? 'Actualizar' : 'Crear' }}</button>
       </div>
       <div *ngIf="saveError" class="md:col-span-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ saveError }}</div>
-    </form>
+    </form>    </div>
   </div>
-</div>
 
-<!-- Modal Envíos por Manifiesto -->
-<div *ngIf="showEnviosModal" class="fixed inset-0 z-50 flex items-center justify-center">
-  <div class="absolute inset-0 bg-black/30" (click)="closeEnvios()"></div>
-  <div class="relative z-10 w-full max-w-3xl rounded-lg bg-white p-6 shadow-xl">
+<!-- Envï¿½os en Pï¿½gina (inline) -->
+<div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showEnviosModal">
+  <div class="rounded-md border border-slate-200 bg-white p-6">
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-lg font-semibold text-slate-800">Envíos del Manifiesto {{ enviosManifiestoId }}</h3>
-      <button (click)="closeEnvios()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Cerrar</button>
+      <button (click)="closeEnvios()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
     </div>
-
-    <div *ngIf="enviosLoading" class="rounded-md border border-slate-200 bg-white p-4 text-slate-600">Cargando…</div>
+    <div *ngIf="enviosLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando.</div>
     <div *ngIf="enviosError" class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ enviosError }}</div>
-
-    <div *ngIf="!enviosLoading && !enviosError" class="max-h-[75vh] overflow-x-auto overflow-y-auto rounded-md border border-slate-200">
+    <div *ngIf="!enviosLoading && !enviosError" class="overflow-x-auto rounded-md border border-slate-200">
       <table class="min-w-max text-sm">
         <thead class="bg-slate-50 text-left text-slate-600">
           <tr>
@@ -141,7 +168,7 @@
             <th class="px-3 py-2">Remitente</th>
             <th class="px-3 py-2">Destinatario</th>
             <th class="px-3 py-2">Peso</th>
-            <th class="px-3 py-2">Fecha envío</th>
+            <th class="px-3 py-2">Fecha Envío</th>
             <th class="px-3 py-2">Origen</th>
             <th class="px-3 py-2">Destino</th>
             <th class="px-3 py-2">Pagado</th>
@@ -150,7 +177,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let e of enviosLista" class="border-t border-slate-200">
-            <td class="px-3 py-2">{{ e.guia || '-' }}</td>
+            <td class="px-3 py-2">{{ e.id || '-' }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.destinatario) || e.destinatario }}</td>
             <td class="px-3 py-2">{{ e.peso }}</td>
@@ -160,14 +187,14 @@
             <td class="px-3 py-2">{{ e.estado_pago ? 'Sí' : 'No' }}</td>
             <td class="px-3 py-2">
               <div class="flex items-center justify-end gap-2">
-                <a [routerLink]="['/envios']" [queryParams]="{ id: e.id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver envío</a>
-                <a *ngIf="e.comprobante_id" [routerLink]="['/comprobantes']" [queryParams]="{ id: e.comprobante_id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver comprobante</a>
-                <span *ngIf="!e.comprobante_id" class="text-xs text-slate-400">Sin comprobante</span>
+                <a [routerLink]="['/envios']" [queryParams]="{ id: e.id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver Envío</a>
+                <a *ngIf="e.id" [routerLink]="['/comprobantes']" [queryParams]="{ id: e.id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver comprobante</a>
+                <span *ngIf="!e.id" class="text-xs text-slate-400">Sin comprobante</span>
               </div>
             </td>
           </tr>
           <tr *ngIf="!enviosLista.length">
-            <td colspan="9" class="px-3 py-6 text-center text-slate-500">No hay envíos para este manifiesto.</td>
+            <td colspan="9" class="px-3 py-6 text-center text-slate-500">No hay Envíos para este manifiesto.</td>
           </tr>
         </tbody>
       </table>
@@ -175,21 +202,20 @@
   </div>
 </div>
 
-<!-- Modal Añadir Envíos -->
-<div *ngIf="showAddEnviosModal" class="fixed inset-0 z-[1100] flex items-center justify-center">
-  <div class="absolute inset-0 bg-black/30" (click)="closeAddEnvios()"></div>
-  <div class="relative z-10 w-full max-w-4xl rounded-lg bg-white p-6 shadow-xl">
+<!-- Aï¿½adir Envï¿½os en Pï¿½gina (inline) -->
+<div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showAddEnviosModal">
+  <div class="rounded-md border border-slate-200 bg-white p-6">
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-lg font-semibold text-slate-800">Añadir Envíos al Manifiesto {{ addManifiestoId }}</h3>
-      <button (click)="closeAddEnvios()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Cerrar</button>
+      <button (click)="closeAddEnvios()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
     </div>
     <div class="mb-3 flex items-center gap-2">
       <input type="text" [(ngModel)]="addSearch" placeholder="Buscar" class="h-9 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
       <button (click)="addSearch=''" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Limpiar</button>
     </div>
-    <div *ngIf="addEnviosLoading" class="rounded-md border border-slate-200 bg-white p-4 text-slate-600">Cargando…</div>
+    <div *ngIf="addEnviosLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando.</div>
     <div *ngIf="addEnviosError" class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ addEnviosError }}</div>
-    <div *ngIf="!addEnviosLoading && !addEnviosError" class="max-h-[75vh] overflow-x-auto overflow-y-auto rounded-md border border-slate-200">
+    <div *ngIf="!addEnviosLoading && !addEnviosError" class="overflow-x-auto rounded-md border border-slate-200">
       <table class="min-w-max text-sm">
         <thead class="bg-slate-50 text-left text-slate-600">
           <tr>
@@ -197,7 +223,7 @@
             <th class="px-3 py-2">Remitente</th>
             <th class="px-3 py-2">Destinatario</th>
             <th class="px-3 py-2">Peso</th>
-            <th class="px-3 py-2">Fecha envío</th>
+            <th class="px-3 py-2">Fecha Envío</th>
             <th class="px-3 py-2">Origen</th>
             <th class="px-3 py-2">Destino</th>
             <th class="px-3 py-2 text-center">Operaciones</th>
@@ -205,7 +231,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let e of filteredAddEnvios" class="border-t border-slate-200">
-            <td class="px-3 py-2">{{ e.guia || '-' }}</td>
+            <td class="px-3 py-2">{{ e.id || '-' }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.destinatario) || e.destinatario }}</td>
             <td class="px-3 py-2">{{ e.peso }}</td>
@@ -219,7 +245,7 @@
             </td>
           </tr>
           <tr *ngIf="!filteredAddEnvios.length">
-            <td colspan="8" class="px-3 py-6 text-center text-slate-500">Sin envíos disponibles.</td>
+            <td colspan="8" class="px-3 py-6 text-center text-slate-500">Sin Envíos disponibles.</td>
           </tr>
         </tbody>
       </table>
@@ -227,22 +253,21 @@
   </div>
 </div>
 
-<!-- Modal Generar Guía -->
-<div *ngIf="showGuiaModal" class="fixed inset-0 z-[1200] flex items-center justify-center">
-  <div class="absolute inset-0 bg-black/30" (click)="closeGuia()"></div>
-  <div class="relative z-10 w-full max-w-4xl rounded-lg bg-white p-6 shadow-xl">
+<!-- Guï¿½a en Pï¿½gina (inline) -->
+<div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showGuiaModal">
+  <div class="rounded-md border border-slate-200 bg-white p-6">
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-lg font-semibold text-slate-800">Guía del Manifiesto {{ guiaSerie }}-{{ guiaNumero }}</h3>
       <div class="flex items-center gap-2">
         <button (click)="exportGuiaPDF()" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50">Exportar PDF</button>
-        <button (click)="closeGuia()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Cerrar</button>
+        <button (click)="closeGuia()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
       </div>
     </div>
-    <div *ngIf="guiaLoading" class="rounded-md border border-slate-200 bg-white p-4 text-slate-600">Cargando…</div>
+    <div *ngIf="guiaLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando.</div>
     <div *ngIf="guiaError" class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ guiaError }}</div>
-    <div *ngIf="!guiaLoading && !guiaError" class="max-h-[75vh] overflow-x-auto overflow-y-auto rounded-md border border-slate-200 p-3">
+    <div *ngIf="!guiaLoading && !guiaError" class="overflow-x-auto rounded-md border border-slate-200 p-3">
       <div *ngFor="let g of guiaItems; index as gi" class="mb-6 rounded-md border border-slate-200">
-        <div class="border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800">Envío: {{ g.envio.guia || g.envio.id }}</div>
+        <div class="border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800">Envío: {{ g.envio.id || g.envio.id }}</div>
         <table class="w-full text-sm">
           <thead class="bg-slate-50 text-left text-slate-600">
             <tr>
@@ -267,7 +292,6 @@
           </tbody>
         </table>
       </div>
-      <!-- Firmas -->
       <div class="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
         <div>
           <div class="mb-10 border-b border-slate-300"></div>

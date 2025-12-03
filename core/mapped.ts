@@ -2,7 +2,8 @@ export interface Company {
   id: number;
   nombre: string;
   tipo: string,
-  is_default: boolean
+  is_default: boolean;
+  ruc: string;
 }
 
 export interface UsuarioMe {
@@ -121,12 +122,10 @@ export interface Envio {
   fecha_envio: string;
   fecha_recepcion: string;
   tipo_contenido: boolean;
-  guia: number;
   manifiesto: number;
   valida_restricciones: boolean;
   punto_origen_id: number;
   punto_destino_id: number;
-  comprobante_id: number;
   estado_entrega: boolean;
 }
 
@@ -139,12 +138,10 @@ export interface EnvioCreate {
   fecha_envio: string;
   /*fecha_recepcion: string;*/
   tipo_contenido: boolean;
-  guia: number;
   manifiesto: number;
   valida_restricciones: boolean;
   punto_origen_id: number;
   punto_destino_id: number;
-  comprobante_id: number;
 }
 
 export interface Comprobante {
@@ -161,6 +158,9 @@ export interface Comprobante {
   fecha_pago: string;
   emisor: number;
   cliente: number;
+  emisor_ruc: string;
+  cliente_documento: string;
+  envio_id: number;
 }
 
 export interface ComprobanteCreate {
@@ -176,6 +176,9 @@ export interface ComprobanteCreate {
   fecha_pago: string;
   emisor: number;
   cliente: number;
+  emisor_ruc: string;
+  cliente_documento: string;
+  envio_id: number;
 }
 
 export interface DetalleComprobante {
@@ -196,6 +199,24 @@ export interface DetalleComprobanteCreate {
   comprobante_id: number;
 }
 
+export interface DetalleEnvio {
+  id: number;
+  numero_item: number;
+  cantidad: number;
+  descripcion: number;
+  precio_unitario: number;
+  envio_id: number;
+}
+
+export interface DetalleEnvioCreate {
+  id: number;
+  numero_item: number;
+  cantidad: number;
+  descripcion: number;
+  precio_unitario: number;
+  envio_id: number;
+}
+
 export interface General {
   id: number;
   codigo_grupo: string;
@@ -203,6 +224,19 @@ export interface General {
   nombre: string;
   orden: number;
   es_cabecera: boolean;
+  serie: string,
+  correlativo: number;
+}
+
+export interface GeneralUpdate {
+  id: number;
+  codigo_grupo: string;
+  codigo_principal: number;
+  nombre: string;
+  orden: number;
+  es_cabecera: boolean;
+  serie: string,
+  correlativo: number;
 }
 
 

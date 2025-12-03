@@ -55,11 +55,11 @@ export class ReportesFeature implements OnInit {
     };
     this.enviosSrv.getEnvios().subscribe({
       next: (res) => { this.envios = res || []; enviosLoaded = true; done(); },
-      error: () => { this.error = 'No se pudieron cargar los envíos'; enviosLoaded = true; done(); }
+      error: () => { this.error = 'No se pudieron cargar los envï¿½os'; enviosLoaded = true; done(); }
     });
     this.detalleSrv.getDetallesListFull().subscribe({
       next: (res) => { this.movimientos = res || []; movsLoaded = true; done(); },
-      error: () => { this.error = (this.error || ''); this.error += (this.error? ' · ' : '') + 'No se pudieron cargar los movimientos'; movsLoaded = true; done(); }
+      error: () => { this.error = (this.error || ''); this.error += (this.error? ' Â· ' : '') + 'No se pudieron cargar los movimientos'; movsLoaded = true; done(); }
     });
     this.personasSrv.getPersonas().subscribe({
       next: (res) => { this.personas = res || []; personasLoaded = true; done(); },
@@ -97,7 +97,7 @@ export class ReportesFeature implements OnInit {
     return null;
   }
 
-  // KPIs envíos
+  // KPIs envï¿½os
   get filteredEnvios(): Envio[] {
     const fd = this.fromDate ? new Date(this.fromDate) : null;
     const td = this.toDate ? new Date(this.toDate) : null;
@@ -122,7 +122,7 @@ export class ReportesFeature implements OnInit {
   }
   get totalNeto(): number { return this.totalIngresos - this.totalEgresos; }
 
-  // Datos para gráficas simples
+  // Datos para grï¿½ficas simples
   get totalEnvios(): number { return this.filteredEnvios.length; }
   get piePagadosDeg(): number {
     const total = Math.max(1, this.totalEnvios);
@@ -217,7 +217,7 @@ export class ReportesFeature implements OnInit {
       const bounds = L.latLngBounds(L.latLng(minLat, minLng), L.latLng(maxLat, maxLng));
       this.map.fitBounds(bounds.pad(0.15));
     } else {
-      this.map.setView([ -9.19, -75.02 ], 6); // Perú approx
+      this.map.setView([ -9.19, -75.02 ], 6); // Perï¿½ approx
     }
     this.leafletReady = true;
   }
@@ -227,7 +227,7 @@ export class ReportesFeature implements OnInit {
     const L: any = (window as any).L;
     this.originsLayer.clearLayers();
     this.destLayer.clearLayers();
-    // Count top 5 origins and destinations from filtered envíos
+    // Count top 5 origins and destinations from filtered envï¿½os
     const cntO = new Map<number, number>();
     const cntD = new Map<number, number>();
     (this.filteredEnvios || []).forEach((e:any) => {
@@ -294,9 +294,9 @@ export class ReportesFeature implements OnInit {
     doc.setFont('helvetica','bold');
     doc.text('Reporte de KPIs', x, y); y += line;
     doc.setFont('helvetica','normal');
-    const rango = (this.fromDate || this.toDate) ? `Rango: ${this.fromDate || '—'} a ${this.toDate || '—'}` : 'Rango: Todos';
+    const rango = (this.fromDate || this.toDate) ? `Rango: ${this.fromDate || 'â€”'} a ${this.toDate || 'â€”'}` : 'Rango: Todos';
     doc.text(rango, x, y); y += line * 1.2;
-    doc.setFont('helvetica','bold'); doc.text('Envíos', x, y); y += line;
+    doc.setFont('helvetica','bold'); doc.text('EnvÃ­os', x, y); y += line;
     doc.setFont('helvetica','normal');
     doc.text(`Entregados: ${this.kpiEntregados}`, x, y); y += line;
     doc.text(`No entregados: ${this.kpiNoEntregados}`, x, y); y += line;

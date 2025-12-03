@@ -1,0 +1,37 @@
+ 400:   loadEnvios() {
+ 401:     this.loading = true; this.error = null;
+ 402:     this.enviosSrv.getEnvios().subscribe({
+ 403:       next: (response) => { this.lista_envios = response || []; this.loading = false; const qpId = Number(this.route.snapshot.queryParamMap.get('id') || 0); if (qpId) { const it = (this.lista_envios || []).find((v: any) => Number((v as any).id) === qpId); if (it) { this.openEdit(it as any); } } },
+ 404:       error: () => { this.loading = false; this.error = 'No se pudieron cargar los env\\u00edos'; },
+ 405:     });
+ 406:   }
+ 407:   loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }
+ 408:   loadPuntos() { this.puntosLoading = true; this.puntosError = null; this.puntosSrv.getPuntos().subscribe({ next: (res) => { this.puntos = res || []; this.puntosLoading = false; }, error: () => { this.puntosLoading = false; this.puntosError = 'No se pudieron cargar los puntos'; }, }); }
+ 409: 
+ 410:   ngOnInit(): void {
+ 411:     this.loadCatalogos();
+ 412:     try { const vm = localStorage.getItem('envios.viewMode') as any; if (vm==='table' || vm==='cards') this.viewMode = vm; } catch {}
+ 413:     this.loadEnvios(); this.loadPersonas(); this.loadPuntos();
+ 414:   }
+ 415: 
+ 416:   @HostListener('document:click', [''])
+ 417:   onDocClick() {
+ 418:     this.showRemitenteOptions = false;
+ 419:     this.showDestinatarioOptions = false;
+ 420:   }
+ 421:   @HostListener('document:keydown.escape')
+ 422:   onEsc() {
+ 423:     this.showRemitenteOptions = false;
+ 424:     this.showDestinatarioOptions = false;
+ 425:   }
+ 426: 
+ 427: 
+ 428: 
+ 429: 
+ 430: 
+ 431: 
+ 432: 
+ 433: 
+ 434: 
+ 435: }
+

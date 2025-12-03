@@ -1,0 +1,489 @@
+   0: <div class="px-4 pt-4 pb-0">
+   1:   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+   2:       <div>
+   3:         <h1 class="text-xl font-semibold text-slate-800">Envíos</h1>
+   4:         <p class="mt-1 text-slate-600">Órdenes y tracking.</p>
+   5:       </div>
+   6:   <ui-alert [show]="!!notif" [message]="notif || ''" [type]="notifType" [autoHideMs]="3000" (closed)="notif=null"></ui-alert>
+   7:   </div>
+   8: 
+   9:   <div class="flex flex-wrap items-center gap-2">
+  10:     <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar envío" class="h-10 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+  11: 
+  12:     <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)"
+  13:             class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+  14:       <option [ngValue]="8">8</option>
+  15:       <option [ngValue]="12">12</option>
+  16:       <option [ngValue]="20">20</option>
+  17:     </select>
+  18:     <select [(ngModel)]="entregaFilter" (ngModelChange)="onFilterChange()"
+  19:             class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+  20:       <option [ngValue]="'all'">Todos</option>
+  21:       <option [ngValue]="'delivered'">Entregados</option>
+  22:       <option [ngValue]="'pending'">Pendientes</option>
+  23:     </select>
+  24: 
+  25:     <button (click)="openCreate()"
+  26:             class="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600">
+  27:       Nuevo
+  28:     </button>
+  29:     <div class="ml-auto inline-flex items-center gap-0.5 shrink-0">
+  30:       <button type="button" (click)="setViewMode('cards')" [class.bg-red-600]="viewMode==='cards'" [class.text-white]="viewMode==='cards'" class="rounded-l-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">Tarjetas</button>
+  31:       <button type="button" (click)="setViewMode('table')" [class.bg-red-600]="viewMode==='table'" [class.text-white]="viewMode==='table'" class="rounded-r-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">Tabla</button>
+  32:     </div>
+  33:   </div>
+  34: </div>
+  35: 
+  36: <div *ngIf="showCreate" class="px-4 mt-4">
+  37:   <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+  38:     <h3 class="text-lg font-semibold text-slate-800">Nuevo env&iacute;o</h3>
+  39:     <div class="mt-4 space-y-4">
+  40:       <div class="grid grid-cols-2 gap-3">
+  41:         <div class="relative" (click)="$event.stopPropagation()">
+  42:           <label class="block text-sm text-slate-700">Remitente</label>
+  43:           <div class="mt-1 relative">
+  44:             <div class="flex items-center gap-2">
+  45:               <input type="text" [(ngModel)]="remitenteQuery" (focus)="showRemitenteOptions=true" (input)="showRemitenteOptions=true" placeholder="Buscar persona" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+  46:               <button type="button" (click)="clearRemitente()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Limpiar</button>
+  47:             </div>
+  48:           </div>
+  49:           <div class="mt-2 grid grid-cols-[auto,1fr,auto,auto] items-center gap-2">
+  50:             <select [(ngModel)]="remitenteDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
+  51:               <option [ngValue]="'RUC'">RUC</option>
+  52:               <option [ngValue]="'DNI'">DNI</option>
+  53:             </select>
+  54:             <input type="text" [(ngModel)]="remitenteDocNumber" placeholder="Nro documento" class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+  55:             <button type="button" (click)="lookupRemitente()" [disabled]="remLookupLoading" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">{{ remLookupLoading ? 'Buscando...' : 'Buscar' }}</button>
+  56:           </div>
+  57:           <div class="text-xs text-red-600 mt-1" *ngIf="remLookupError">{{ remLookupError }}</div>
+  58:         </div>
+  59:         <div class="relative" (click)="$event.stopPropagation()">
+  60:           <label class="block text-sm text-slate-700">Destinatario</label>
+  61:           <div class="mt-1 relative flex items-center gap-2">
+  62:             <input type="text" [(ngModel)]="destinatarioQuery" (focus)="showDestinatarioOptions=true" (input)="showDestinatarioOptions=true" placeholder="Buscar persona" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+  63:             <button type="button" (click)="clearDestinatario()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Limpiar</button>
+  64:           </div><div *ngIf="personasError" class="px-3 py-2 text-sm text-red-600">{{ personasError }}</div>
+  65:             <button *ngFor="let p of filteredDestinatarios" type="button" (click)="selectDestinatario(p)" class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50">{{ personaLabel(p) }}</button>
+  66:             <div *ngIf="!personasLoading && !filteredDestinatarios.length" class="px-3 py-2 text-sm text-slate-500">Sin resultados</div>
+  67:           </div><div class="mt-2 grid grid-cols-[auto,1fr,auto] items-center gap-2">
+  68:             <select [(ngModel)]="destinatarioDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
+  69:               <option [ngValue]="'RUC'">RUC</option>
+  70:               <option [ngValue]="'DNI'">DNI</option>
+  71:             </select>
+  72:             <input type="text" [(ngModel)]="destinatarioDocNumber" placeholder="Nro documento" class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+  73:             <button type="button" (click)="lookupDestinatario()" [disabled]="destLookupLoading" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">{{ destLookupLoading ? 'Buscando...' : 'Buscar' }}</button>
+  74:           </div>
+  75:           <div class="text-xs text-red-600 mt-1" *ngIf="destLookupError">{{ destLookupError }}</div><div *ngIf="personasError" class="px-3 py-2 text-sm text-red-600">{{ personasError }}</div>
+  76:             <button *ngFor="let p of filteredDestinatarios" type="button" (click)="selectDestinatario(p)" class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50">{{ personaLabel(p) }}</button>
+  77:             <div *ngIf="!personasLoading && !filteredDestinatarios.length" class="px-3 py-2 text-sm text-slate-500">Sin resultados</div>
+  78:           </div>
+  79:         </div>
+  80:       </div>
+  81:       <div class="grid grid-cols-3 gap-3">
+  82:         <div>
+  83:           <label class="block text-sm text-slate-700">Peso (kg)</label>
+  84:           <input type="number" min="0" step="0.01" [(ngModel)]="newEnvio.peso" placeholder="0.00" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+  85:         </div>
+  86:         <div>
+  87:           <label class="block text-sm text-slate-700">Fecha env&iacute;o</label>
+  88:           <input type="date" [(ngModel)]="newEnvio.fecha_envio" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+  89:         </div>
+  90:         <div>
+  91:           <label class="block text-sm text-slate-700">Fecha recepci&oacute;n</label>
+  92:           <input type="date" [(ngModel)]="newEnvio.fecha_recepcion" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+  93:         </div>
+  94:       </div>
+  95:       <div class="grid grid-cols-2 gap-3">
+  96:         <div>
+  97:           <label class="block text-sm text-slate-700">Origen</label>
+  98:           <select [(ngModel)]="newEnvio.punto_origen_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+  99:             <option [ngValue]="null">Seleccione...</option>
+ 100:             <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+ 101:           </select>
+ 102:           <div class="text-xs text-slate-500 mt-1" *ngIf="puntosLoading">Cargando puntos...</div>
+ 103:           <div class="text-xs text-red-600 mt-1" *ngIf="puntosError">{{ puntosError }}</div>
+ 104:         </div>
+ 105:         <div>
+ 106:           <label class="block text-sm text-slate-700">Destino</label>
+ 107:           <select [(ngModel)]="newEnvio.punto_destino_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+ 108:             <option [ngValue]="null">Seleccione...</option>
+ 109:             <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+ 110:           </select>
+ 111:         </div>
+ 112:       </div>
+ 113:       <!-- Comprobante inline (mostrar solo si pagado) -->
+ 114:       <div *ngIf="newEnvio.estado_pago" class="mt-4 rounded-md border border-slate-200 p-3">
+ 115:         <div class="text-sm font-medium text-slate-800 mb-2">Comprobante</div>
+ 116:         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+ 117:           <div>
+ 118:             <label class="block text-sm text-slate-700">Tipo</label>
+ 119:             <select [(ngModel)]="compTipoSel" (ngModelChange)="onCompTipoChange($event)" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm">
+ 120:               <option [ngValue]="null">Seleccione...</option>
+ 121:               <option *ngFor="let t of compTipos" [ngValue]="t">{{ t.nombre }}</option>
+ 122:             </select>
+ 123:           </div>
+ 124:           <div>
+ 125:             <label class="block text-sm text-slate-700">Serie</label>
+ 126:             <input type="text" [value]="compSerie" readonly class="mt-1 w-full rounded-md border border-slate-300 bg-slate-50 px-2 py-2 text-sm" />
+ 127:           </div>
+ 128:           <div>
+ 129:             <label class="block text-sm text-slate-700">Número</label>
+ 130:             <input type="text" [value]="compNumeroComprobante" readonly class="mt-1 w-full rounded-md border border-slate-300 bg-slate-50 px-2 py-2 text-sm" />
+ 131:           </div>
+ 132:           <div>
+ 133:             <label class="block text-sm text-slate-700">Forma de pago</label>
+ 134:             <select [(ngModel)]="compFormaPagoId" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm">
+ 135:               <option [ngValue]="null">Seleccione...</option>
+ 136:               <option *ngFor="let p of payTipos" [ngValue]="p.codigo_principal">{{ p.nombre }}</option>
+ 137:             </select>
+ 138:           </div>
+ 139:           <div>
+ 140:             <label class="block text-sm text-slate-700">Fecha pago</label>
+ 141:             <input type="date" [(ngModel)]="compFechaPago" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" />
+ 142:           </div>
+ 143:           <div class="sm:col-span-3"></div>
+ 144:         </div>
+ 145:         <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+ 146:           <div class="sm:col-span-2">
+ 147:             <label class="block text-sm text-slate-700">Cliente ({{ compDocType }})</label>
+ 148:             <div class="mt-1 grid grid-cols-[auto,1fr,auto] items-center gap-2">
+ 149:               <select [(ngModel)]="compDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
+ 150:                 <option [ngValue]="'DNI'">DNI</option>
+ 151:                 <option [ngValue]="'RUC'">RUC</option>
+ 152:               </select>
+ 153:               <input type="text" [(ngModel)]="compDocNumber" placeholder="Documento" class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 154:               <button type="button" (click)="lookupCliente()" [disabled]="compLookupLoading" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">{{ compLookupLoading ? 'Buscando...' : 'Buscar' }}</button>
+ 155:             </div>
+ 156:               <span *ngIf="compClienteId" class="text-xs text-slate-600 pl-1 truncate max-w-[14rem]">{{ compClienteLabel() }}</span>
+ 157:             <div class="text-xs text-red-600 mt-1" *ngIf="compLookupError">{{ compLookupError }}</div>
+ 158:           </div>
+ 159:           <div>
+ 160:             <label class="block text-sm text-slate-700">Impuesto</label>
+ 161:             <input type="text" [value]="compImpuesto | number:'1.2-2'" readonly class="mt-1 w-full rounded-md border border-slate-300 bg-slate-50 px-2 py-2 text-sm" />
+ 162:           </div>
+ 163:         </div>
+ 164:         <div class="mt-2 text-right text-sm text-slate-700">Total: {{ compTotal | number:'1.2-2' }}</div>
+ 165:       <div class="mt-1 text-right text-sm text-slate-700" *ngIf="compTipoNombre().toLowerCase().includes('fact')">Total (con impuesto): {{ compTotalConImpuesto | number:'1.2-2' }}</div>
+ 166:         <div class="mt-2 text-right text-xs text-slate-500" *ngIf="!compValid">Complete tipo, forma de pago y documento</div>
+ 167:       </div>
+ 168:       <div>
+ 169:         <label class="block text-sm text-slate-700">Clave de recojo</label>
+ 170:         <input type="text" [(ngModel)]="newEnvio.clave_recojo" placeholder="CLV-XXXX" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 171:       </div>
+ 172:       <div class="grid grid-cols-2 gap-3">
+ 173:         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+ 174:           <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" class="h-4 w-4" />
+ 175:           Pagado
+ 176:         </label>
+ 177:         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+ 178:           <input type="checkbox" [(ngModel)]="newEnvio.tipo_contenido" class="h-4 w-4" />
+ 179:           Contenido especial
+ 180:         </label>
+ 181:       </div>
+ 182:       <div *ngIf="!editing" class="mt-6">
+ 183:         <h4 class="text-sm font-medium text-slate-800">Detalle del env&iacute;o</h4>
+ 184:         <div class="mt-2 grid grid-cols-1 sm:grid-cols-4 gap-2">
+ 185:           <div>
+ 186:             <label class="block text-sm text-slate-700">Cantidad</label>
+ 187:             <input type="number" min="1" [(ngModel)]="newDet.cantidad" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 188:           </div>
+ 189:           <div class="sm:col-span-2">
+ 190:             <label class="block text-sm text-slate-700">Descripci&oacute;n</label>
+ 191:             <input type="text" [(ngModel)]="newDet.descripcion" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 192:           </div>
+ 193:           <div>
+ 194:             <label class="block text-sm text-slate-700">Precio unitario</label>
+ 195:             <input type="number" min="0" step="0.01" [(ngModel)]="newDet.precio_unitario" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 196:           </div>
+ 197:         </div>
+ 198:         <div class="mt-2 flex justify-end">
+ 199:           <button type="button" (click)="addDetalle()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Agregar &iacute;tem</button>
+ 200:         </div>
+ 201:         <div *ngIf="stagedDetalles.length" class="mt-3 overflow-x-auto">
+ 202:           <table class="min-w-full text-sm">
+ 203:             <thead class="text-left text-slate-600">
+ 204:               <tr>
+ 205:                 <th class="px-2 py-1">#</th>
+ 206:                 <th class="px-2 py-1">Cantidad</th>
+ 207:                 <th class="px-2 py-1">Descripci&oacute;n</th>
+ 208:                 <th class="px-2 py-1">P. Unitario</th>
+ 209:                 <th class="px-2 py-1">Subtotal</th>
+ 210:                 <th class="px-2 py-1"></th>
+ 211:               </tr>
+ 212:             </thead>
+ 213:             <tbody>
+ 214:               <tr *ngFor="let d of stagedDetalles; index as i" class="border-t border-slate-200">
+ 215:                 <td class="px-2 py-1">{{ i+1 }}</td>
+ 216:                 <td class="px-2 py-1">{{ d.cantidad }}</td>
+ 217:                 <td class="px-2 py-1">{{ d.descripcion }}</td>
+ 218:                 <td class="px-2 py-1">{{ d.precio_unitario | number:'1.2-2' }}</td>
+ 219:                 <td class="px-2 py-1">{{ (d.cantidad * d.precio_unitario) | number:'1.2-2' }}</td>
+ 220:                 <td class="px-2 py-1 text-right">
+ 221:                   <button type="button" (click)="removeDetalle(i)" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Quitar</button>
+ 222:                 </td>
+ 223:               </tr>
+ 224:             </tbody>
+ 225:           </table>
+ 226:           <div class="mt-2 text-right text-sm text-slate-700">Total: {{ stagedSubtotal | number:'1.2-2' }}</div>
+ 227:         </div>
+ 228:       </div>
+ 229:       <div class="mt-6 flex items-center justify-between gap-2">
+ 230:         <button (click)="closeCreate()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
+ 231:         <div class="text-sm text-red-600" *ngIf="saveError">{{ saveError }}</div>
+ 232:         <button (click)="submitEnvio()" [disabled]="!isValidEnvio || saving"
+ 233:                 class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">Guardar</button>
+ 234:       </div>
+ 235:     </div>
+ 236:   </div>
+ 237: </div>
+ 238: <div *ngIf="showEdit" class="px-4 mt-4">
+ 239:   <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+ 240:     <h3 class="text-lg font-semibold text-slate-800">Editar env&iacute;o</h3>
+ 241:     <div class="mt-4 space-y-4">
+ 242:       <div class="grid grid-cols-2 gap-3">
+ 243:                 <div class="relative" (click)=".stopPropagation()">
+ 244:           <label class="block text-sm text-slate-700">Destinatario</label>
+ 245:           <div class="mt-1 relative">
+ 246:             <div class="flex items-center gap-2">
+ 247:               <input type="text" [(ngModel)]="destinatarioQuery" (focus)="showDestinatarioOptions=true" (input)="showDestinatarioOptions=true" placeholder="Buscar persona" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 248:               <button type="button" (click)="clearDestinatario()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Limpiar</button>
+ 249:             </div>
+ 250:           </div>
+ 251:           <div class="mt-2 grid grid-cols-[auto,1fr,auto] items-center gap-2">
+ 252:             <select [(ngModel)]="destinatarioDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
+ 253:               <option [ngValue]="'RUC'">RUC</option>
+ 254:               <option [ngValue]="'DNI'">DNI</option>
+ 255:             </select>
+ 256:             <input type="text" [(ngModel)]="destinatarioDocNumber" placeholder="Nro documento" class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 257:             <button type="button" (click)="lookupDestinatario()" [disabled]="destLookupLoading" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">{{ destLookupLoading ? 'Buscando...' : 'Buscar' }}</button>
+ 258:           </div>
+ 259:           <div class="text-xs text-red-600 mt-1" *ngIf="destLookupError">{{ destLookupError }}</div>
+ 260:         </div><div class="grid grid-cols-3 gap-3">
+ 261:         <div>
+ 262:           <label class="block text-sm text-slate-700">Peso (kg)</label>
+ 263:           <input type="number" min="0" step="0.01" [(ngModel)]="newEnvio.peso" placeholder="0.00" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 264:         </div>
+ 265:         <div>
+ 266:           <label class="block text-sm text-slate-700">Fecha env&iacute;o</label>
+ 267:           <input type="date" [(ngModel)]="newEnvio.fecha_envio" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 268:         </div>
+ 269:         <div>
+ 270:           <label class="block text-sm text-slate-700">Fecha recepci&oacute;n</label>
+ 271:           <input type="date" [(ngModel)]="newEnvio.fecha_recepcion" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 272:         </div>
+ 273:       </div>
+ 274:       <div class="grid grid-cols-2 gap-3">
+ 275:         <div>
+ 276:           <label class="block text-sm text-slate-700">Origen</label>
+ 277:           <select [(ngModel)]="newEnvio.punto_origen_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+ 278:             <option [ngValue]="null">Seleccione...</option>
+ 279:             <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+ 280:           </select>
+ 281:           <div class="text-xs text-slate-500 mt-1" *ngIf="puntosLoading">Cargando puntos...</div>
+ 282:           <div class="text-xs text-red-600 mt-1" *ngIf="puntosError">{{ puntosError }}</div>
+ 283:         </div>
+ 284:         <div>
+ 285:           <label class="block text-sm text-slate-700">Destino</label>
+ 286:           <select [(ngModel)]="newEnvio.punto_destino_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+ 287:             <option [ngValue]="null">Seleccione...</option>
+ 288:             <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+ 289:           </select>
+ 290:         </div>
+ 291:       </div>
+ 292:       <div>
+ 293:         <label class="block text-sm text-slate-700">Clave de recojo</label>
+ 294:         <input type="text" [(ngModel)]="newEnvio.clave_recojo" placeholder="CLV-XXXX" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 295:       </div>
+ 296:       <div class="grid grid-cols-2 gap-3">
+ 297:         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+ 298:           <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" class="h-4 w-4" />
+ 299:           Pagado
+ 300:         </label>
+ 301:         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+ 302:           <input type="checkbox" [(ngModel)]="newEnvio.tipo_contenido" class="h-4 w-4" />
+ 303:           Contenido especial
+ 304:         </label>
+ 305:       </div>
+ 306:       <div class="mt-6 flex items-center justify-between gap-2">
+ 307:         <button (click)="closeEdit()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
+ 308:         <div class="text-sm text-red-600" *ngIf="saveError">{{ saveError }}</div>
+ 309:         <button (click)="submitEnvio()" [disabled]="!isValidEnvio || saving"
+ 310:                 class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">Guardar</button>
+ 311:       </div>
+ 312:     </div>
+ 313:   </div>
+ 314: </div>
+ 315: <ui-confirm [show]="confirmOpen" [title]="confirmTitle" [message]="confirmMessage" [confirmText]="'Eliminar'" [type]="'danger'" (confirm)="onConfirmDelete()" (cancel)="onCancelDelete()"></ui-confirm>
+ 316: <section class="px-4 pb-2" *ngIf="!loading && !error; else stateTpl">
+ 317:   <ng-container *ngIf="pageItems?.length; else empty">
+ 318:     <div *ngIf="viewMode=='cards'" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+ 319:       <div *ngFor="let item of pageItems; index as i" class="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+ 320:         <div class="mb-3 flex items-start justify-between">
+ 321:           <div class="min-w-0">
+ 322:             <div class="font-medium text-slate-800 truncate max-w-[14rem]">Envío: {{ item.id || '-' }}</div>
+ 323:             <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
+ 324:           </div>
+ 325:         </div>
+ 326: 
+ 327:         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+ 328:           <span class="inline-block rounded border border-blue-200 bg-blue-50 text-blue-700 px-2 py-0.5">Remitente: {{ personaLabelById(item.remitente) || item.remitente }}</span>
+ 329:           <span class="inline-block rounded border border-indigo-200 bg-indigo-50 text-indigo-700 px-2 py-0.5">Destinatario: {{ personaLabelById(item.destinatario) || item.destinatario }}</span>
+ 330:           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Peso: {{ item.peso }}</span>
+ 331:           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Fecha envío: {{ item.fecha_envio | ymd }}</span>
+ 332:           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Origen: {{ getPuntoNombre(item.punto_origen_id) }}</span>
+ 333:           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Destino: {{ getPuntoNombre(item.punto_destino_id) }}</span>
+ 334:           <span class="inline-block rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5" *ngIf="item.estado_pago">Pagado</span>
+ 335:           <span class="inline-block rounded border border-red-200 bg-red-50 text-red-700 px-2 py-0.5" *ngIf="!item.estado_pago">No pagado</span>
+ 336:         </div>
+ 337: 
+ 338:         <div class="mt-4 flex items-center justify-end gap-2 flex-wrap">
+ 339:           <span *ngIf="item.fecha_recepcion" class="rounded-md border border-red-200 bg-red-300 px-2.5 py-1.5 text-xs text-red-900 hover:bg-red-100">Entregado <i class=""></i></span>
+ 340:           <button type="button" *ngIf="!item.fecha_recepcion" class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100" (click)="openEntrega(item); $event.stopPropagation()">Entregar</button><button type="button" class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
+ 341:           <button type="button" class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>
+ 342:         </div>
+ 343:       </div>
+ 344:     </div>
+ 345:     <div *ngIf="viewMode==='table'" class="mt-4 overflow-x-auto">       <table class="min-w-full divide-y divide-slate-200 bg-white rounded-md border border-slate-200">         <thead class="bg-slate-50 text-slate-700 text-sm">           <tr>             <th class="px-3 py-2 text-left">Guia</th>             <th class="px-3 py-2 text-left">Remitente</th>             <th class="px-3 py-2 text-left">Destinatario</th>             <th class="px-3 py-2 text-left">Peso</th>             <th class="px-3 py-2 text-left">Fecha env&iacute;o</th>             <th class="px-3 py-2 text-left">Origen</th>             <th class="px-3 py-2 text-left">Destino</th>             <th class="px-3 py-2 text-right">Acciones</th>           </tr>         </thead>         <tbody class="divide-y divide-slate-100 text-sm text-slate-800">           <tr *ngFor="let item of pageItems">             <td class="px-3 py-2">{{ item.id || '-' }}</td>             <td class="px-3 py-2">{{ personaLabelById(item.remitente) || item.remitente }}</td>             <td class="px-3 py-2">{{ personaLabelById(item.destinatario) || item.destinatario }}</td>             <td class="px-3 py-2">{{ item.peso }}</td>             <td class="px-3 py-2">{{ item.fecha_envio | ymd }}</td>             <td class="px-3 py-2">{{ getPuntoNombre(item.punto_origen_id) }}</td>             <td class="px-3 py-2">{{ getPuntoNombre(item.punto_destino_id) }}</td>             <td class="px-3 py-2 text-right">               <button type="button" *ngIf="!item.fecha_recepcion" class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-800 hover:bg-emerald-100" (click)="openEntrega(item)">Confirmar entrega</button>               <button type="button" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>               <button type="button" class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>             </td>           </tr>         </tbody>       </table>     </div>
+ 346: 
+ 347:     <div class="mt-6 flex items-center justify-between text-sm text-slate-600">
+ 348:       <div>
+ 349:         Mostrando {{ pageStart }}-{{ pageEnd }} de {{ total }} envíos
+ 350:       </div>
+ 351:       <div class="flex items-center gap-2">
+ 352:         <button (click)="setPage(page-1)" [disabled]="page===1"
+ 353:                 class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Anterior</button>
+ 354:         <span>Página {{ page }} / {{ totalPages }}</span>
+ 355:         <button (click)="setPage(page+1)" [disabled]="page===totalPages"
+ 356:                 class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Siguiente</button>
+ 357:       </div>
+ 358:     </div>
+ 359:   </ng-container>
+ 360:   <ng-template #empty>
+ 361:     <div class="flex items-center justify-center rounded-md border border-dashed border-slate-300 bg-white py-16 text-slate-500">
+ 362:       No hay envíos para mostrar.
+ 363:     </div>
+ 364:   </ng-template>
+ 365: </section>
+ 366: 
+ 367: <ng-template #stateTpl>
+ 368:   <div class="px-6 pb-6">
+ 369:     <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando...</div>
+ 370:     <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
+ 371:   </div>
+ 372: </ng-template>
+ 373: 
+ 374: 
+ 375: 
+ 376: 
+ 377: 
+ 378: 
+ 379: 
+ 380: 
+ 381: 
+ 382: 
+ 383: <!-- Overlay template for entrega (CDK) -->
+ 384: <!-- Ticket Modal -->
+ 385: <div *ngIf="showTicket" class="fixed inset-0 z-50 flex items-center justify-center">
+ 386:   <div class="absolute inset-0 bg-black/30" (click)="closeTicket()"></div>
+ 387:   <div class="relative z-10 w-[86mm] max-w-[86mm] rounded-md bg-white p-4 shadow-xl">
+ 388:     <div class="flex items-center justify-between ticket-actions">
+ 389:       <h3 class="text-sm font-semibold text-slate-800">Ticket de env&iacute;o</h3>
+ 390:       <div class="flex gap-2">
+ 391:         <button (click)="printTicket()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Imprimir</button>
+ 392:         <button (click)="closeTicket()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Cerrar</button>
+ 393:       </div>
+ 394:     </div>
+ 395:     <div class="mt-2 ticket w-[80mm] max-w-[80mm] text-[12px] text-slate-800">
+ 396:       <div class="text-center">
+ 397:         <div class="font-semibold">ENV&Iacute;O</div>
+ 398:         <div class="text-xs text-slate-600">ID: {{ ticketEnvio?.id }}</div>
+ 399:       </div>
+ 400:       <div class="mt-2">
+ 401:         <div><span class="font-medium">Remitente:</span> {{ personaLabelById(ticketEnvio?.remitente) || ticketEnvio?.remitente }}</div>
+ 402:         <div><span class="font-medium">Destinatario:</span> {{ personaLabelById(ticketEnvio?.destinatario) || ticketEnvio?.destinatario }}</div>
+ 403:         <div><span class="font-medium">Origen:</span> {{ getPuntoNombre(ticketEnvio?.punto_origen_id) }}</div>
+ 404:         <div><span class="font-medium">Destino:</span> {{ getPuntoNombre(ticketEnvio?.punto_destino_id) }}</div>
+ 405:         <div><span class="font-medium">Fecha env&iacute;o:</span> {{ ticketEnvio?.fecha_envio }}</div>
+ 406:         <div><span class="font-medium">Clave:</span> {{ ticketEnvio?.clave_recojo }}</div>
+ 407:       </div>
+ 408:       <div class="mt-2 border-t border-dashed border-slate-300"></div>
+ 409:       <div class="mt-2">
+ 410:         <div class="font-medium">Detalle</div>
+ 411:         <table class="mt-1 w-full">
+ 412:           <thead class="text-left text-[11px] text-slate-600">
+ 413:             <tr>
+ 414:               <th class="pr-2">#</th>
+ 415:               <th class="pr-2">Cant</th>
+ 416:               <th class="pr-2">Desc</th>
+ 417:               <th class="pr-2 text-right">P.Unit</th>
+ 418:               <th class="text-right">Subt</th>
+ 419:             </tr>
+ 420:           </thead>
+ 421:           <tbody class="text-[12px]">
+ 422:             <tr *ngFor="let d of ticketDetalles" class="align-top">
+ 423:               <td class="pr-2">{{ d.numero_item }}</td>
+ 424:               <td class="pr-2">{{ d.cantidad }}</td>
+ 425:               <td class="pr-2">{{ d.descripcion }}</td>
+ 426:               <td class="pr-2 text-right">{{ d.precio_unitario | number:'1.2-2' }}</td>
+ 427:               <td class="text-right">{{ (d.cantidad * d.precio_unitario) | number:'1.2-2' }}</td>
+ 428:             </tr>
+ 429:           </tbody>
+ 430:         </table>
+ 431:         <div class="mt-1 text-right text-[12px]">Total: {{ ticketTotal | number:'1.2-2' }}</div>
+ 432:       </div>
+ 433:       <div class="mt-3 flex items-center justify-center">
+ 434:         <img *ngIf="ticketEnvio?.id" [src]="'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + ticketEnvio?.id" class="h-32 w-32" alt="QR" />
+ 435:       </div>
+ 436:       <div class="mt-1 text-center text-[11px] text-slate-500">Gracias por su preferencia</div>
+ 437:     </div>
+ 438:   </div>
+ 439: </div>
+ 440: <ng-template cdkPortal #entregaTpl>
+ 441:   <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+ 442:     <h3 class="text-lg font-semibold text-slate-800">Confirmar entrega</h3>
+ 443:     <div class="mt-4 space-y-4" *ngIf="entregaItem as it">
+ 444:       <div class="text-sm text-slate-700 space-y-1">
+ 445:         <div>Guía: <span class="font-medium">{{ it.id || '-' }}</span></div>
+ 446:         <div>Remitente: <span class="font-medium">{{ personaLabelById(it.remitente) || it.remitente }}</span></div>
+ 447:         <div>Destinatario: <span class="font-medium">{{ personaLabelById(it.destinatario) || it.destinatario }}</span></div>
+ 448:         <div class="flex items-center gap-2">Pagado:
+ 449:           <span class="inline-block rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5" *ngIf="it.estado_pago">Sí</span>
+ 450:           <span class="inline-block rounded border border-red-200 bg-red-50 text-red-700 px-2 py-0.5" *ngIf="!it.estado_pago">No</span>
+ 451:         </div>
+ 452:       </div>
+ 453:       <div>
+ 454:         <label class="block text-sm text-slate-700">Clave de recojo</label>
+ 455:         <input type="text" [(ngModel)]="entregaClaveInput" placeholder="Ingrese la clave de recojo" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 456:         <div class="mt-1 text-xs" [class.text-emerald-700]="entregaClaveOk" [class.text-red-600]="!entregaClaveOk && entregaClaveInput">
+ 457:           {{ entregaClaveInput ? (entregaClaveOk ? 'Clave válida' : 'Clave incorrecta') : 'Ingrese la clave para validar' }}
+ 458:         </div>
+ 459:       </div>
+ 460:       <div>
+ 461:         <label class="block text-sm text-slate-700">Fecha de recepción</label>
+ 462:         <input type="date" [(ngModel)]="entregaFecha" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+ 463:         <div class="mt-1 text-xs text-slate-500">Se registrará como la fecha de recepción.</div>
+ 464:       </div>
+ 465:       <div class="text-sm text-red-600" *ngIf="entregaError">{{ entregaError }}</div>
+ 466:     </div>
+ 467:     <div class="mt-6 flex items-center justify-between gap-2">
+ 468:       <button type="button" (click)="closeEntrega()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
+ 469:       <button type="button" (click)="submitEntrega()" [disabled]="!entregaClaveOk || entregaSaving"
+ 470:               class="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">Confirmar entrega</button>
+ 471:     </div>
+ 472:   </div>
+ 473: </ng-template>
+ 474: 
+ 475: 
+ 476: 
+ 477: 
+ 478: 
+ 479: 
+ 480: 
+ 481: 
+ 482: 
+ 483: 
+ 484: 
+ 485: 
+ 486: 
+ 487: 
+

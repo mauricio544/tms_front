@@ -37,7 +37,7 @@ export class ManifiestosFeature implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // Filtros y paginaciï¿½n
+  // Filtros y paginación
   search = '';
   page = 1;
   pageSize = 8;
@@ -50,9 +50,9 @@ export class ManifiestosFeature implements OnInit {
   saving = false;
   saveError: string | null = null;
 
-  // ConfirmaciÃ³n eliminacion
+  // Confirmación eliminacion
   confirmOpen = false;
-  confirmTitle = 'Confirmar eliminaciÃ³n';
+  confirmTitle = 'Confirmar eliminación';
   confirmMessage = '';
   pendingDeleteId: number | null = null;
   pendingDeleteLabel: string = '';
@@ -66,18 +66,18 @@ export class ManifiestosFeature implements OnInit {
   conductores: Conductor[] = [];
   personas: Persona[] = [];
 
-  // EdiciÃ³n
+  // Edición
   editing = false;
   editingId: number | null = null;
 
-  // Ver envï¿½os por manifiesto
+  // Ver envíos por manifiesto
   showEnviosModal = false;
   enviosLoading = false;
   enviosError: string | null = null;
   enviosLista: Envio[] = [];
   enviosManifiestoId: number | null = null;
 
-  // Aï¿½adir envï¿½os a manifiesto
+  // Añadir envíos a manifiesto
   showAddEnviosModal = false;
   addEnviosLoading = false;
   addEnviosError: string | null = null;
@@ -111,7 +111,7 @@ export class ManifiestosFeature implements OnInit {
     });
   }
 
-  // Paginaciï¿½n derivada
+  // Paginación derivada
   get total(): number { return this.filteredManifiestos.length; }
   get totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
   get pageItems(): Manifiesto[] {
@@ -207,7 +207,7 @@ export class ManifiestosFeature implements OnInit {
   askDelete(item: Manifiesto) {
     this.pendingDeleteId = (item as any).id ?? null;
     this.pendingDeleteLabel = `${(item as any).serie || ''}-${(item as any).numero || ''}`;
-    this.confirmMessage = `Â¿Eliminar manifiesto ${this.pendingDeleteLabel}?`;
+    this.confirmMessage = `¿Eliminar manifiesto ${this.pendingDeleteLabel}?`;
     this.confirmOpen = true;
   }
   onCancelDelete() {
@@ -229,9 +229,9 @@ export class ManifiestosFeature implements OnInit {
       },
       error: () => {
         this.saving = false;
-        this.saveError = 'No se pudo Eliminar el manifiesto';
+        this.saveError = 'No se pudo eliminar el manifiesto';
         this.onCancelDelete();
-        this.showNotif('No se pudo Eliminar el manifiesto', 'error');
+        this.showNotif('No se pudo eliminar el manifiesto', 'error');
       }
     });
   }
@@ -317,12 +317,12 @@ ngOnInit(): void {
     this.showEnviosModal = true;
     this.enviosSrv.getEnviosManifiesto(Number(id)).subscribe({
       next: (res) => { this.enviosLista = res || []; this.enviosLoading = false; },
-      error: () => { this.enviosLoading = false; this.enviosError = 'No se pudieron cargar los envï¿½os'; }
+      error: () => { this.enviosLoading = false; this.enviosError = 'No se pudieron cargar los envíos'; }
     });
   }
   closeEnvios() { this.showEnviosModal = false; }
 
-  // Generar guï¿½a
+  // Generar guía
   showGuiaModal = false;
   guiaLoading = false;
   guiaError: string | null = null;
@@ -359,7 +359,7 @@ ngOnInit(): void {
           error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los detalles de comprobante'; }
         });
       },
-      error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los envï¿½os del manifiesto'; }
+      error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los envíos del manifiesto'; }
     });
   }
   closeGuia() { this.showGuiaModal = false; }
@@ -374,11 +374,11 @@ ngOnInit(): void {
     add('Origen: ' + this.nameFrom(this.guiaOrigenId) + '   Destino: ' + this.nameFrom(this.guiaDestinoId), false);
     (this.guiaItems || []).forEach((g, gi) => {
       if (y > 760) { doc.addPage(); y = 40; }
-      add('EnvÃ­o: ' + (((g as any).envio?.guia ?? (g as any).envio?.id) || ''), true);
+      add('Envío: ' + (((g as any).envio?.guia ?? (g as any).envio?.id) || ''), true);
       const dets:any[] = (g as any).detalles || [];
       if (!dets.length) { add('Sin detalle'); return; }
       doc.setFont('helvetica','bold');
-      doc.text('Ãtem', marginX, y); doc.text('Cant.', marginX+50, y); doc.text('DescripciÃ³n', marginX+110, y); doc.text('P. Unit', marginX+360, y); doc.text('Subtotal', marginX+450, y); y += 8; doc.line(marginX, y, marginX+520, y); y += 12; doc.setFont('helvetica','normal');
+      doc.text('Ítem', marginX, y); doc.text('Cant.', marginX+50, y); doc.text('Descripción', marginX+110, y); doc.text('P. Unit', marginX+360, y); doc.text('Subtotal', marginX+450, y); y += 8; doc.line(marginX, y, marginX+520, y); y += 12; doc.setFont('helvetica','normal');
       dets.forEach((d:any) => {
         if (y > 780) { doc.addPage(); y = 40; }
         const subtotal = (Number(d.cantidad)||0) * (Number(d.precio_unitario)||0);
@@ -405,7 +405,7 @@ ngOnInit(): void {
     let destShow = "";
     if (uniq.length === 1) { destShow = uniq[0]; }
     else if (uniq.length > 1 && uniq.length <= 3) { destShow = uniq.join(", "); }
-    else if (uniq.length > 3) { destShow = uniq.slice(0,3).join(", ") + " +" + (uniq.length-3) + " mï¿½s"; }
+    else if (uniq.length > 3) { destShow = uniq.slice(0,3).join(", ") + " +" + (uniq.length-3) + " más"; }
     doc.line(marginX+40, y+2, marginX+280, y+2);
     if (destShow) { doc.text('Recibido por: ' + destShow, marginX+60, y-6); }
     doc.text('Recibido por', marginX+110, y+16);
@@ -429,7 +429,7 @@ ngOnInit(): void {
         this.addEnviosLista = all.filter(e => (e as any)?.manifiesto == null);
         this.addEnviosLoading = false;
       },
-      error: () => { this.addEnviosLoading = false; this.addEnviosError = 'No se pudieron cargar los envï¿½os'; }
+      error: () => { this.addEnviosLoading = false; this.addEnviosError = 'No se pudieron cargar los envíos'; }
     });
   }
 
@@ -443,9 +443,9 @@ ngOnInit(): void {
       next: () => {
         this.addEnviosLoading = false;
         this.addEnviosLista = (this.addEnviosLista || []).filter((e:any) => e.id !== eid);
-        this.showNotif('EnvÃ­o aï¿½adido al manifiesto');
+        this.showNotif('Envío añadido al manifiesto');
       },
-      error: () => { this.addEnviosLoading = false; this.showNotif('No se pudo aï¿½adir', 'error'); }
+      error: () => { this.addEnviosLoading = false; this.showNotif('No se pudo añadir', 'error'); }
     });
   }
 
@@ -460,6 +460,7 @@ ngOnInit(): void {
     return [base, doc].filter(Boolean).join(' - ');
   }
 }
+
 
 
 

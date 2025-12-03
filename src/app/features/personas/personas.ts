@@ -22,7 +22,7 @@ export class PersonasFeature implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // Filtros y paginación
+  // Filtros y paginaci�n
   search = '';
   page = 1;
   pageSize = 8;
@@ -62,7 +62,7 @@ export class PersonasFeature implements OnInit {
     });
   }
 
-  // Derivados de paginación
+  // Derivados de paginaci�n
   get total(): number { return this.filteredPersonas.length; }
   get totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
   get pageItems(): Persona[] {
