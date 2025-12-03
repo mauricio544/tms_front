@@ -13,6 +13,9 @@ import { Puntos as PuntosService } from '../../../../core/services/puntos';
 import { DetalleEnvio as DetalleEnvioService } from '../../../../core/services/detalle-envio';
 import { Generales } from '../../../../core/services/generales';
 import { Comprobantes } from '../../../../core/services/comprobantes';
+import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
+import { Movimientos } from '../../../../core/services/movimientos';
+import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
 import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General } from '../../../../core/mapped';
 import { forkJoin } from 'rxjs';
 
@@ -34,6 +37,9 @@ export class EnviosFeature implements OnInit {
   private readonly detalleSrv = inject(DetalleEnvioService);
   private readonly generalesSrv = inject(Generales);
   private readonly comprobantesSrv = inject(Comprobantes);
+  private readonly detCompSrv = inject(DetallesComprobante);
+  private readonly movsSrv = inject(Movimientos);
+  private readonly detMovsSrv = inject(DetalleMovimientos);
 
   // Estado principal
   lista_envios: Envio[] = [];
@@ -418,37 +424,58 @@ export class EnviosFeature implements OnInit {
     if (!payload.estado_pago) {
       if (newId) {
         this.detalleSrv.getDetallesEnvio(newId).subscribe({
-          next: (list: any[]) => { const mapped = (list || []).map((d: any, i: number) => ({ numero_item: (d.numero_item ?? i+1), cantidad: Number(d.cantidad)||0, descripcion: (d.descripcion as any), precio_unitario: Number(d.precio_unitario)||0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true; },
-          error: () => { const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i+1, cantidad: Number(d.cantidad)||0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario)||0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true; }
+          next: (list: any[]) => {
+            const mapped = (list || []).map((d: any, i: number) => ({ numero_item: (d.numero_item ?? i + 1), cantidad: Number(d.cantidad) || 0, descripcion: (d.descripcion as any), precio_unitario: Number(d.precio_unitario) || 0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true;
+          },
+          error: () => {
+            const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario) || 0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true;
+          }
         });
       } else {
-        const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i+1, cantidad: Number(d.cantidad)||0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario)||0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true;
+        const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario) || 0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true;
       }
-    } else {
-      const ciaId = Number(localStorage.getItem('cia_id')||0);
-      const ruc = String(localStorage.getItem('ruc')||'');
-      const tipoNombre = this.compTipoNombre().toLowerCase();
-      const estado_comp = tipoNombre.includes('fact') ? 'F' : 'B';
-      const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0,10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0,10), emisor: ciaId, cliente: null, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: newId };
-      this.comprobantesSrv.createComprobantes(body).subscribe({
-  next: (comp: any) => {
-    const compHeader: any = comp && typeof comp === 'object' ? comp : body;
-    const dets = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i+1, cantidad: Number(d.cantidad)||0, descripcion: d.descripcion as any, precio_unitario: Number(d.precio_unitario)||0 }));
-    try { this.openComprobanteWindow(compHeader, dets); } catch {}
-    try {
-      const t: any = this.compTipoSel || (this.compTipos || []).find((g: any) => Number((g as any).codigo_principal) === Number(this.compTipoId));
-      const genId = Number((t as any)?.id || 0);
-      const nextCorr = (Number((t as any)?.correlativo || 0) || Number(this.compCorrelativo||0)) + 1;
-      if (genId) { this.generalesSrv.updateGenerales(genId, { correlativo: nextCorr } as any).subscribe({ next:()=>{}, error:()=>{} }); }
-    } catch {}
-    this.closeCreate();
-  },
-  error: () => { this.closeCreate(); }
-});
+      return;
     }
-    this.showNotif('Env\u00edo creado');
+    const ciaId = Number(localStorage.getItem('cia_id') || 0);
+    const ruc = String(localStorage.getItem('ruc') || '');
+    const tipoNombre = this.compTipoNombre().toLowerCase();
+    const estado_comp = tipoNombre.includes('fact') ? 'F' : 'B';
+    const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0,10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0,10), emisor: ciaId, cliente: null, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: newId };
+    this.comprobantesSrv.createComprobantes(body).subscribe({
+      next: (comp: any) => {
+        const compHeader: any = comp && typeof comp === 'object' ? comp : body;
+        const compId = Number((compHeader as any)?.id || 0);
+        const detsBodies = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i+1, cantidad: Number(d.cantidad)||0, descripcion: d.descripcion as any, precio_unitario: Number(d.precio_unitario)||0, comprobante_id: compId }));
+        const afterDetalles = () => {
+          const cabBody: any = { tipo_movimiento: 'I', monto: this.compTotalConImpuesto, persona_id: null, placa: null, autorizado: true, manifiesto_id: null };
+          this.movsSrv.createMovimientos(cabBody).subscribe({
+            next: (cab: any) => {
+              const cabId = Number((cab as any)?.id || 0);
+              if (!cabId) { this.closeCreate(); return; }
+              const descripcion = (this.stagedDetalles || []).map((x:any)=> String(x.descripcion||'')).filter(Boolean).join(', ');
+              const detMov: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, descripcion, tipo_gasto: null, cabecera_id: cabId, monto: this.compTotalConImpuesto };
+              this.detMovsSrv.createDetalles(detMov).subscribe({ next: () => { this.closeCreate(); }, error: () => { this.closeCreate(); } });
+            },
+            error: () => { this.closeCreate(); }
+          });
+        };
+        if (compId && detsBodies.length) {
+          forkJoin(detsBodies.map(x => this.detCompSrv.createDetalles(x))).subscribe({ next: () => afterDetalles(), error: () => afterDetalles() });
+        } else { afterDetalles(); }
+        try { this.openComprobanteWindow(compHeader, detsBodies); } catch {}
+        try {
+          const t: any = this.compTipoSel || (this.compTipos || []).find((g: any) => Number((g as any).codigo_principal) === Number(this.compTipoId));
+          const genId = Number((t as any)?.id || 0);
+          const nextCorr = (Number((t as any)?.correlativo || 0) || Number(this.compCorrelativo||0)) + 1;
+          if (genId) { this.generalesSrv.updateGenerales(genId, { correlativo: nextCorr } as any).subscribe({ next:()=>{}, error:()=>{} }); }
+        } catch {}
+      },
+      error: () => { this.closeCreate(); }
+    });
+    this.showNotif('Envío creado');
   }
 
+  // Entrega
   // Entrega
   get entregaClaveOk(): boolean { const it: any = this.entregaItem as any; const stored = String((it?.clave_recojo ?? '')).trim(); return !!this.entregaItem && this.entregaClaveInput.trim() === stored; }
   openEntrega(item: Envio) {
@@ -496,6 +523,11 @@ export class EnviosFeature implements OnInit {
     this.loadEnvios(); this.loadPersonas(); this.loadPuntos();
   }
 }
+
+
+
+
+
 
 
 

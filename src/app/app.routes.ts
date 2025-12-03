@@ -44,7 +44,7 @@ export const routes: Routes = [
       { path: 'envios/nuevo', component: EnviosFeature, data: { breadcrumb: 'Nuevo Envío' } },
       { path: 'envios/:id/editar', component: EnviosFeature, data: { breadcrumb: 'Editar Envío' } },
       { path: 'liquidaciones', component: LiquidacionesFeature, data: { breadcrumb: 'Liquidaciones' } },
-      { path: 'gastos', component: GastosFeature, data: { breadcrumb: 'Gastos' } },
+      { path: 'gastos', component: GastosFeature, data: { breadcrumb: 'Movimientos' } },
       { path: 'comprobantes', component: ComprobantesFeature, data: { breadcrumb: 'Comprobantes' } },
       { path: 'reportes', component: ReportesFeature, data: { breadcrumb: 'Reportes' } },
     ],
