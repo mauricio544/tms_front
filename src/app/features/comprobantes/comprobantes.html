@@ -11,50 +11,50 @@
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm text-slate-700">Tipo comprobante</label>
-          <select [(ngModel)]="cabecera.tipo_comprobante" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+          <select [(ngModel)]="cabecera.tipo_comprobante" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
             <option [ngValue]="undefined">Seleccione...</option>
             <option *ngFor="let t of tiposComprobante" [ngValue]="t.id">{{ t.nombre }}</option>
           </select>
         </div>
         <div>
           <label class="block text-sm text-slate-700">N° comprobante</label>
-          <input type="text" [(ngModel)]="cabecera.numero_comprobante" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+          <input type="text" [(ngModel)]="cabecera.numero_comprobante" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm text-slate-700">Forma de pago</label>
-          <select [(ngModel)]="cabecera.forma_pago" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+          <select [(ngModel)]="cabecera.forma_pago" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
             <option [ngValue]="undefined">Seleccione...</option>
             <option *ngFor="let f of formasPago" [ngValue]="f.id">{{ f.nombre }}</option>
           </select>
         </div>
         <div>
           <label class="block text-sm text-slate-700">Fecha</label>
-          <input type="date" [(ngModel)]="cabecera.fecha_comprobante" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+          <input type="date" [(ngModel)]="cabecera.fecha_comprobante" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm text-slate-700">Serie</label>
-          <input type="text" [(ngModel)]="cabecera.serie" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+          <input type="text" [(ngModel)]="cabecera.serie" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
         <div>
           <label class="block text-sm text-slate-700">Número</label>
-          <input type="text" [(ngModel)]="cabecera.numero" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+          <input type="text" [(ngModel)]="cabecera.numero" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm text-slate-700">Impuesto</label>
-          <input type="number" [(ngModel)]="cabecera.impuesto" min="0" step="0.01" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+          <input type="number" [(ngModel)]="cabecera.impuesto" min="0" step="0.01" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
         <div>
           <label class="block text-sm text-slate-700">Precio total</label>
-          <input type="number" [(ngModel)]="cabecera.precio_total" min="0" step="0.01" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+          <input type="number" [(ngModel)]="cabecera.precio_total" min="0" step="0.01" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
       </div>
 
@@ -63,7 +63,7 @@
         <div class="text-xs text-green-600" *ngIf="cabeceraId">Cabecera guardada. ID: {{ cabeceraId }}</div>
         <div class="flex items-center gap-2">
           <span class="text-sm text-red-600" *ngIf="errorCabecera">{{ errorCabecera }}</span>
-          <button (click)="guardarCabecera()" [disabled]="guardandoCabecera || !validaCabecera" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">Guardar cabecera</button>
+          <button (click)="guardarCabecera()" [disabled]="guardandoCabecera || !validaCabecera" class="rounded-md bg-[#263238] px-3 py-2 text-sm font-medium text-white hover:bg-[#263238]/90 disabled:opacity-50">Guardar cabecera</button>
         </div>
       </div>
     </div>
@@ -76,9 +76,9 @@
       </div>
 
       <div class="grid grid-cols-4 gap-2" [class.opacity-50]="!cabeceraId">
-        <input type="number" placeholder="Cantidad" [(ngModel)]="nuevoItem.cantidad" min="0" step="1" class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
-        <input type="text" placeholder="Descripción" [(ngModel)]="nuevoItem.descripcion" class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
-        <input type="number" placeholder="Precio unitario" [(ngModel)]="nuevoItem.precio_unitario" min="0" step="0.01" class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        <input type="number" placeholder="Cantidad" [(ngModel)]="nuevoItem.cantidad" min="0" step="1" class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <input type="text" placeholder="Descripción" [(ngModel)]="nuevoItem.descripcion" class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <input type="number" placeholder="Precio unitario" [(ngModel)]="nuevoItem.precio_unitario" min="0" step="0.01" class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
         <button (click)="agregarItem()" [disabled]="!cabeceraId || !validaItem" class="rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50">Agregar</button>
       </div>
       <div class="text-xs text-red-600 mt-1" *ngIf="errorDetalle">{{ errorDetalle }}</div>
@@ -103,7 +103,7 @@
               <td class="px-2 py-1">{{ it.precio_unitario | number: '1.2-2' }}</td>
               <td class="px-2 py-1">{{ (it.cantidad || 0) * (it.precio_unitario || 0) | number: '1.2-2' }}</td>
               <td class="px-2 py-1 text-right">
-                <button class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 hover:bg-red-100" (click)="eliminarItem(it)">Eliminar</button>
+                <button class="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-xs text-primary hover:bg-primary/20" (click)="eliminarItem(it)">Eliminar</button>
               </td>
             </tr>
           </tbody>
@@ -117,7 +117,7 @@
         <div class="flex items-center gap-2">
           <span class="text-xs text-slate-600" *ngIf="cabeceraId">Actualiza precio_total con el total calculado</span>
           <button (click)="actualizarTotal()" [disabled]="!cabeceraId" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Actualizar total</button>
-          <button (click)="finalizar()" [disabled]="!cabeceraId || finalizando" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">Finalizar</button><span class="text-xs text-red-600" *ngIf="errorMovimiento">{{ errorMovimiento }}</span>
+          <button (click)="finalizar()" [disabled]="!cabeceraId || finalizando" class="rounded-md bg-[#263238] px-3 py-2 text-sm font-medium text-white hover:bg-[#263238]/90">Finalizar</button><span class="text-xs text-red-600" *ngIf="errorMovimiento">{{ errorMovimiento }}</span>
         </div>
       </div>
     </div>

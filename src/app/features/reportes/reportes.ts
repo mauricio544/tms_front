@@ -55,7 +55,7 @@ export class ReportesFeature implements OnInit {
     };
     this.enviosSrv.getEnvios().subscribe({
       next: (res) => { this.envios = res || []; enviosLoaded = true; done(); },
-      error: () => { this.error = 'No se pudieron cargar los env�os'; enviosLoaded = true; done(); }
+      error: () => { this.error = 'No se pudieron cargar los envíos'; enviosLoaded = true; done(); }
     });
     this.detalleSrv.getDetallesListFull().subscribe({
       next: (res) => { this.movimientos = res || []; movsLoaded = true; done(); },

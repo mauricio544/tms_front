@@ -1,4 +1,4 @@
-<div class="p-6">
+﻿<div class="p-6">
   <div class="flex items-center justify-between">
     <div>
       <h1 class="text-xl font-semibold text-slate-800">Reportes</h1>
@@ -18,11 +18,11 @@
   <div *ngIf="!loading && !error" class="mt-2 flex flex-wrap items-end gap-3">
     <div class="flex items-center gap-2">
       <label class="text-sm text-slate-600">Desde</label>
-      <input type="date" [(ngModel)]="fromDate" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm" (ngModelChange)="onDateChange()">
+      <input type="date" [(ngModel)]="fromDate" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary " (ngModelChange)="onDateChange()">
     </div>
     <div class="flex items-center gap-2">
       <label class="text-sm text-slate-600">Hasta</label>
-      <input type="date" [(ngModel)]="toDate" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm" (ngModelChange)="onDateChange()">
+      <input type="date" [(ngModel)]="toDate" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary " (ngModelChange)="onDateChange()">
     </div>
     <div class="ml-auto flex items-center gap-2">
       <button (click)="exportCSV()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Exportar CSV</button>

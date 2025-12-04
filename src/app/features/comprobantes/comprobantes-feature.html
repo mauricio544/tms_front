@@ -1,4 +1,4 @@
-<div class="px-3 sm:px-4 py-6">
+﻿<div class="px-3 sm:px-4 py-6">
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <h1 class="text-xl font-semibold text-slate-800">Comprobantes</h1>
@@ -8,10 +8,10 @@
 
   <div class="mt-3 flex items-center gap-2 sm:flex-nowrap flex-wrap">
     <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar comprobante"
-           class="h-10 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+           class="h-10 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
 
     <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)"
-            class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+            class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
       <option [ngValue]="8">8</option>
       <option [ngValue]="12">12</option>
       <option [ngValue]="20">20</option>

@@ -18,11 +18,14 @@ import { Movimientos } from '../../../../core/services/movimientos';
 import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
 import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General } from '../../../../core/mapped';
 import { forkJoin } from 'rxjs';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroPencil, heroNoSymbol } from '@ng-icons/heroicons/outline';
 
 @Component({
   selector: 'feature-envios',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, UiAlertComponent, UiConfirmComponent, Utils, OverlayModule, PortalModule],
+  imports: [CommonModule, FormsModule, RouterModule, UiAlertComponent, UiConfirmComponent, Utils, OverlayModule, PortalModule, NgIconComponent],
+  providers: [ provideIcons({ heroPencil, heroNoSymbol }) ],
   templateUrl: './envios.html',
   styleUrl: './envios.css',
 })
@@ -50,7 +53,7 @@ export class EnviosFeature implements OnInit {
   viewMode: 'cards' | 'table' = 'cards';
   setViewMode(m: 'cards'|'table') { this.viewMode = m; try { localStorage.setItem('envios.viewMode', m); } catch {} }
 
-  // Filtros y paginación
+  // Filtros y paginaciÃ³n
   search = '';
   page = 1;
   pageSize = 8;
@@ -62,7 +65,7 @@ export class EnviosFeature implements OnInit {
   saving = false;
   saveError: string | null = null;
 
-  // Confirmación de eliminación
+  // ConfirmaciÃ³n de eliminaciÃ³n
   confirmOpen = false;
   confirmTitle = 'Confirmar eliminación';
   confirmMessage = '';
@@ -73,7 +76,7 @@ export class EnviosFeature implements OnInit {
   notif: string | null = null;
   notifType: 'success' | 'error' = 'success';
 
-  // Edición
+  // EdiciÃ³n
   editing = false;
   editingId: number | null = null;
 
@@ -133,11 +136,11 @@ export class EnviosFeature implements OnInit {
         '</div>' +
         '<div class="box rightBox">' +
           '<div><span class="label">RUC:</span> <span class="value">' + (ruc || '-') + '</span></div>' +
-          '<div><span class="label">Razón social:</span> <span class="value">' + (razon || '-') + '</span></div>' +
-          '<div><span class="label">Número:</span> <span class="value">' + numero + '</span></div>' +
+          '<div><span class="label">RazÃ³n social:</span> <span class="value">' + (razon || '-') + '</span></div>' +
+          '<div><span class="label">NÃºmero:</span> <span class="value">' + numero + '</span></div>' +
         '</div>' +
       '</div>' +
-      '<table style="margin-top:12px"><thead><tr><th>Ítem</th><th>Cantidad</th><th>Descripción</th><th class="right">P. Unitario</th><th class="right">Subtotal</th></tr></thead>' +
+      '<table style="margin-top:12px"><thead><tr><th>Ãtem</th><th>Cantidad</th><th>DescripciÃ³n</th><th class="right">P. Unitario</th><th class="right">Subtotal</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
       totalsHtml +
       '<div style="margin-top:12px;text-align:right"><button onclick="window.print()">Imprimir</button></div>' +
@@ -170,7 +173,7 @@ export class EnviosFeature implements OnInit {
   closeTicket() { this.showTicket = false; this.ticketEnvio = null; this.ticketDetalles = []; }
   printTicket() { try { window.print(); } catch {} }
 
-  // Envío en edición/creación
+  // EnvÃ­o en ediciÃ³n/creaciÃ³n
   newEnvio: Partial<Envio> = {
     remitente: null as any,
     destinatario: null as any,
@@ -187,7 +190,7 @@ export class EnviosFeature implements OnInit {
     punto_destino_id: null as any,
   } as any;
 
-  // Detalle de envío (creación)
+  // Detalle de envÃ­o (creaciÃ³n)
   stagedDetalles: Array<{ cantidad: number; descripcion: any; precio_unitario: number }> = [];
   newDet: { cantidad: number | null; descripcion: string; precio_unitario: number | null } = { cantidad: null, descripcion: '', precio_unitario: null };
   get stagedSubtotal(): number { return this.stagedDetalles.reduce((s, d) => s + (Number(d.cantidad)||0) * (Number(d.precio_unitario)||0), 0); }
@@ -218,7 +221,7 @@ export class EnviosFeature implements OnInit {
   remLookupLoading = false; remLookupError: string | null = null;
   destLookupLoading = false; destLookupError: string | null = null;
 
-  // Comprobante (creación cuando pagado)
+  // Comprobante (creaciÃ³n cuando pagado)
   compTipos: General[] = [];
   payTipos: General[] = [];
   compTipoSel: General | null = null;
@@ -268,7 +271,7 @@ export class EnviosFeature implements OnInit {
     return p ? (p as any).nombre : (id != null ? String(id) : '-');
   }
 
-  // Lista filtrada y paginación
+  // Lista filtrada y paginaciÃ³n
   get filteredEnvios(): Envio[] {
     const term = (this.search || '').trim().toLowerCase();
     return (this.lista_envios || []).filter((e: any) => {
@@ -472,7 +475,7 @@ export class EnviosFeature implements OnInit {
       },
       error: () => { this.closeCreate(); }
     });
-    this.showNotif('Envío creado');
+    this.showNotif('EnvÃ­o creado');
   }
 
   // Entrega
@@ -511,7 +514,7 @@ export class EnviosFeature implements OnInit {
     this.loading = true; this.error = null;
     this.enviosSrv.getEnvios().subscribe({
       next: (response) => { this.lista_envios = response || []; this.loading = false; const qpId = Number(this.route.snapshot.queryParamMap.get('id') || 0); if (qpId) { const it = (this.lista_envios || []).find((v: any) => Number((v as any).id) === qpId); if (it) { this.openEdit(it as any); } } },
-      error: () => { this.loading = false; this.error = 'No se pudieron cargar los env\\u00edos'; },
+      error: () => { this.loading = false; this.error = 'No se pudieron cargar los envíos'; },
     });
   }
   loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }
@@ -523,6 +526,7 @@ export class EnviosFeature implements OnInit {
     this.loadEnvios(); this.loadPersonas(); this.loadPuntos();
   }
 }
+
 
 
 

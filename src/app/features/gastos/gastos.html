@@ -5,9 +5,9 @@
       <p class="mt-1 text-slate-600">Detalle de movimientos</p>
     </div>
     <div class="flex items-center gap-2">
-      <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar" class="h-9 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+      <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar" class="h-9 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       <button (click)="load()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Refrescar</button>
-      <button (click)="openAddMovimiento()" class="h-9 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700">Agregar movimiento</button>
+      <button (click)="openAddMovimiento()" class="h-9 rounded-md bg-[#26A69A] px-3 text-sm font-medium text-white hover:bg-[#26A69A]/90">Agregar movimiento</button>
       <button (click)="exportCSV()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Exportar CSV</button>
     </div>
   </div>
@@ -105,19 +105,19 @@
         <div class="mt-2 grid grid-cols-2 gap-3">
           <div>
             <label class="block text-sm text-slate-700">Tipo movimiento</label>
-            <select [(ngModel)]="cabeceraForm.tipo_movimiento" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600">
+            <select [(ngModel)]="cabeceraForm.tipo_movimiento" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
               <option [ngValue]="'I'">Ingreso</option>
               <option [ngValue]="'E'">Egreso</option>
             </select>
           </div>
           <div>
             <label class="block text-sm text-slate-700">Monto</label>
-            <input type="number" [(ngModel)]="cabeceraForm.monto" min="0" step="0.01" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
+            <input type="number" [(ngModel)]="cabeceraForm.monto" min="0" step="0.01" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
           </div>
           <div class="col-span-2 relative">
             <label class="block text-sm text-slate-700">Persona</label>
             <div class="mt-1 flex items-center gap-2">
-              <input type="text" [(ngModel)]="personaQuery" (focus)="showPersonaOptions=true" (input)="showPersonaOptions=true" placeholder="Buscar persona" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
+              <input type="text" [(ngModel)]="personaQuery" (focus)="showPersonaOptions=true" (input)="showPersonaOptions=true" placeholder="Buscar persona" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
               <button type="button" (click)="clearPersona()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Limpiar</button>
             </div>
             <div class="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow" *ngIf="showPersonaOptions">
@@ -168,7 +168,7 @@
 
     <div class="mt-6 flex items-center justify-end gap-2">
       <button (click)="closeAddMovimiento()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
-      <button (click)="submitAddMovimiento()" [disabled]="!isValidAdd || savingAdd" class="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">Guardar</button>
+      <button (click)="submitAddMovimiento()" [disabled]="!isValidAdd || savingAdd" class="rounded-md bg-[#26A69A] px-3 py-2 text-sm font-medium text-white hover:bg-[#26A69A]/90 disabled:opacity-50">Guardar</button>
     </div>
   </div>
 </div>

@@ -21,4 +21,3 @@ export class UiConfirmComponent {
   onConfirm() { this.confirm.emit(); }
   onCancel() { this.cancel.emit(); }
 }
-

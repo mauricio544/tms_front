@@ -21,7 +21,7 @@ export class VehiculosFeature implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // Filtros y paginaci�n
+  // Filtros y paginación
   search = '';
   filterPlaca = '';
   filterAnio: number | null = null;
@@ -68,7 +68,7 @@ export class VehiculosFeature implements OnInit {
     });
   }
 
-  // Derivados de paginaci�n
+  // Derivados de paginación
   get total(): number { return this.filteredVehiculos.length; }
   get totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
   get pageItems(): Vehiculo[] {
@@ -160,12 +160,12 @@ export class VehiculosFeature implements OnInit {
         this.editingId = null;
         this.onFilterChange();
         this.closeModal();
-        this.showNotif(wasEditing ? 'Veh�culo actualizado' : 'Veh�culo creado');
+        this.showNotif(wasEditing ? 'Vehículo actualizado' : 'Vehículo creado');
       },
       error: () => {
         this.saving = false;
-        this.saveError = this.editing ? 'No se pudo actualizar' : 'No se pudo crear el veh�culo';
-        this.showNotif('No se pudo crear/actualizar el veh�culo', 'error');
+        this.saveError = this.editing ? 'No se pudo actualizar' : 'No se pudo crear el vehículo';
+        this.showNotif('No se pudo crear/actualizar el vehículo', 'error');
       },
     });
   }
@@ -173,7 +173,7 @@ export class VehiculosFeature implements OnInit {
   askDelete(item: Vehiculo) {
     this.pendingDeleteId = item.id ?? null;
     this.pendingDeleteLabel = item.placa || '';
-    this.confirmMessage = `¿Eliminar veh�culo ${this.pendingDeleteLabel}?`;
+    this.confirmMessage = `¿Eliminar vehículo ${this.pendingDeleteLabel}?`;
     this.confirmOpen = true;
   }
 
@@ -193,13 +193,13 @@ export class VehiculosFeature implements OnInit {
         this.saving = false;
         this.onFilterChange();
         this.onCancelDelete();
-        this.showNotif('Veh�culo eliminado');
+        this.showNotif('Vehículo eliminado');
       },
       error: () => {
         this.saving = false;
-        this.saveError = 'No se pudo eliminar el veh�culo';
+        this.saveError = 'No se pudo eliminar el vehículo';
         this.onCancelDelete();
-        this.showNotif('No se pudo eliminar el veh�culo', 'error');
+        this.showNotif('No se pudo eliminar el vehículo', 'error');
       }
     })
   }
@@ -215,7 +215,7 @@ export class VehiculosFeature implements OnInit {
     this.error = null;
     this.vehiculoSrv.getVehiculos().subscribe({
       next: (response) => { this.lista_vehiculos = response || []; this.loading = false; },
-      error: () => { this.loading = false; this.error = 'No se pudieron cargar los veh�culos'; },
+      error: () => { this.loading = false; this.error = 'No se pudieron cargar los vehículos'; },
     });
   }
 

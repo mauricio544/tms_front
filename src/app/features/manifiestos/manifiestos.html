@@ -1,4 +1,4 @@
-<div class="px-3 sm:px-4 py-6">
+﻿<div class="px-3 sm:px-4 py-6">
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <h1 class="text-xl font-semibold text-slate-800">Manifiestos</h1>
@@ -8,15 +8,15 @@
   </div>
 
   <div class="mt-4 flex flex-wrap items-center gap-2">
-    <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar (serie, Número, conductor, puntos)" class="h-10 w-80 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+    <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar (serie, Número, conductor, puntos)" class="h-10 w-80 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
 
-    <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)" class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+    <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)" class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
       <option [ngValue]="8">8</option>
       <option [ngValue]="12">12</option>
       <option [ngValue]="20">20</option>
     </select>
 
-    <button (click)="openModal()" class="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600">Nuevo</button>
+    <button (click)="openModal()" class="inline-flex items-center rounded-md bg-[#0A1A2F] px-3 py-2 text-sm font-medium text-white hover:bg-[#0A1A2F]/90 focus:outline-none focus:ring-2 focus:ring-primary">Nuevo</button>
 
     <div class="ml-auto inline-flex rounded-md border border-slate-300 overflow-hidden">
       <button type="button" (click)="setView('cards')" [class.bg-slate-900]="viewMode === 'cards'" [class.text-white]="viewMode === 'cards'" class="px-3 py-2 text-sm">Tarjetas</button>
@@ -50,10 +50,10 @@
           </div>
           <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="generarGuia(item)">Generar Guía</button>
-            <button class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100" (click)="verEnvios(item)">Ver Envíos</button>
+            <button class="rounded-md bg-[#26A69A] px-2.5 py-1.5 text-xs text-white hover:bg-[#26A69A]/90" (click)="verEnvios(item)">Ver Envíos</button>
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
-            <button class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>
+            <button class="rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-xs text-primary hover:bg-primary/20" (click)="askDelete(item)">Eliminar</button>
           </div>
         </div>
       </div>
@@ -79,10 +79,10 @@
               <td class="px-3 py-2">
                 <div class="flex items-center gap-2">
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Guía</button>
-                  <button class="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100" (click)="verEnvios(item)">Ver Envíos</button>
+                  <button class="rounded-md bg-[#26A69A] px-2 py-1 text-xs text-white hover:bg-[#26A69A]/90" (click)="verEnvios(item)">Ver Envíos</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
-                  <button class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 hover:bg-red-100" (click)="askDelete(item)">Eliminar</button>
+                  <button class="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-xs text-primary hover:bg-primary/20" (click)="askDelete(item)">Eliminar</button>
                 </div>
               </td>
             </tr>
@@ -116,36 +116,36 @@
     <form (ngSubmit)="submitManifiesto()" class="grid grid-cols-1 gap-4 md:grid-cols-2">
       <div class="md:col-span-2">
         <label class="block text-sm text-slate-700">Conductor</label>
-        <select [(ngModel)]="newManifiesto.conductor_id" name="conductor" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+        <select [(ngModel)]="newManifiesto.conductor_id" name="conductor" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
           <option [ngValue]="null">Seleccione conductor</option>
           <option *ngFor="let c of conductores" [ngValue]="c.id">{{ conductorLabel(c.id) }}</option>
         </select>
       </div>
       <div>
         <label class="block text-sm text-slate-700">Origen</label>
-        <select [(ngModel)]="newManifiesto.codigo_punto_origen" name="origen" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+        <select [(ngModel)]="newManifiesto.codigo_punto_origen" name="origen" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
           <option [ngValue]="null">Seleccione origen</option>
           <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
         </select>
       </div>
       <div>
         <label class="block text-sm text-slate-700">Destino</label>
-        <select [(ngModel)]="newManifiesto.codigo_punto_destino" name="destino" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600">
+        <select [(ngModel)]="newManifiesto.codigo_punto_destino" name="destino" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
         <option [ngValue]="null">Seleccione destino</option>
         <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
         </select>
       </div>
       <div>
         <label class="block text-sm text-slate-700">Serie</label>
-        <input type="text" [(ngModel)]="newManifiesto.serie" name="serie" placeholder="F001" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        <input type="text" [(ngModel)]="newManifiesto.serie" name="serie" placeholder="F001" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       </div>
       <div>
         <label class="block text-sm text-slate-700">Número</label>
-        <input type="text" [(ngModel)]="newManifiesto.numero" name="numero" placeholder="000123" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+        <input type="text" [(ngModel)]="newManifiesto.numero" name="numero" placeholder="000123" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       </div>
       <div class="md:col-span-2 mt-2 flex items-center justify-end gap-2">
         <button type="button" (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
-        <button type="submit" [disabled]="!isValidManifiesto || saving" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">{{ editing ? 'Actualizar' : 'Crear' }}</button>
+        <button type="submit" [disabled]="!isValidManifiesto || saving" class="rounded-md bg-[#263238] px-3 py-2 text-sm font-medium text-white hover:bg-[#263238]/90 disabled:opacity-50">{{ editing ? 'Actualizar' : 'Crear' }}</button>
       </div>
       <div *ngIf="saveError" class="md:col-span-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ saveError }}</div>
     </form>    </div>
@@ -210,7 +210,7 @@
       <button (click)="closeAddEnvios()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
     </div>
     <div class="mb-3 flex items-center gap-2">
-      <input type="text" [(ngModel)]="addSearch" placeholder="Buscar" class="h-9 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-600" />
+      <input type="text" [(ngModel)]="addSearch" placeholder="Buscar" class="h-9 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       <button (click)="addSearch=''" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Limpiar</button>
     </div>
     <div *ngIf="addEnviosLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando.</div>
