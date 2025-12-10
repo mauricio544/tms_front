@@ -1,8 +1,10 @@
 ﻿import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UiAlertComponent } from '../../shared/ui/alert/alert';
 import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
+import { UiAlertComponent } from '../../shared/ui/alert/alert';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroUserCircle } from '@ng-icons/heroicons/outline';
 import { Conductores as ConductoresService } from '../../../../core/services/conductores';
 import { Personas } from '../../../../core/services/personas';
 import { Conductor, Persona } from '../../../../core/mapped';
@@ -10,9 +12,15 @@ import { Conductor, Persona } from '../../../../core/mapped';
 @Component({
   selector: 'feature-conductores',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent],
-  templateUrl: './conductores.html',
-  styleUrl: './conductores.css',
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, NgIconComponent],
+    templateUrl: './conductores.html',
+    styleUrl: './conductores.css',
+  
+  providers: [
+    provideIcons({
+      heroUserCircle,
+    }),
+  ],
 })
 export class Conductores implements OnInit {
   private readonly conductoresSvc = inject(ConductoresService);
@@ -257,6 +265,9 @@ export class Conductores implements OnInit {
     return full || p.razon_social || '';
   }
 }
+
+
+
 
 
 

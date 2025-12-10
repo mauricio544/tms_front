@@ -29,4 +29,8 @@ export class Comprobantes {
   deleteComprobantes(id: number): Observable<any> {
     return this.api.delete(`/envios/comprobantes/${id}`);
   }
+
+  getComprobanteEnvio(envio_id: number): Observable<Comprobante> {
+    return this.api.get(`/envios/comprobantes/${envio_id}/envio`);
+  }
 }

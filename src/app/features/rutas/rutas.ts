@@ -3,15 +3,21 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiAlertComponent } from '../../shared/ui/alert/alert';
 import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroMapPin } from '@ng-icons/heroicons/outline';
 import { Puntos } from '../../../../core/services/puntos';
 import { Puntos as Points } from '../../../../core/mapped';
-
 @Component({
   selector: 'feature-rutas',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent],
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, NgIconComponent],
   templateUrl: './rutas.html',
   styleUrl: './rutas.css',
+  providers: [
+    provideIcons({
+      heroMapPin,
+    }),
+  ],
 })
 export class RutasFeature implements OnInit {
   private readonly puntosSrv = inject(Puntos);
@@ -164,3 +170,9 @@ export class RutasFeature implements OnInit {
     this.loadPuntos();
   }
 }
+
+
+
+
+
+

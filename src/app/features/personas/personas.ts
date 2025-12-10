@@ -1,17 +1,25 @@
 ﻿import { Component, inject, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UiAlertComponent } from '../../shared/ui/alert/alert';
 import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
+import { UiAlertComponent } from '../../shared/ui/alert/alert';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroUserCircle } from '@ng-icons/heroicons/outline';
 import { Personas } from '../../../../core/services/personas';
 import { Persona } from '../../../../core/mapped';
 
 @Component({
   selector: 'feature-personas',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent],
-  templateUrl: './personas.html',
-  styleUrl: './personas.css',
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, NgIconComponent],
+    templateUrl: './personas.html',
+    styleUrl: './personas.css',
+  
+  providers: [
+    provideIcons({
+      heroUserCircle,
+    }),
+  ],
 })
 export class PersonasFeature implements OnInit {
   @ViewChild('docInput') docInput!: ElementRef<HTMLInputElement>;
@@ -261,3 +269,6 @@ export class PersonasFeature implements OnInit {
 
   ngOnInit() { this.loadPersonas(); }
 }
+
+
+

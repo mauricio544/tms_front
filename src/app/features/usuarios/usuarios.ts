@@ -6,13 +6,21 @@ import { FormsModule } from '@angular/forms';
 import { Users } from '../../../../core/services/users';
 import { Personas } from '../../../../core/services/personas';
 import { Usuario, Persona } from '../../../../core/mapped';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroUserCircle } from '@ng-icons/heroicons/outline';
 
 @Component({
   selector: 'feature-usuarios',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent],
-  templateUrl: './usuarios.html',
-  styleUrl: './usuarios.css',
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, NgIconComponent],
+    templateUrl: './usuarios.html',
+    styleUrl: './usuarios.css',
+  
+  providers: [
+    provideIcons({
+      heroUserCircle,
+    }),
+  ],
 })
 export class UsuariosFeature implements OnInit {
   private readonly user = inject(Users);
@@ -189,6 +197,7 @@ export class UsuariosFeature implements OnInit {
     });
   }
 }
+
 
 
 

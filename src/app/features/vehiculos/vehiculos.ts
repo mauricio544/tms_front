@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiAlertComponent } from '../../shared/ui/alert/alert';
 import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
+
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroTruck } from '@ng-icons/heroicons/outline';
 import { Vehiculos } from '../../../../core/services/vehiculos';
 import { Vehiculo } from '../../../../core/mapped';
 import { Utils } from '../../../../core/services/utils';
@@ -10,7 +13,12 @@ import { Utils } from '../../../../core/services/utils';
 @Component({
   selector: 'feature-vehiculos',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, Utils],
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, Utils, NgIconComponent],
+  providers: [
+    provideIcons({
+      heroTruck,
+    }),
+  ],
   templateUrl: './vehiculos.html',
   styleUrl: './vehiculos.css',
 })
@@ -223,3 +231,5 @@ export class VehiculosFeature implements OnInit {
     this.loadVehiculos();
   }
 }
+
+
