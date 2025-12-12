@@ -99,7 +99,7 @@
     <div class="mb-4 flex items-center justify-between">
       <div>
         <div class="text-sm text-slate-600">Detalle de comprobante</div>
-        <div class="text-lg font-semibold text-slate-800">{{ selected.serie }}-{{ selected.numero }} (ID: {{ selected.id }})</div>
+        <div class="text-lg font-semibold text-slate-800">{{ selected.serie }}-{{ selected.numero }}</div>
       </div>
       <div class="flex items-center gap-2">
         <button (click)="printSelected()" class="rounded-md bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900">Imprimir</button>
@@ -111,7 +111,7 @@
 
 <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
     <div class="grid grid-cols-2 gap-3 text-sm">
-      <div>Fecha: <span class="font-medium">{{ selected.fecha_comprobante }}</span></div>
+      <div>Fecha: <span class="font-medium">{{ selected.fecha_comprobante | ymd }}</span></div>
       <div>Tipo: <span class="font-medium">{{ tipoNombre(selected.tipo_comprobante) }}</span></div>
       <div>Forma de pago: <span class="font-medium">{{ formaNombre(selected.forma_pago) }}</span></div>
       <div>Impuesto: <span class="font-medium">{{ selected.impuesto | number:'1.2-2' }}</span></div>

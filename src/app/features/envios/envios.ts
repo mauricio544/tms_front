@@ -82,7 +82,7 @@ export class EnviosFeature implements OnInit {
   editing = false;
   editingId: number | null = null;
 
-  
+
   private tipoNombreById(id: number | null | undefined): string {
     if (id == null) return '';
     const f = (this.compTipos || []).find((g: any) => Number((g as any).id) === Number(id) || Number((g as any).codigo_principal) === Number(id));
@@ -520,7 +520,7 @@ export class EnviosFeature implements OnInit {
     this.loading = true; this.error = null;
     this.enviosSrv.getEnvios().subscribe({
       next: (response) => { this.lista_envios = response || []; this.loading = false; const qpId = Number(this.route.snapshot.queryParamMap.get('id') || 0); if (qpId) { const it = (this.lista_envios || []).find((v: any) => Number((v as any).id) === qpId); if (it) { this.openEdit(it as any); } } },
-      error: () => { this.loading = false; this.error = 'No se pudieron cargar los envÃ­os'; },
+      error: () => { this.loading = false; this.error = 'No se pudieron cargar los envíos'; },
     });
   }
   loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }

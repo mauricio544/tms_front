@@ -87,7 +87,7 @@
 
 <ng-template #stateTpl>
   <div class="px-6 pb-6">
-    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargandoâ€¦</div>
+    <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando...</div>
     <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
   </div>
 </ng-template>
@@ -115,7 +115,7 @@
                 class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
           <option [ngValue]="'DNI'">DNI</option>
           <option [ngValue]="'RUC'">RUC</option>
-          <option [ngValue]="'CE'">CarnÃ© ExtranjerÃ­a</option>
+          <option [ngValue]="'CE'">Carné Extranjería</option>
           <option [ngValue]="'P'">Pasaporte</option>
         </select>
       </div>

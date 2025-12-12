@@ -288,3 +288,9 @@ export interface DetalleCreate {
   cabecera_id: number;
   monto: number;
 }
+
+export interface MessageCreate {
+  to: string;
+  message: string;
+  envio_id: number;
+}

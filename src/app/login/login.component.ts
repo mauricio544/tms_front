@@ -61,7 +61,7 @@ export class LoginComponent {
         },
         error: (err) => {
           this.loading = false;
-          const message = err?.error?.detail || err?.error?.message || 'Credenciales inv�lidas';
+          const message = err?.error?.detail || err?.error?.message || 'Credenciales inválidas';
           this.error = typeof message === 'string' ? message : 'Error al iniciar sesi�n';
         },
       });
