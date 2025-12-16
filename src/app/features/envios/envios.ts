@@ -1,4 +1,5 @@
-﻿import { Component, OnInit, inject, ChangeDetectorRef, ViewContainerRef, TemplateRef, ViewChild } from '@angular/core';
+import { Message } from '../../../../core/services/message';
+import { Component, OnInit, inject, ChangeDetectorRef, ViewContainerRef, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute } from '@angular/router';
@@ -18,7 +19,7 @@ import { Comprobantes } from '../../../../core/services/comprobantes';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
 import { Movimientos } from '../../../../core/services/movimientos';
 import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
-import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General } from '../../../../core/mapped';
+import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General, MessageCreate } from '../../../../core/mapped';
 import { forkJoin } from 'rxjs';
 
 @Component({
@@ -43,6 +44,7 @@ export class EnviosFeature implements OnInit {
   private readonly detCompSrv = inject(DetallesComprobante);
   private readonly movsSrv = inject(Movimientos);
   private readonly detMovsSrv = inject(DetalleMovimientos);
+  private readonly messageSrv = inject(Message);
 
   // Estado principal
   lista_envios: Envio[] = [];
@@ -53,7 +55,7 @@ export class EnviosFeature implements OnInit {
   viewMode: 'cards' | 'table' = 'cards';
   setViewMode(m: 'cards' | 'table') { this.viewMode = m; try { localStorage.setItem('envios.viewMode', m); } catch { } }
 
-  // Filtros y paginaciÃ³n
+  // Filtros y paginación
   search = '';
   page = 1;
   pageSize = 8;
@@ -67,9 +69,13 @@ export class EnviosFeature implements OnInit {
   saving = false;
   saveError: string | null = null;
 
-  // ConfirmaciÃ³n de eliminaciÃ³n
+  // WhatsApp (opcional en creacion)
+  sendWhatsapp: boolean = false;
+  whatsappPhone: string = '';
+
+  // Confirmación de eliminación
   confirmOpen = false;
-  confirmTitle = 'Confirmar eliminaciÃ³n';
+  confirmTitle = 'Confirmar eliminación';
   confirmMessage = '';
   pendingDeleteId: number | null = null;
   pendingDeleteLabel = '';
@@ -78,7 +84,7 @@ export class EnviosFeature implements OnInit {
   notif: string | null = null;
   notifType: 'success' | 'error' = 'success';
 
-  // EdiciÃ³n
+  // Edición
   editing = false;
   editingId: number | null = null;
 
@@ -136,7 +142,7 @@ export class EnviosFeature implements OnInit {
           '<div><span class="label">Número:</span> <span class="value">' + numero + '</span></div>' +
         '</div>' +
       '</div>' +
-      '<table style="margin-top:12px"><thead><tr><th>Ítem</th><th>Cantidad</th><th>Descripción</th><th class="right">P. Unitario</th><th class="right">Subtotal</th></tr></thead>' +
+      '<table style="margin-top:12px"><thead><tr><th>ïtem</th><th>Cantidad</th><th>Descripción</th><th class="right">P. Unitario</th><th class="right">Subtotal</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
       totalsHtml +
       '<div style="margin-top:12px;text-align:right"><button onclick="window.print()">Imprimir</button></div>' +
@@ -169,7 +175,7 @@ export class EnviosFeature implements OnInit {
   closeTicket() { this.showTicket = false; this.ticketEnvio = null; this.ticketDetalles = []; }
   printTicket() { try { window.print(); } catch { } }
 
-  // EnvÃ­o en ediciÃ³n/creaciÃ³n
+  // Envío en edición/creación
   newEnvio: Partial<Envio> = {
     remitente: null as any,
     destinatario: null as any,
@@ -186,7 +192,7 @@ export class EnviosFeature implements OnInit {
     punto_destino_id: null as any,
   } as any;
 
-  // Detalle de envÃ­o (creaciÃ³n)
+  // Detalle de envío (creación)
   stagedDetalles: Array<{ cantidad: number; descripcion: any; precio_unitario: number }> = [];
   newDet: { cantidad: number | null; descripcion: string; precio_unitario: number | null } = { cantidad: null, descripcion: '', precio_unitario: null };
   get stagedSubtotal(): number { return this.stagedDetalles.reduce((s, d) => s + (Number(d.cantidad) || 0) * (Number(d.precio_unitario) || 0), 0); }
@@ -217,7 +223,7 @@ export class EnviosFeature implements OnInit {
   remLookupLoading = false; remLookupError: string | null = null;
   destLookupLoading = false; destLookupError: string | null = null;
 
-  // Comprobante (creaciÃ³n cuando pagado)
+  // Comprobante (creación cuando pagado)
   compTipos: General[] = [];
   payTipos: General[] = [];
   compTipoSel: General | null = null;
@@ -267,7 +273,7 @@ export class EnviosFeature implements OnInit {
     return p ? (p as any).nombre : (id != null ? String(id) : '-');
   }
 
-  // Lista filtrada y paginaciÃ³n
+  // Lista filtrada y paginación
   get filteredEnvios(): Envio[] {
     const term = (this.search || '').trim().toLowerCase();
     return (this.lista_envios || []).filter((e: any) => {
@@ -363,6 +369,8 @@ export class EnviosFeature implements OnInit {
     this.editing = false; this.editingId = null;
     this.newEnvio = { remitente: null as any, destinatario: null as any, estado_pago: false, clave_recojo: '', peso: null as any, fecha_envio: '', fecha_recepcion: '', tipo_contenido: false, guia: null as any, manifiesto: null as any, valida_restricciones: false, punto_origen_id: null as any, punto_destino_id: null as any } as any;
     this.saveError = null; this.showCreate = true; this.remitenteQuery = ''; this.destinatarioQuery = ''; this.showRemitenteOptions = false; this.showDestinatarioOptions = false; this.stagedDetalles = []; this.newDet = { cantidad: null, descripcion: '', precio_unitario: null };
+    // Reset WhatsApp helpers
+    this.sendWhatsapp = false; this.whatsappPhone = '';
   }
   closeCreate() { this.showCreate = false; }
 
@@ -396,7 +404,8 @@ export class EnviosFeature implements OnInit {
         next: (res: any) => {
           const updated: Envio = { id: res?.id ?? this.editingId!, remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega } as Envio;
           this.lista_envios = this.lista_envios.map(v => (v as any).id === this.editingId ? updated : v);
-          this.saving = false; this.editing = false; this.editingId = null; this.onFilterChange(); this.closeEdit(); this.showNotif('Env\u00edo actualizado');
+          this.saving = false; this.editing = false; this.editingId = null; this.onFilterChange();
+this.closeEdit(); this.showNotif('Env\u00edo actualizado');
         },
         error: () => { this.saving = false; this.saveError = 'No se pudo actualizar el env\u00edo'; this.showNotif(this.saveError as string, 'error'); },
       });
@@ -430,6 +439,21 @@ export class EnviosFeature implements OnInit {
         const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario) || 0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true;
       }
     } else {
+      // WhatsApp: enviar si se solicit� y est� pagado
+      if (this.sendWhatsapp && payload.estado_pago && newId) {
+        try {
+          const digits = String(this.whatsappPhone || '').replace(/\D/g, '');
+          if (digits) {
+            const to = `+51${digits}`;
+            const remit = this.personaLabelById(updated.remitente) || String(updated.remitente);
+            const dest = this.personaLabelById(updated.destinatario) || String(updated.destinatario);
+            const clave = String(updated.clave_recojo || '').trim();
+            const msg = `${remit}/${dest}/${clave}`;
+            const body: MessageCreate = { to, message: msg, envio_id: newId };
+            this.messageSrv.sendMessage(body).subscribe({ next: () => {}, error: () => {} });
+          }
+        } catch {}
+      }
       const ciaId = Number(localStorage.getItem('cia_id') || 0);
       const ruc = String(localStorage.getItem('ruc') || '');
       const tipoNombre = this.compTipoNombre().toLowerCase();
@@ -482,7 +506,7 @@ export class EnviosFeature implements OnInit {
   closeEntrega() { if (this.entregaRef?.hasAttached()) this.entregaRef.detach(); this.entregaOpen = false; this.entregaItem = null; this.entregaClaveInput = ''; this.entregaError = null; }
   submitEntrega() {
     if (!this.entregaItem || !this.entregaClaveOk) return; const id = Number((this.entregaItem as any).id); if (!id) return;
-    // Si no estï¿½ pagado, cerrar modal y mostrar inline para generar comprobante
+    // Si no est� pagado, cerrar modal y mostrar inline para generar comprobante
     if (!(this.entregaItem as any).estado_pago) {
       this.closeEntrega();
       this.compEnvioId = id;
@@ -493,7 +517,7 @@ export class EnviosFeature implements OnInit {
         },
         error: () => { this.stagedDetalles = []; }
       });
-      this.showNotif('El envï¿½o no estï¿½ pagado. Genere un comprobante.', 'error');
+      this.showNotif('El envío no está pagado. Genere un comprobante.', 'error');
       return;
     }
     this.entregaSaving = true; this.entregaError = null; (this.entregaItem as any).fecha_recepcion = this.entregaFecha; (this.entregaItem as any).estado_entrega = true;
@@ -595,16 +619,3 @@ export class EnviosFeature implements OnInit {
     });
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

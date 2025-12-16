@@ -12,7 +12,7 @@
         type="text"
         [(ngModel)]="search"
         (ngModelChange)="onFilterChange()"
-        placeholder="Buscar vehículo" class="h-10 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" /><input type="text" [(ngModel)]="filterPlaca" (ngModelChange)="onFilterChange()" placeholder="Placa" class="h-10 w-40 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" /><input type="number" [(ngModel)]="filterAnio" (ngModelChange)="onFilterChange()" placeholder="Año" class="h-10 w-32 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
+        placeholder="Buscar vehículo" class="h-10 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" /><input type="text" [(ngModel)]="filterPlaca" (ngModelChange)="onFilterChange()" class="h-10 w-40 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" /><input type="number" [(ngModel)]="filterAnio" (ngModelChange)="onFilterChange()" class="h-10 w-32 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
 
       <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)"
               class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary">
@@ -95,27 +95,23 @@
     <div class="mt-4 space-y-4">
       <div>
         <label class="block text-sm text-slate-700">Placa</label>
-        <input type="text" [(ngModel)]="newVehiculo.placa" (ngModelChange)="onPlacaChange($event)" placeholder="ABC-123"
-               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
+        <input type="text" [(ngModel)]="newVehiculo.placa" (ngModelChange)="onPlacaChange($event)" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
       <div class="text-xs text-slate-600">Placa debe tener formato ABC-123</div>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm text-slate-700">Tonelaje</label>
-          <input type="number" [(ngModel)]="newVehiculo.tonelaje" min="0" step="0.01" placeholder="10.5"
-                 class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
+          <input type="number" [(ngModel)]="newVehiculo.tonelaje" min="0" step="0.01" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
         </div>
         <div>
           <label class="block text-sm text-slate-700">Ejes</label>
-          <input type="number" [(ngModel)]="newVehiculo.ejes" min="0" step="1" placeholder="2"
-                 class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
+          <input type="number" [(ngModel)]="newVehiculo.ejes" min="0" step="1" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
         </div>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm text-slate-700">Año fabricación</label>
-          <input type="number" [(ngModel)]="newVehiculo.anio_fabricacion" min="1900" max="2100" step="1" placeholder="2018"
-                 class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
+          <input type="number" [(ngModel)]="newVehiculo.anio_fabricacion" min="1900" max="2100" step="1" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
         </div>
         <div>
           <label class="block text-sm text-slate-700">Vigencia SOAT</label>

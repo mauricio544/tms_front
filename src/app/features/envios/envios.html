@@ -638,6 +638,17 @@
 
       </div>
 
+      <div class="grid grid-cols-2 gap-3 mt-2">
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" [(ngModel)]="sendWhatsapp" class="h-4 w-4"/>
+          Enviar WhatsApp
+        </label>
+        <div *ngIf="sendWhatsapp">
+          <input type="text" [(ngModel)]="whatsappPhone" placeholder="Celular (sin +51)"
+                 class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+        </div>
+      </div>
+
 
       <div *ngIf="!editing" class="mt-6">
 
@@ -1147,6 +1158,17 @@
         </label>
 
 
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-2">
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" [(ngModel)]="sendWhatsapp" class="h-4 w-4"/>
+          Enviar WhatsApp
+        </label>
+        <div *ngIf="sendWhatsapp">
+          <input type="text" [(ngModel)]="whatsappPhone" placeholder="Celular (sin +51)"
+                 class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+        </div>
       </div>
 
 
@@ -1863,7 +1885,7 @@
         <label class="block text-sm text-slate-700">Clave de recojo</label>
 
 
-        <input type="text" [(ngModel)]="entregaClaveInput" placeholder="Ingrese la clave de recojo"
+        <input type="password" [(ngModel)]="entregaClaveInput" placeholder="Ingrese la clave de recojo"
                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
 
 
