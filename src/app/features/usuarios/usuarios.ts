@@ -15,7 +15,7 @@ import { heroUserCircle } from '@ng-icons/heroicons/outline';
   imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, NgIconComponent],
     templateUrl: './usuarios.html',
     styleUrl: './usuarios.css',
-  
+
   providers: [
     provideIcons({
       heroUserCircle,
@@ -100,7 +100,7 @@ export class UsuariosFeature implements OnInit {
     this.showModal = true;
   }
 
-    askDelete(item: Usuario) {
+  askDelete(item: Usuario) {
     this.pendingDeleteId = (item as any).id ?? null;
     this.pendingDeleteLabel = (item as any).email || '';
     this.confirmMessage = `¿Eliminar usuario ${this.pendingDeleteLabel}?`;

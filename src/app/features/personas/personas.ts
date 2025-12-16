@@ -11,10 +11,11 @@ import { Persona } from '../../../../core/mapped';
 @Component({
   selector: 'feature-personas',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, NgIconComponent],
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, NgIconComponent],
+
     templateUrl: './personas.html',
     styleUrl: './personas.css',
-  
+
   providers: [
     provideIcons({
       heroUserCircle,
@@ -183,9 +184,10 @@ export class PersonasFeature implements OnInit {
         this.closeModal();
         this.showNotif(wasEditing ? 'Persona actualizada' : 'Persona creada');
       },
-      error: () => {
+      error: (err) => {
+        console.log(err);
         this.saving = false;
-        this.saveError = this.editing ? 'No se pudo actualizar la persona' : 'No se pudo crear la persona';
+        this.saveError = this.editing ? 'No se pudo actualizar la persona' : `No se pudo crear la persona ${err.error.detail}`;
         this.showNotif(this.saveError as string, 'error');
       },
     });

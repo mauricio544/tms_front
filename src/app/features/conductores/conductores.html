@@ -82,20 +82,29 @@
 
     <div class="mt-4 space-y-4">
       <div>
-        <label class="block text-sm text-slate-700">Licencia</label>
-        <input type="text" [(ngModel)]="newConductor.licencia" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
-      </div>
-      <div>
-        <label class="block text-sm text-slate-700">Tipo licencia</label>
-        <input type="text" [(ngModel)]="newConductor.tipo_licencia" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
-      </div>
-      <div>
         <label class="block text-sm text-slate-700">Persona</label>
         <select [(ngModel)]="newConductor.persona_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
           <option [ngValue]="null">Seleccione</option>
           <option *ngFor="let p of personas" [ngValue]="p.id">{{ (p.nombre || p.razon_social) || ('ID ' + p.id) }}</option>
         </select>
       </div>
+      <div>
+        <label class="block text-sm text-slate-700">Licencia</label>
+        <input type="text" [(ngModel)]="newConductor.licencia" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Tipo licencia</label>
+        <!--<input type="text" [(ngModel)]="newConductor.tipo_licencia" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />-->
+        <select [(ngModel)]="newConductor.tipo_licencia" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
+          <option [ngValue]="'A1'">A-I</option>
+          <option [ngValue]="'A2'">A-IIa</option>
+          <option [ngValue]="'A2b'">A-IIb</option>
+          <option [ngValue]="'A3'">A-IIIa</option>
+          <option [ngValue]="'A3b'">A-IIIb</option>
+          <option [ngValue]="'A3c'">A-IIIc</option>
+        </select>
+      </div>
+
       <div class="text-xs text-red-600" *ngIf="!isValidConductor">Complete licencia, tipo y persona</div>
     </div>
 

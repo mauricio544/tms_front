@@ -100,16 +100,6 @@
 
     <div class="mt-4 space-y-4">
       <div>
-        <label class="block text-sm text-slate-700">Nombre</label>
-        <input type="text" [(ngModel)]="newPersona.nombre" placeholder="Nombre"
-               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
-      </div>
-      <div>
-        <label class="block text-sm text-slate-700">Apellido</label>
-        <input type="text" [(ngModel)]="newPersona.apellido" placeholder="Apellido"
-               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
-      </div>
-      <div>
         <label class="block text-sm text-slate-700">Tipo de documento</label>
         <select [(ngModel)]="newPersona.tipo_documento" (ngModelChange)="onTipoDocumentoChange($event)"
                 class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
@@ -121,14 +111,20 @@
       </div>
       <div>
         <label class="block text-sm text-slate-700">Número de documento</label>
-        <input type="text" #docInput [(ngModel)]="newPersona.nro_documento" (ngModelChange)="onDocNumberChange($event)" inputmode="numeric" pattern="[0-9]*" placeholder="Documento"
-               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
-        <div class="text-xs text-red-600" *ngIf="newPersona.tipo_documento === 'RUC' && (newPersona.nro_documento || '').length > 0 && (newPersona.nro_documento || '').length < 11">RUC mÃ­nimo 11 caracteres</div>
+        <input type="text" #docInput [(ngModel)]="newPersona.nro_documento" (ngModelChange)="onDocNumberChange($event)" inputmode="numeric" pattern="[0-9]*" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <div class="text-xs text-red-600" *ngIf="newPersona.tipo_documento === 'RUC' && (newPersona.nro_documento || '').length > 0 && (newPersona.nro_documento || '').length < 11">RUC mínimo 11 caracteres</div>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Nombre</label>
+        <input type="text" [(ngModel)]="newPersona.nombre" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Apellido</label>
+        <input type="text" [(ngModel)]="newPersona.apellido" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       </div>
       <div *ngIf="newPersona.tipo_documento === 'RUC'">
         <label class="block text-sm text-slate-700">Razón social</label>
-        <input type="text" [(ngModel)]="newPersona.razon_social" placeholder="Razón social"
-               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <input type="text" [(ngModel)]="newPersona.razon_social" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
         <div class="text-xs text-red-600" *ngIf="newPersona.tipo_documento === 'RUC' && !(newPersona.razon_social || '').trim()">Requerido para RUC</div>
       </div>      <div>
         <label class="block text-sm text-slate-700">Email</label>

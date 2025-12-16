@@ -24,7 +24,7 @@ import { Utils } from '../../../../core/services/utils';
 })
 export class VehiculosFeature implements OnInit {
   private readonly vehiculoSrv = inject(Vehiculos);
-
+  //private readonly utilitarios = inject(Utils);
   lista_vehiculos: Vehiculo[] = [];
   loading = false;
   error: string | null = null;
@@ -104,8 +104,9 @@ export class VehiculosFeature implements OnInit {
       tonelaje: item.tonelaje,
       ejes: item.ejes,
       anio_fabricacion: item.anio_fabricacion as any,
-      fecha_vigencia_soat: item.fecha_vigencia_soat,
+      fecha_vigencia_soat: this.vehiculoSrv.formatFecha(item.fecha_vigencia_soat)
     } as any;
+    //console.log(this.utilitarios.transform(item.fecha_vigencia_soat));
     this.saveError = null;
     this.showModal = true;
   }
@@ -123,15 +124,15 @@ export class VehiculosFeature implements OnInit {
 
   normalizePlaca(value: string): string {
     const cleaned = String(value || '').toUpperCase().replace(/\s+/g, '').replace(/[^A-Z0-9-]/g, '');
-    const noDash = cleaned.replace(/-/g, '');
+    const noDash = cleaned.replace(/''/g, '');
     if (noDash.length >= 4) {
       return (noDash.slice(0, 3) + '-' + noDash.slice(3, 6)).slice(0, 7);
     }
-    return cleaned.length > 3 && cleaned.indexOf('-') === -1 ? (cleaned.slice(0,3) + '-' + cleaned.slice(3)).slice(0,7) : cleaned.slice(0,7);
+    return cleaned.length > 3 && cleaned.indexOf('-') === -1 ? (cleaned.slice(0,3) + '' + cleaned.slice(3)).slice(0,7) : cleaned.slice(0,7);
   }
 
   onPlacaChange(val: string) {
-    this.newVehiculo = { ...(this.newVehiculo as any), placa: this.normalizePlaca(val) } as any;
+    this.newVehiculo = { ...(this.newVehiculo as any), placa: val } as any;
   }
 
   submitNewVehiculo() {
@@ -183,6 +184,7 @@ export class VehiculosFeature implements OnInit {
     this.pendingDeleteLabel = item.placa || '';
     this.confirmMessage = `¿Eliminar vehículo ${this.pendingDeleteLabel}?`;
     this.confirmOpen = true;
+    console.log("Eliminar");
   }
 
   onCancelDelete() {

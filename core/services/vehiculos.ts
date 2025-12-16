@@ -27,4 +27,18 @@ export class Vehiculos {
   deleteVehiculo(id: number): Observable<any> {
     return this.api.delete(`/vehiculos/${id}/`);
   }
+
+  formatFecha(fecha: string | Date): string {
+    if (!fecha) return '';
+
+    const d = new Date(fecha);
+
+    if (isNaN(d.getTime())) return '';
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
 }
