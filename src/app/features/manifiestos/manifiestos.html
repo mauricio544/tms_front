@@ -16,11 +16,11 @@
       <option [ngValue]="20">20</option>
     </select>
 
-    <button (click)="openModal()" class="inline-flex items-center rounded-md bg-[#0A1A2F] px-3 py-2 text-sm font-medium text-white hover:bg-[#0A1A2F]/90 focus:outline-none focus:ring-2 focus:ring-primary">Nuevo</button>
+    <button (click)="openModal()" class="inline-flex items-center rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 focus:outline-none focus:ring-2 focus:ring-primary">Nuevo</button>
 
     <div class="ml-auto inline-flex rounded-md border border-slate-300 overflow-hidden">
-      <button type="button" (click)="setView('cards')" [class.bg-slate-900]="viewMode === 'cards'" [class.text-white]="viewMode === 'cards'" class="px-3 py-2 text-sm">Tarjetas</button>
-      <button type="button" (click)="setView('grid')" [class.bg-slate-900]="viewMode === 'grid'" [class.text-white]="viewMode === 'grid'" class="border-l border-slate-300 px-3 py-2 text-sm">Tabla</button>
+      <button type="button" (click)="setView('cards')" [class.bg-[#2F455C]]="viewMode === 'cards'" [class.text-white]="viewMode === 'cards'" class="px-3 py-2 text-sm">Tarjetas</button>
+      <button type="button" (click)="setView('grid')" [class.bg-[#2F455C]]="viewMode === 'grid'" [class.text-white]="viewMode === 'grid'" class="border-l border-slate-300 px-3 py-2 text-sm">Tabla</button>
     </div>
   </div>
 </div>
@@ -50,10 +50,10 @@
           </div>
           <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="generarGuia(item)">Generar Guía</button>
-            <button class="rounded-md bg-[#26A69A] px-2.5 py-1.5 text-xs text-white hover:bg-[#26A69A]/90" (click)="verEnvios(item)">Ver Envíos</button>
+            <button class="rounded-md bg-[#21D0B2] px-2.5 py-1.5 text-xs text-white hover:bg-[#21D0B2]/90" (click)="verEnvios(item)">Ver Envíos</button>
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
-            <button class="rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-xs text-primary hover:bg-primary/20" (click)="askDelete(item)">Eliminar</button>
+            <button class="rounded-md border border-[#2F455C]/20 bg-[#2F455C]/10 px-2.5 py-1.5 text-xs text-[#2F455C] hover:bg-[#2F455C]/20" (click)="askDelete(item)">Eliminar</button>
           </div>
         </div>
       </div>
@@ -79,10 +79,10 @@
               <td class="px-3 py-2">
                 <div class="flex items-center gap-2">
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Guía</button>
-                  <button class="rounded-md bg-[#26A69A] px-2 py-1 text-xs text-white hover:bg-[#26A69A]/90" (click)="verEnvios(item)">Ver Envíos</button>
+                  <button class="rounded-md bg-[#21D0B2] px-2 py-1 text-xs text-white hover:bg-[#21D0B2]/90" (click)="verEnvios(item)">Ver Envíos</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
-                  <button class="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-xs text-primary hover:bg-primary/20" (click)="askDelete(item)">Eliminar</button>
+                  <button class="rounded-md border border-[#2F455C]/20 bg-[#2F455C]/10 px-2 py-1 text-xs text-[#2F455C] hover:bg-[#2F455C]/20" (click)="askDelete(item)">Eliminar</button>
                 </div>
               </td>
             </tr>
@@ -145,7 +145,7 @@
       </div>
       <div class="md:col-span-2 mt-2 flex items-center justify-end gap-2">
         <button type="button" (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
-        <button type="submit" [disabled]="!isValidManifiesto || saving" class="rounded-md bg-[#263238] px-3 py-2 text-sm font-medium text-white hover:bg-[#263238]/90 disabled:opacity-50">{{ editing ? 'Actualizar' : 'Crear' }}</button>
+        <button type="submit" [disabled]="!isValidManifiesto || saving" class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 disabled:opacity-50">{{ editing ? 'Actualizar' : 'Crear' }}</button>
       </div>
       <div *ngIf="saveError" class="md:col-span-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ saveError }}</div>
     </form>    </div>
@@ -306,3 +306,7 @@
     </div>
   </div>
 </div>
+
+
+
+

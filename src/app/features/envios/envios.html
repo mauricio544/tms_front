@@ -1,4 +1,4 @@
-<div class="px-4 pt-4 pb-0">
+﻿<div class="px-4 pt-4 pb-0">
 
 
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -69,7 +69,7 @@
     <button (click)="openCreate()"
 
 
-            class="inline-flex items-center rounded-md bg-[#0A1A2F] px-3 py-2 text-sm font-medium text-white hover:bg-[#0A1A2F]/90 focus:outline-none focus:ring-2 focus:ring-[#26A69A]">
+            class="inline-flex items-center rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 focus:outline-none focus:ring-2 focus:ring-[#26A69A]">
 
 
       Nuevo
@@ -81,12 +81,12 @@
     <div class="ml-auto inline-flex rounded-md border border-slate-300 overflow-hidden">
 
 
-      <button type="button" (click)="setViewMode('cards')" [class.bg-slate-900]="viewMode==='cards'"
+      <button type="button" (click)="setViewMode('cards')" [class.bg-[#2F455C]]="viewMode==='cards'"
               [class.text-white]="viewMode==='cards'" class="px-3 py-2 text-sm">Tarjetas
       </button>
 
 
-      <button type="button" (click)="setViewMode('table')" [class.bg-slate-900]="viewMode==='table'"
+      <button type="button" (click)="setViewMode('table')" [class.bg-[#2F455C]]="viewMode==='table'"
               [class.text-white]="viewMode==='table'" class="border-l border-slate-300 px-3 py-2 text-sm">Tabla
       </button>
 
@@ -552,7 +552,7 @@
         </div>
 
 
-        <!-- Detalle del env�o para c�lculo del comprobante -->
+        <!-- Detalle del envï¿½o para cï¿½lculo del comprobante -->
         <div *ngIf="stagedDetalles.length" class="mt-3 overflow-x-auto">
           <h4 class="text-sm font-medium text-slate-800 mb-1">Detalle del env&iacute;o</h4>
           <table class="min-w-full text-sm">
@@ -615,7 +615,7 @@
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
 
 
-          <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" class="h-4 w-4"/>
+          <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" class="h-4 w-4 accent-[#2F455C]"/>
 
 
           Pagado
@@ -627,7 +627,7 @@
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
 
 
-          <input type="checkbox" [(ngModel)]="newEnvio.tipo_contenido" class="h-4 w-4"/>
+          <input type="checkbox" [(ngModel)]="newEnvio.tipo_contenido" class="h-4 w-4 accent-[#2F455C]"/>
 
 
           Contenido especial
@@ -640,7 +640,7 @@
 
       <div class="grid grid-cols-2 gap-3 mt-2">
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" [(ngModel)]="sendWhatsapp" class="h-4 w-4"/>
+          <input type="checkbox" [(ngModel)]="sendWhatsapp" class="h-4 w-4 accent-[#2F455C]"/>
           Enviar WhatsApp
         </label>
         <div *ngIf="sendWhatsapp">
@@ -813,7 +813,7 @@
         <button (click)="submitEnvio()" [disabled]="!isValidEnvio || saving"
 
 
-                class="rounded-md bg-[#263238] px-3 py-2 text-sm font-medium text-white hover:bg-[#263238]/90 disabled:opacity-50">
+                class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 disabled:opacity-50">
           Guardar
         </button>
 
@@ -1137,7 +1137,7 @@
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
 
 
-          <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" class="h-4 w-4"/>
+          <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" class="h-4 w-4 accent-[#2F455C]"/>
 
 
           Pagado
@@ -1149,7 +1149,7 @@
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
 
 
-          <input type="checkbox" [(ngModel)]="newEnvio.tipo_contenido" class="h-4 w-4"/>
+          <input type="checkbox" [(ngModel)]="newEnvio.tipo_contenido" class="h-4 w-4 accent-[#2F455C]"/>
 
 
           Contenido especial
@@ -1162,7 +1162,7 @@
 
       <div class="grid grid-cols-2 gap-3 mt-2">
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" [(ngModel)]="sendWhatsapp" class="h-4 w-4"/>
+          <input type="checkbox" [(ngModel)]="sendWhatsapp" class="h-4 w-4 accent-[#2F455C]"/>
           Enviar WhatsApp
         </label>
         <div *ngIf="sendWhatsapp">
@@ -1186,7 +1186,7 @@
         <button (click)="submitEnvio()" [disabled]="!isValidEnvio || saving"
 
 
-                class="rounded-md bg-[#263238] px-3 py-2 text-sm font-medium text-white hover:bg-[#263238]/90 disabled:opacity-50">
+                class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 disabled:opacity-50">
           Guardar
         </button>
 
@@ -1370,7 +1370,7 @@
     </div>
 
 
-    <!-- Detalle del env�o (solo lectura) -->
+    <!-- Detalle del envï¿½o (solo lectura) -->
     <div *ngIf="stagedDetalles.length" class="mt-3 overflow-x-auto">
       <h4 class="text-sm font-medium text-slate-800 mb-1">Detalle del env&iacute;o</h4>
       <table class="min-w-full text-sm">
@@ -1593,7 +1593,7 @@
         </button>
 
 
-        <span>Página {{ page }} / {{ totalPages }}</span>
+        <span>PÃ¡gina {{ page }} / {{ totalPages }}</span>
 
 
         <button (click)="setPage(page+1)" [disabled]="page===totalPages"
@@ -1912,7 +1912,7 @@
                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
 
 
-        <div class="mt-1 text-xs text-slate-500">Se registrarán.</div>
+        <div class="mt-1 text-xs text-slate-500">Se registrarÃ¡n.</div>
 
 
       </div>
@@ -1947,6 +1947,8 @@
 
 
 </ng-template>
+
+
 
 
 

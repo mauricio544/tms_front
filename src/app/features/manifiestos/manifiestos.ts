@@ -12,6 +12,7 @@ import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante } from
 import { Conductor } from '../../../../core/mapped';
 import { Personas } from '../../../../core/services/personas';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
+import { DetalleEnvio } from '../../../../core/services/detalle-envio';
 import { forkJoin, of } from 'rxjs';
 import { RouterLink } from '@angular/router';
 
@@ -31,6 +32,7 @@ export class ManifiestosFeature implements OnInit {
   private readonly enviosSrv = inject(Envios);
   private readonly personasSrv = inject(Personas);
   private readonly detCompSrv = inject(DetallesComprobante);
+  private readonly detEnvSrv = inject(DetalleEnvio);
 
   // Datos
   lista_manifiestos: Manifiesto[] = [];
@@ -292,7 +294,7 @@ export class ManifiestosFeature implements OnInit {
   }
 
 
-  
+
   setView(mode: 'cards' | 'grid') {
     this.viewMode = mode;
     try { localStorage.setItem('manifiestos.viewMode', mode); } catch {}
@@ -350,7 +352,7 @@ ngOnInit(): void {
     this.enviosSrv.getEnviosManifiesto(Number(id)).subscribe({
       next: (envs: any[]) => {
         const envios = envs || [];
-        const calls = envios.map((e:any) => (e?.comprobante_id ? this.detCompSrv.getDetalles(Number(e.comprobante_id)) : of([])));
+        const calls = envios.map((e:any) => (e?.id ? this.detEnvSrv.getDetallesEnvio(Number(e.id)) : of([])));
         forkJoin(calls).subscribe({
           next: (detList: any[]) => {
             this.guiaItems = envios.map((e:any, idx:number) => ({ envio: e as any, detalles: (detList[idx] || []) as any[] }));

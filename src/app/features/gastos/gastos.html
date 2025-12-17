@@ -7,7 +7,7 @@
     <div class="flex items-center gap-2">
       <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar" class="h-9 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       <button (click)="load()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Refrescar</button>
-      <button (click)="openAddMovimiento()" class="h-9 rounded-md bg-[#26A69A] px-3 text-sm font-medium text-white hover:bg-[#26A69A]/90">Agregar movimiento</button>
+      <button (click)="openAddMovimiento()" class="h-9 rounded-md bg-[#21D0B2] px-3 text-sm font-medium text-white hover:bg-[#21D0B2]/90">Agregar movimiento</button>
       <button (click)="exportCSV()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Exportar CSV</button>
     </div>
   </div>
@@ -168,8 +168,9 @@
 
     <div class="mt-6 flex items-center justify-end gap-2">
       <button (click)="closeAddMovimiento()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
-      <button (click)="submitAddMovimiento()" [disabled]="!isValidAdd || savingAdd" class="rounded-md bg-[#26A69A] px-3 py-2 text-sm font-medium text-white hover:bg-[#26A69A]/90 disabled:opacity-50">Guardar</button>
+      <button (click)="submitAddMovimiento()" [disabled]="!isValidAdd || savingAdd" class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 disabled:opacity-50">Guardar</button>
     </div>
   </div>
 </div>
+
 
