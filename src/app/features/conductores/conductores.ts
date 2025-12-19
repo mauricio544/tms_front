@@ -12,10 +12,11 @@ import { Conductor, Persona } from '../../../../core/mapped';
 @Component({
   selector: 'feature-conductores',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, NgIconComponent],
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, NgIconComponent],
+
     templateUrl: './conductores.html',
     styleUrl: './conductores.css',
-  
+
   providers: [
     provideIcons({
       heroUserCircle,
@@ -79,6 +80,10 @@ export class Conductores implements OnInit {
 
   get total(): number {
     return this.filteredConductores.length;
+  }
+
+  getNombre(p: any): string {
+    return `${p.nombre ?? ''} ${p.apellido ?? ''}`.trim() || p.razon_social;
   }
 
   get totalPages(): number {

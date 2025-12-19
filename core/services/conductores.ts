@@ -16,7 +16,7 @@ export class Conductores {
 
   getConductores(): Observable<Conductor[]> {
     const cia_id = this.auth.getCompaniaId();
-    return this.api.get(`/conductores/${cia_id}`);
+    return this.api.get(`/conductores/cia/${cia_id}`);
   }
 
   createConductores(body: {licencia: string; tipo_licencia: string; persona_id: number; compania_id: number}): Observable<Conductor> {

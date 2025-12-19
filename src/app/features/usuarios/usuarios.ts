@@ -1,4 +1,4 @@
-﻿import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
+import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
 import { UiAlertComponent } from '../../shared/ui/alert/alert';
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -31,7 +31,7 @@ export class UsuariosFeature implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // // Filtros y paginaci�n
+  // // Filtros y paginaciÃ³n
   search = '';
   status: 'all' | 'active' | 'inactive' = 'all';
   page = 1;
@@ -41,9 +41,9 @@ export class UsuariosFeature implements OnInit {
   showModal = false;
   saving = false;
   saveError: string | null = null;
-  // Confirmación eliminación
+  // ConfirmaciÃ³n eliminaciÃ³n
   confirmOpen = false;
-  confirmTitle = 'Confirmar eliminación';
+  confirmTitle = 'Confirmar eliminaciÃ³n';
   confirmMessage = '';
   pendingDeleteId: number | null = null;
   pendingDeleteLabel: string = '';
@@ -93,6 +93,7 @@ export class UsuariosFeature implements OnInit {
   closeModal() { this.showModal = false; }
 
   openEdit(item: Usuario) {
+    console.log(item);
     this.editing = true;
     this.editingId = (item as any).id ?? null;
     this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, password: '' } as any;
@@ -103,7 +104,7 @@ export class UsuariosFeature implements OnInit {
   askDelete(item: Usuario) {
     this.pendingDeleteId = (item as any).id ?? null;
     this.pendingDeleteLabel = (item as any).email || '';
-    this.confirmMessage = `¿Eliminar usuario ${this.pendingDeleteLabel}?`;
+    this.confirmMessage = `Â¿Eliminar usuario ${this.pendingDeleteLabel}?`;
     this.confirmOpen = true;
   }
 
@@ -142,14 +143,14 @@ export class UsuariosFeature implements OnInit {
       person_id: (this.newUser as any).person_id ?? null,
       is_active: (this.newUser as any).is_active,
     };
-    if ((this.newUser.password || '').length >= 6) { payload.password = this.newUser.password; }
+    if ((this.newUser.password || '').length >= 6) { payload.password = this.newUser.password; } else if (this.editing) { payload.password = null; }
     this.saving = true;
     this.saveError = null;
     const obs = this.editing && this.editingId ? this.user.updateUser(this.editingId as number, payload) : this.user.createUser(payload);
     obs.subscribe({
       next: (created: any) => {
         const wasEditing = this.editing;
-        const added = { email: created?.email ?? payload.email, is_active: created?.is_active ?? true, person_id: created?.person_id ?? payload.person_id } as any as Usuario;
+        const added = { id: (created?.id ?? (wasEditing ? this.editingId : null)) as number, email: created?.email ?? payload.email, is_active: created?.is_active ?? true, person_id: created?.person_id ?? payload.person_id } as any as Usuario;
         if (wasEditing && this.editingId) {
           this.lista_usuarios = this.lista_usuarios.map(u => (u as any).id === this.editingId ? added : u);
         } else {

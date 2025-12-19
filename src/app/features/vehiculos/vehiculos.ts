@@ -9,6 +9,7 @@ import { heroTruck } from '@ng-icons/heroicons/outline';
 import { Vehiculos } from '../../../../core/services/vehiculos';
 import { Vehiculo } from '../../../../core/mapped';
 import { Utils } from '../../../../core/services/utils';
+import { Utilitarios } from '../../../../core/services/utilitarios';
 
 @Component({
   selector: 'feature-vehiculos',
@@ -24,6 +25,7 @@ import { Utils } from '../../../../core/services/utils';
 })
 export class VehiculosFeature implements OnInit {
   private readonly vehiculoSrv = inject(Vehiculos);
+  private readonly utilSrv = inject(Utilitarios);
   //private readonly utilitarios = inject(Utils);
   lista_vehiculos: Vehiculo[] = [];
   loading = false;
@@ -104,7 +106,7 @@ export class VehiculosFeature implements OnInit {
       tonelaje: item.tonelaje,
       ejes: item.ejes,
       anio_fabricacion: item.anio_fabricacion as any,
-      fecha_vigencia_soat: this.vehiculoSrv.formatFecha(item.fecha_vigencia_soat)
+      fecha_vigencia_soat: this.utilSrv.formatFecha(item.fecha_vigencia_soat)
     } as any;
     //console.log(this.utilitarios.transform(item.fecha_vigencia_soat));
     this.saveError = null;

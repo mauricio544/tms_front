@@ -1,4 +1,4 @@
-﻿<div class="p-6">
+<div class="p-6">
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 class="text-xl font-semibold text-slate-800">Conductores</h1>
@@ -31,15 +31,11 @@
               <ng-icon name="heroUserCircle" size="36"></ng-icon>
             </div>
             <div class="min-w-0">
-              <div class="font-medium text-slate-800 truncate max-w-[12rem]">{{ item.licencia }}</div>
-              <!--<div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>-->
+              <div class="font-medium text-slate-800 truncate max-w-[12rem]">{{ personaName(item.persona_id) }}</div>
+              <div class="text-xs text-slate-600 truncate max-w-[12rem]">Licencia: {{ item.licencia }}</div>
+              <div class="text-xs text-slate-600 truncate max-w-[12rem]">Tipo: {{ item.tipo_licencia }}</div>
             </div>
           </div>
-        </div>
-
-        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Licencia: {{ item.tipo_licencia }}</span>
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Persona: {{ personaName(item.persona_id) }}</span>
         </div>
 
         <div class="mt-4 flex items-center justify-end gap-2">
@@ -55,7 +51,7 @@
       </div>
       <div class="flex items-center gap-2">
         <button (click)="setPage(page-1)" [disabled]="page===1" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Anterior</button>
-        <span>Página {{ page }} / {{ totalPages }}</span>
+        <span>PÃƒÂ¡gina {{ page }} / {{ totalPages }}</span>
         <button (click)="setPage(page+1)" [disabled]="page===totalPages" class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-50">Siguiente</button>
       </div>
     </div>
@@ -85,7 +81,7 @@
         <label class="block text-sm text-slate-700">Persona</label>
         <select [(ngModel)]="newConductor.persona_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
           <option [ngValue]="null">Seleccione</option>
-          <option *ngFor="let p of personas" [ngValue]="p.id">{{ (p.nombre || p.razon_social) || ('ID ' + p.id) }}</option>
+          <option *ngFor="let p of personas" [ngValue]="p.id">{{ (getNombre(p)) || ('ID ' + p.id) }}</option>
         </select>
       </div>
       <div>
@@ -98,10 +94,10 @@
         <select [(ngModel)]="newConductor.tipo_licencia" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
           <option [ngValue]="'A1'">A-I</option>
           <option [ngValue]="'A2'">A-IIa</option>
-          <option [ngValue]="'A2b'">A-IIb</option>
+          <option [ngValue]="'A4'">A-IIb</option>
           <option [ngValue]="'A3'">A-IIIa</option>
-          <option [ngValue]="'A3b'">A-IIIb</option>
-          <option [ngValue]="'A3c'">A-IIIc</option>
+          <option [ngValue]="'A5'">A-IIIb</option>
+          <option [ngValue]="'A6'">A-IIIc</option>
         </select>
       </div>
 

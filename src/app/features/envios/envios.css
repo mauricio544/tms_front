@@ -13,3 +13,20 @@
   /* Remove borders/shadows for clean print */
   .shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .border, [class*="border-"] { box-shadow: none !important; border: 0 !important; }
 }
+/* Highlight Detalle del envío inside inline Nuevo envío */
+.detalle-envio-resaltado {
+  border-left: 4px solid #26A69A;
+  background: rgba(38, 166, 154, 0.06);
+  padding: 12px;
+  border-radius: 8px;
+}
+.detalle-envio-resaltado > h4 {
+  color: #0A1A2F;
+  margin-bottom: 8px;
+}
+.detalle-envio-resaltado table thead {
+  background: rgba(38, 166, 154, 0.08);
+}
+.detalle-envio-resaltado table tbody tr:nth-child(odd) {
+  background: rgba(10, 26, 47, 0.02);
+}

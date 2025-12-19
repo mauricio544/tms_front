@@ -1,4 +1,4 @@
-import { Message } from '../../../../core/services/message';
+﻿import { Message } from '../../../../core/services/message';
 import { Component, OnInit, inject, ChangeDetectorRef, ViewContainerRef, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -20,6 +20,7 @@ import { DetallesComprobante } from '../../../../core/services/detalles-comproba
 import { Movimientos } from '../../../../core/services/movimientos';
 import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
 import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General, MessageCreate } from '../../../../core/mapped';
+import { Utilitarios } from '../../../../core/services/utilitarios';
 import { forkJoin } from 'rxjs';
 
 @Component({
@@ -45,7 +46,7 @@ export class EnviosFeature implements OnInit {
   private readonly movsSrv = inject(Movimientos);
   private readonly detMovsSrv = inject(DetalleMovimientos);
   private readonly messageSrv = inject(Message);
-
+  private readonly utilSrv = inject(Utilitarios);
   // Estado principal
   lista_envios: Envio[] = [];
   loading = false;
@@ -57,9 +58,14 @@ export class EnviosFeature implements OnInit {
 
   // Filtros y paginación
   search = '';
-  page = 1;
+
   pageSize = 8;
+
   entregaFilter: 'all' | 'delivered' | 'pending' = 'all';
+
+  personaSearchTarget: 'both' | 'remitente' | 'destinatario' = 'both';
+  origenFilterId: number | null = null;
+  destinoFilterId: number | null = null;
 
   // Crear/Editar inline
   compInlineForEntrega: boolean = false;
@@ -87,7 +93,8 @@ export class EnviosFeature implements OnInit {
   // Edición
   editing = false;
   editingId: number | null = null;
-
+  page: number  = 1;
+  item: Envio | null = null;
 
   private tipoNombreById(id: number | null | undefined): string {
     if (id == null) return '';
@@ -132,8 +139,8 @@ export class EnviosFeature implements OnInit {
           '<h1>' + docTitle + '</h1>' +
           '<div class="metaL">' +
             '<div><span class="label">Emitido a:</span> <span class="value">' + String(c.cliente_documento || '-') + '</span></div>' +
-            '<div><span class="label">Fecha comprobante:</span> <span class="value">' + String(c.fecha_comprobante || '') + '</span></div>' +
-            '<div><span class="label">Fecha pago:</span> <span class="value">' + String(c.fecha_pago || '') + '</span></div>' +
+            '<div><span class="label">Fecha comprobante:</span> <span class="value">' +  this.utilSrv.formatFecha(c.fecha_comprobante || '') + '</span></div>' +
+            '<div><span class="label">Fecha pago:</span> <span class="value">' + this.utilSrv.formatFecha(c.fecha_pago || '') + '</span></div>' +
           '</div>' +
         '</div>' +
         '<div class="box rightBox">' +
@@ -142,7 +149,7 @@ export class EnviosFeature implements OnInit {
           '<div><span class="label">Número:</span> <span class="value">' + numero + '</span></div>' +
         '</div>' +
       '</div>' +
-      '<table style="margin-top:12px"><thead><tr><th>ïtem</th><th>Cantidad</th><th>Descripción</th><th class="right">P. Unitario</th><th class="right">Subtotal</th></tr></thead>' +
+      '<table style="margin-top:12px"><thead><tr><th>Ítem</th><th>Cantidad</th><th>Descripción</th><th class="right">P. Unitario</th><th class="right">Subtotal</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
       totalsHtml +
       '<div style="margin-top:12px;text-align:right"><button onclick="window.print()">Imprimir</button></div>' +
@@ -194,6 +201,7 @@ export class EnviosFeature implements OnInit {
 
   // Detalle de envío (creación)
   stagedDetalles: Array<{ cantidad: number; descripcion: any; precio_unitario: number }> = [];
+  detallesLoading: boolean = false;
   newDet: { cantidad: number | null; descripcion: string; precio_unitario: number | null } = { cantidad: null, descripcion: '', precio_unitario: null };
   get stagedSubtotal(): number { return this.stagedDetalles.reduce((s, d) => s + (Number(d.cantidad) || 0) * (Number(d.precio_unitario) || 0), 0); }
   addDetalle() {
@@ -216,14 +224,14 @@ export class EnviosFeature implements OnInit {
   showDestinatarioOptions = false;
 
   // Doc lookup (crear si no existe) - remitente/destinatario
-  remitenteDocType: 'RUC' | 'DNI' = 'RUC';
+  remitenteDocType: 'RUC' | 'DNI' = 'DNI';
   remitenteDocNumber: string = '';
-  destinatarioDocType: 'RUC' | 'DNI' = 'RUC';
+  destinatarioDocType: 'RUC' | 'DNI' = 'DNI';
   destinatarioDocNumber: string = '';
   remLookupLoading = false; remLookupError: string | null = null;
   destLookupLoading = false; destLookupError: string | null = null;
 
-  // Comprobante (creación cuando pagado)
+  // Comprobante (creaciÃ³n cuando pagado)
   compTipos: General[] = [];
   payTipos: General[] = [];
   compTipoSel: General | null = null;
@@ -264,6 +272,33 @@ export class EnviosFeature implements OnInit {
     this.compClienteId = null;
   }
 
+  onOrigenChange(val: any) {
+    try {
+      const v = Number(val);
+      if (v && Number(this.newEnvio.punto_destino_id) === v) {
+        this.newEnvio.punto_destino_id = null as any;
+      }
+    } catch {}
+  }
+  onDestinoChange(val: any) {
+    try {
+      const v = Number(val);
+      if (v && Number(this.newEnvio.punto_origen_id) === v) {
+        this.newEnvio.punto_origen_id = null as any;
+      }
+    } catch {}
+  }
+
+  private normalizeDate(d: any): string {
+    try {
+      if (!d) return "";
+      if (d instanceof Date) return d.toISOString().slice(0,10);
+      const s = String(d);
+      if (s.length >= 10) return s.slice(0,10);
+      return s;
+    } catch { return ""; }
+  }
+
   // Nombres de puntos
   puntos: PuntoModel[] = [];
   puntosLoading = false;
@@ -273,14 +308,14 @@ export class EnviosFeature implements OnInit {
     return p ? (p as any).nombre : (id != null ? String(id) : '-');
   }
 
-  // Lista filtrada y paginación
+  // Lista filtrada y paginaciÃ³n
   get filteredEnvios(): Envio[] {
     const term = (this.search || '').trim().toLowerCase();
     return (this.lista_envios || []).filter((e: any) => {
       const entregado = !!(e?.fecha_recepcion || e?.estado_entrega);
       if (this.entregaFilter === 'delivered' && !entregado) return false;
       if (this.entregaFilter === 'pending' && entregado) return false;
-      if (!term) return true;
+      if (!term) { if (this.origenFilterId && Number(e.punto_origen_id) !== Number(this.origenFilterId)) return false; if (this.destinoFilterId && Number(e.punto_destino_id) !== Number(this.destinoFilterId)) return false; return true; }
       const remit = (this.personaLabelById(e?.remitente) || '').toLowerCase();
       const dest = (this.personaLabelById(e?.destinatario) || '').toLowerCase();
       const values = [
@@ -288,7 +323,7 @@ export class EnviosFeature implements OnInit {
         String(e.peso ?? ''), String(e.fecha_envio ?? ''), String(e.punto_origen_id ?? ''), String(e.punto_destino_id ?? ''),
         String(e.guia ?? ''), String(e.manifiesto ?? ''), String(e.clave_recojo ?? ''),
       ].join(' ').toLowerCase();
-      return values.includes(term);
+      if (this.origenFilterId && Number(e.punto_origen_id) !== Number(this.origenFilterId)) return false; if (this.destinoFilterId && Number(e.punto_destino_id) !== Number(this.destinoFilterId)) return false; if (this.personaSearchTarget === 'remitente') return remit.includes(term); if (this.personaSearchTarget === 'destinatario') return dest.includes(term); return remit.includes(term) || dest.includes(term) || values.includes(term);
     });
   }
   get total(): number { return this.filteredEnvios.length; }
@@ -298,6 +333,7 @@ export class EnviosFeature implements OnInit {
   get pageEnd(): number { return Math.min(this.page * this.pageSize, this.total); }
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
   onFilterChange() { this.page = 1; }
+  resetFilters() { this.search = ''; this.entregaFilter = 'all'; this.setPage(1); }
 
   // Autocomplete personas helpers
   get filteredRemitentes(): Persona[] { const q = (this.remitenteQuery || '').toLowerCase().trim(); const list = this.personas || []; if (!q) return list.slice(0, 10); return list.filter(p => this.personaLabel(p).toLowerCase().includes(q)).slice(0, 10); }
@@ -367,8 +403,12 @@ export class EnviosFeature implements OnInit {
   // Modal helpers
   openCreate() {
     this.editing = false; this.editingId = null;
-    this.newEnvio = { remitente: null as any, destinatario: null as any, estado_pago: false, clave_recojo: '', peso: null as any, fecha_envio: '', fecha_recepcion: '', tipo_contenido: false, guia: null as any, manifiesto: null as any, valida_restricciones: false, punto_origen_id: null as any, punto_destino_id: null as any } as any;
+
+    try { (this.newEnvio as any).fecha_envio = new Date().toISOString().slice(0,10); } catch {}
     this.saveError = null; this.showCreate = true; this.remitenteQuery = ''; this.destinatarioQuery = ''; this.showRemitenteOptions = false; this.showDestinatarioOptions = false; this.stagedDetalles = []; this.newDet = { cantidad: null, descripcion: '', precio_unitario: null };
+    // Defaults for unified DNI/RUC lookup control
+    this.remitenteDocType = 'DNI'; this.destinatarioDocType = 'DNI';
+    this.remitenteDocNumber = ''; this.destinatarioDocNumber = '';
     // Reset WhatsApp helpers
     this.sendWhatsapp = false; this.whatsappPhone = '';
   }
@@ -376,19 +416,63 @@ export class EnviosFeature implements OnInit {
 
   openEdit(item: Envio) {
     this.editing = true; this.editingId = (item as any).id ?? null;
-    this.newEnvio = { remitente: (item as any).remitente, destinatario: (item as any).destinatario, estado_pago: (item as any).estado_pago, clave_recojo: (item as any).clave_recojo, peso: (item as any).peso, fecha_envio: (item as any).fecha_envio, fecha_recepcion: (item as any).fecha_recepcion, tipo_contenido: (item as any).tipo_contenido, guia: (item as any).guia, manifiesto: (item as any).manifiesto, valida_restricciones: (item as any).valida_restricciones, punto_origen_id: (item as any).punto_origen_id, punto_destino_id: (item as any).punto_destino_id } as any;
+
+    this.newEnvio = {
+  remitente: (item as any).remitente,
+  destinatario: (item as any).destinatario,
+  estado_pago: (item as any).estado_pago,
+  clave_recojo: (item as any).clave_recojo,
+  peso: (item as any).peso,
+  fecha_envio: this.normalizeDate((item as any).fecha_envio),
+  fecha_recepcion: (item as any).fecha_recepcion,
+  tipo_contenido: (item as any).tipo_contenido,
+  guia: (item as any).guia,
+  manifiesto: (item as any).manifiesto,
+  valida_restricciones: (item as any).valida_restricciones,
+  punto_origen_id: (item as any).punto_origen_id,
+  punto_destino_id: (item as any).punto_destino_id,
+} as any;
     this.saveError = null; this.remitenteQuery = this.personaLabelById((item as any).remitente) || ''; this.destinatarioQuery = this.personaLabelById((item as any).destinatario) || ''; this.showEdit = true;
+    // Cargar el detalle del envío para mostrarlo en la edición
+    try {
+      const id = Number((item as any).id || 0);
+      if (id) {
+        this.detalleSrv.getDetallesEnvio(id).subscribe({
+          next: (list: any[]) => {
+            const mapped = (list || []).map((d: any) => ({
+              cantidad: Number(d.cantidad) || 0,
+              descripcion: d.descripcion as any,
+              precio_unitario: Number(d.precio_unitario) || 0,
+            }));
+            let toSet = mapped;
+            if (Array.isArray(list) && list.length && (!toSet || !toSet.length)) {
+              toSet = (list || []).map((d: any) => ({
+                cantidad: Number((d as any).cantidad ?? (d as any).qty ?? 0),
+                descripcion: (d as any).descripcion ?? (d as any).description ?? '',
+                precio_unitario: Number((d as any).precio_unitario ?? (d as any).precio ?? (d as any).price ?? 0),
+              }));
+            }
+            console.log(toSet);
+            this.stagedDetalles = toSet;
+            console.log(this.stagedDetalles);
+            console.log('detalles API', list, 'staged', this.stagedDetalles)
+            try { this.cdr.detectChanges(); } catch {}
+          },
+          error: () => { this.detallesLoading = false; },
+        });
+      }
+    } catch { }
   }
   closeEdit() { this.showEdit = false; }
 
   get isValidEnvio(): boolean {
     const e: any = this.newEnvio;
-    const okRemitente = Number(e.remitente) > 0;
-    const okDestinatario = Number(e.destinatario) > 0;
-    const okPeso = Number(e.peso) > 0;
-    const okFecha = String(e.fecha_envio || '').trim().length > 0;
-    const okOrigen = Number(e.punto_origen_id) > 0;
-    const okDestino = Number(e.punto_destino_id) > 0;
+    const okRemitente = Number(e?.remitente) > 0;
+    const okDestinatario = Number(e?.destinatario) > 0;
+    const okPeso = Number(e?.peso) > 0;
+    const okFecha = String(e?.fecha_envio || "").trim().length > 0;
+    const okOrigen = Number(e?.punto_origen_id) > 0;
+    const okDestino = Number(e?.punto_destino_id) > 0;
     return okRemitente && okDestinatario && okPeso && okFecha && okOrigen && okDestino;
   }
 
@@ -439,7 +523,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
         const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario) || 0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true;
       }
     } else {
-      // WhatsApp: enviar si se solicit� y est� pagado
+      // WhatsApp: enviar si se solicitï¿½ y estï¿½ pagado
       if (this.sendWhatsapp && payload.estado_pago && newId) {
         try {
           const digits = String(this.whatsappPhone || '').replace(/\D/g, '');
@@ -506,7 +590,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
   closeEntrega() { if (this.entregaRef?.hasAttached()) this.entregaRef.detach(); this.entregaOpen = false; this.entregaItem = null; this.entregaClaveInput = ''; this.entregaError = null; }
   submitEntrega() {
     if (!this.entregaItem || !this.entregaClaveOk) return; const id = Number((this.entregaItem as any).id); if (!id) return;
-    // Si no est� pagado, cerrar modal y mostrar inline para generar comprobante
+    // Si no estï¿½ pagado, cerrar modal y mostrar inline para generar comprobante
     if (!(this.entregaItem as any).estado_pago) {
       this.closeEntrega();
       this.compEnvioId = id;
@@ -517,7 +601,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
         },
         error: () => { this.stagedDetalles = []; }
       });
-      this.showNotif('El envío no está pagado. Genere un comprobante.', 'error');
+      this.showNotif('El envÃ­o no estÃ¡ pagado. Genere un comprobante.', 'error');
       return;
     }
     this.entregaSaving = true; this.entregaError = null; (this.entregaItem as any).fecha_recepcion = this.entregaFecha; (this.entregaItem as any).estado_entrega = true;
@@ -529,14 +613,22 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
   onCancelDelete() { this.confirmOpen = false; this.pendingDeleteId = null; this.pendingDeleteLabel = ''; }
   onConfirmDelete() { const id = this.pendingDeleteId; if (!id) { this.onCancelDelete(); return; } this.saving = true; this.enviosSrv.deleteEnvios(id).subscribe({ next: () => { this.lista_envios = this.lista_envios.filter((v: any) => v.id !== id); this.saving = false; this.onFilterChange(); this.onCancelDelete(); this.showNotif('Env\u00edo eliminado'); }, error: () => { this.saving = false; this.saveError = 'No se pudo eliminar el env\u00edo'; this.onCancelDelete(); this.showNotif(this.saveError as string, 'error'); } }); }
 
-  showNotif(msg: string, type: 'success' | 'error' = 'success') { this.notifType = type; this.notif = msg; setTimeout(() => { this.notif = null; }, 3000); }
+  showNotif(msg: string, type: 'success' | 'error' = 'success') {
+    this.notifType = type; this.notif = msg;
+    try { setTimeout(() => { this.notif = null; }, 3000); } catch {}
+  }
 
-  // Carga inicial
+  onClickNuevo(ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    try { this.showNotif("Click Nuevo"); } catch {}
+    this.openCreate();
+  }
+
   // Carga inicial
   loadCatalogos() {
     this.generalesSrv.getGenerales().subscribe({
       next: (list: General[]) => { const arr = list || []; this.compTipos = arr.filter((g: any) => (g.codigo_grupo || '') === 'REC'); this.payTipos = arr.filter((g: any) => (g.codigo_grupo || '') === 'PAY'); if (this.compTipos.length && !this.compTipoId) { const def: any = this.compTipos[0]; this.compTipoSel = def; this.compTipoId = def.codigo_principal; this.onCompTipoChange(def); } },
-      error: () => { },
+      error: () => { this.detallesLoading = false; },
     });
   }
 
@@ -557,6 +649,8 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
   }
   // Generar comprobante desde el inline de entrega no pagada
   submitComprobanteEntrega() {
+    const showPaidDetails = (id: number) => { try { const it = (this.lista_envios || []).find((v: any) => v.id === id) as any; this.ticketEnvio = it || null; this.detalleSrv.getDetallesEnvio(id).subscribe({ next: (list: any[]) => { this.ticketDetalles = (list||[]).map((d: any, i:number) => ({ numero_item: d.numero_item ?? i+1, cantidad: Number(d.cantidad)||0, descripcion: (d.descripcion as any), precio_unitario: Number(d.precio_unitario)||0 })); }, error: () => { this.ticketDetalles = []; } }); } catch {} };
+
     if (!this.compEnvioId) return;
     if (!this.compTipoId || !this.compFormaPagoId || !this.compNumeroComprobante || !this.compDocNumber) return;
     const envioId = this.compEnvioId;
@@ -619,3 +713,21 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
     });
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

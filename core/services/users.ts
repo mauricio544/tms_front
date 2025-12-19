@@ -1,4 +1,4 @@
-﻿import { inject, Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
@@ -18,7 +18,7 @@ export class Users {
     return this.api.post('/users/', body);
   }
 
-  updateUser(id: number, body: { email?: string; password?: string; person_id?: number | null; is_active?: boolean }): Observable<Usuario> {
+  updateUser(id: number, body: { email?: string; password?: string | null; person_id?: number | null; is_active?: boolean }): Observable<Usuario> {
     return this.api.patch(`/users/${id}/`, body);
   }
 

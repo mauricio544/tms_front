@@ -1,308 +1,150 @@
 ﻿<div class="px-4 pt-4 pb-0">
-
-
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-
-
     <div>
-
-
       <h1 class="text-xl font-semibold text-slate-800">Env&iacute;os</h1>
-
-
       <p class="mt-1 text-slate-600">Órdenes y tracking.</p>
-
-
     </div>
-
-
     <ui-alert [show]="!!notif" [message]="notif || ''" [type]="notifType" [autoHideMs]="3000"
               (closed)="notif=null"></ui-alert>
-
-
   </div>
-
-
   <div class="flex flex-wrap items-center gap-2">
-
-
     <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar envío"
            class="h-10 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
     <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)"
-
-
             class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
-
-
       <option [ngValue]="8">8</option>
-
-
       <option [ngValue]="12">12</option>
-
-
       <option [ngValue]="20">20</option>
-
-
     </select>
-
-
     <select [(ngModel)]="entregaFilter" (ngModelChange)="onFilterChange()"
-
-
             class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
-
-
       <option [ngValue]="'all'">Todos</option>
-
-
       <option [ngValue]="'delivered'">Entregados</option>
-
-
       <option [ngValue]="'pending'">Pendientes</option>
-
-
     </select>
-
-
+    <select [(ngModel)]="personaSearchTarget" (ngModelChange)="onFilterChange()"
+            class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
+      <option [ngValue]="'both'">Rem/Dest</option>
+      <option [ngValue]="'remitente'">Remitente</option>
+      <option [ngValue]="'destinatario'">Destinatario</option>
+    </select>
+    <select [(ngModel)]="origenFilterId" (ngModelChange)="onFilterChange()"
+            class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
+      <option [ngValue]="null">Origen: Todos</option>
+      <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+    </select>
+    <select [(ngModel)]="destinoFilterId" (ngModelChange)="onFilterChange()"
+            class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
+      <option [ngValue]="null">Destino: Todos</option>
+      <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+    </select>
     <button (click)="openCreate()"
-
-
             class="inline-flex items-center rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 focus:outline-none focus:ring-2 focus:ring-[#26A69A]">
-
-
       Nuevo
-
-
     </button>
-
-
+    <!--Toggle Cards/grid-->
     <div class="ml-auto inline-flex rounded-md border border-slate-300 overflow-hidden">
-
-
       <button type="button" (click)="setViewMode('cards')" [class.bg-[#2F455C]]="viewMode==='cards'"
               [class.text-white]="viewMode==='cards'" class="px-3 py-2 text-sm">Tarjetas
       </button>
-
-
       <button type="button" (click)="setViewMode('table')" [class.bg-[#2F455C]]="viewMode==='table'"
               [class.text-white]="viewMode==='table'" class="border-l border-slate-300 px-3 py-2 text-sm">Tabla
       </button>
-
-
     </div>
-
-
+    <!--End Toggle-->
   </div>
-
-
 </div>
 
-
+<!--Nuevo Envío-->
 <div *ngIf="showCreate" class="px-4 mt-4">
-
-
   <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-
-
     <h3 class="text-lg font-semibold text-slate-800">Nuevo env&iacute;o</h3>
-
-
     <div class="mt-4 space-y-4">
-
-
       <div class="grid grid-cols-2 gap-3">
-
-
+        <!--control remitente-->
         <div class="relative" (click)="$event.stopPropagation()">
-
-
           <label class="block text-sm text-slate-700">Remitente</label>
-
-
-          <div class="mt-1 relative">
-
-
-            <div class="flex items-center gap-2">
-
-
-              <input type="text" [(ngModel)]="remitenteQuery" (focus)="showRemitenteOptions=true"
-                     (input)="showRemitenteOptions=true" placeholder="Buscar envío"
-                     class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
-              <button type="button" (click)="clearRemitente()"
-                      class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Limpiar
-              </button>
-
-
-            </div>
-
-
-            <div *ngIf="showRemitenteOptions"
-                 class="absolute left-0 right-0 top-full z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow">
-
-
-              <div *ngIf="personasLoading" class="px-3 py-2 text-sm text-slate-500">Cargando...</div>
-
-
-              <div *ngIf="personasError" class="px-3 py-2 text-sm text-red-600">{{ personasError }}</div>
-
-
-              <button *ngFor="let p of filteredRemitentes" type="button" (click)="selectRemitente(p)"
-                      class="block w-full px-3 py-2 text-left text-sm hover:bg-white/60">{{ personaLabel(p) }}
-              </button>
-
-
-              <div *ngIf="!personasLoading && !filteredRemitentes.length" class="px-3 py-2 text-sm text-slate-500">Sin
-                resultados
-              </div>
-
-
-            </div>
-
-
-          </div>
-
-
           <div class="mt-2 grid grid-cols-[auto,1fr,auto,auto] items-center gap-2">
-
-
             <select [(ngModel)]="remitenteDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
-
-
               <option [ngValue]="'RUC'">RUC</option>
-
-
               <option [ngValue]="'DNI'">DNI</option>
-
-
             </select>
-
-
-            <input type="text" [(ngModel)]="remitenteDocNumber" placeholder="Nro documento"
+            <input type="text" [(ngModel)]="remitenteDocNumber" (keydown.enter)="lookupRemitente()" placeholder="Nro documento"
                    class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
             <button type="button" (click)="lookupRemitente()" [disabled]="remLookupLoading"
                     class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-white/60">{{ remLookupLoading ? 'Buscando...' : 'Buscar' }}
             </button>
-
-
           </div>
-
-
-          <div class="text-xs text-red-600 mt-1" *ngIf="remLookupError">{{ remLookupError }}</div>
-
-
-        </div>
-
-
-        <div class="relative" (click)="$event.stopPropagation()">
-
-
-          <label class="block text-sm text-slate-700">Destinatario</label>
-
-
           <div class="mt-1 relative">
-
-
             <div class="flex items-center gap-2">
-
-
-              <input type="text" [(ngModel)]="destinatarioQuery" (focus)="showDestinatarioOptions=true"
-                     (input)="showDestinatarioOptions=true" placeholder="Buscar envío"
+              <input type="text" [(ngModel)]="remitenteQuery" (focus)="showRemitenteOptions=true"
+                     (input)="showRemitenteOptions=true" readonly disabled
                      class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
-              <button type="button" (click)="clearDestinatario()"
+              <button type="button" (click)="clearRemitente()"
                       class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Limpiar
               </button>
-
-
             </div>
-
-
-            <div *ngIf="showDestinatarioOptions"
+            <div *ngIf="showRemitenteOptions"
                  class="absolute left-0 right-0 top-full z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow">
-
-
               <div *ngIf="personasLoading" class="px-3 py-2 text-sm text-slate-500">Cargando...</div>
-
-
               <div *ngIf="personasError" class="px-3 py-2 text-sm text-red-600">{{ personasError }}</div>
-
-
-              <button *ngFor="let p of filteredDestinatarios" type="button" (click)="selectDestinatario(p)"
+              <button *ngFor="let p of filteredRemitentes" type="button" (click)="selectRemitente(p)"
                       class="block w-full px-3 py-2 text-left text-sm hover:bg-white/60">{{ personaLabel(p) }}
               </button>
-
-
-              <div *ngIf="!personasLoading && !filteredDestinatarios.length" class="px-3 py-2 text-sm text-slate-500">
-                Sin resultados
+              <div *ngIf="!personasLoading && !filteredRemitentes.length" class="px-3 py-2 text-sm text-slate-500">Sin
+                resultados
               </div>
-
-
             </div>
-
-
           </div>
 
+          <div class="text-xs text-red-600 mt-1" *ngIf="remLookupError">{{ remLookupError }}</div>
+        </div>
 
+        <!--control destinatario-->
+        <div class="relative" (click)="$event.stopPropagation()">
+          <label class="block text-sm text-slate-700">Destinatario</label>
           <div class="mt-2 grid grid-cols-[auto,1fr,auto] items-center gap-2">
-
-
             <select [(ngModel)]="destinatarioDocType"
                     class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
-
-
               <option [ngValue]="'RUC'">RUC</option>
-
-
               <option [ngValue]="'DNI'">DNI</option>
-
-
             </select>
-
-
-            <input type="text" [(ngModel)]="destinatarioDocNumber" placeholder="Nro documento"
+            <input type="text" [(ngModel)]="destinatarioDocNumber" (keydown.enter)="lookupDestinatario()" placeholder="Nro documento"
                    class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
             <button type="button" (click)="lookupDestinatario()" [disabled]="destLookupLoading"
                     class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-white/60">{{ destLookupLoading ? 'Buscando...' : 'Buscar' }}
             </button>
-
-
           </div>
-
-
+          <div class="mt-1 relative">
+            <div class="flex items-center gap-2">
+              <input type="text" [(ngModel)]="destinatarioQuery" (focus)="showDestinatarioOptions=true"
+                     (input)="showDestinatarioOptions=true" readonly disabled
+                     class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+              <button type="button" (click)="clearDestinatario()"
+                      class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Limpiar
+              </button>
+            </div>
+            <div *ngIf="showDestinatarioOptions"
+                 class="absolute left-0 right-0 top-full z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow">
+              <div *ngIf="personasLoading" class="px-3 py-2 text-sm text-slate-500">Cargando...</div>
+              <div *ngIf="personasError" class="px-3 py-2 text-sm text-red-600">{{ personasError }}</div>
+              <button *ngFor="let p of filteredDestinatarios" type="button" (click)="selectDestinatario(p)"
+                      class="block w-full px-3 py-2 text-left text-sm hover:bg-white/60">{{ personaLabel(p) }}
+              </button>
+              <div *ngIf="!personasLoading && !filteredDestinatarios.length" class="px-3 py-2 text-sm text-slate-500">
+                Sin resultados
+              </div>
+            </div>
+          </div>
           <div class="text-xs text-red-600 mt-1" *ngIf="destLookupError">{{ destLookupError }}</div>
-
-
         </div>
-
-
       </div>
-
-
       <div class="grid grid-cols-3 gap-3">
-
-
         <div>
-
-
           <label class="block text-sm text-slate-700">Peso (kg)</label>
-
-
           <input type="number" min="0" step="0.01" [(ngModel)]="newEnvio.peso" placeholder="0.00"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
         </div>
-
-
         <div>
 
 
@@ -342,13 +184,13 @@
 
 
           <select [(ngModel)]="newEnvio.punto_origen_id"
-                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
+                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onOrigenChange($event)">
 
 
             <option [ngValue]="null">Seleccione...</option>
 
 
-            <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_destino_id">{{ p.nombre }}</option>
 
 
           </select>
@@ -370,13 +212,13 @@
 
 
           <select [(ngModel)]="newEnvio.punto_destino_id"
-                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
+                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onDestinoChange($event)">
 
 
             <option [ngValue]="null">Seleccione...</option>
 
 
-            <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_origen_id">{{ p.nombre }}</option>
 
 
           </select>
@@ -551,9 +393,10 @@
 
         </div>
 
-
-        <!-- Detalle del envï¿½o para cï¿½lculo del comprobante -->
-        <div *ngIf="stagedDetalles.length" class="mt-3 overflow-x-auto">
+        <!-- Detalle del envío para cálculo del comprobante -->
+      <div *ngIf="detallesLoading" class="mt-3 text-sm text-slate-500">Cargando detalle…</div>
+        <div *ngIf="!detallesLoading && stagedDetalles.length" class="mt-3 overflow-x-auto border-1">
+          <div style="width: 100%; height: 1px; background: #263238; position: relative;"></div>
           <h4 class="text-sm font-medium text-slate-800 mb-1">Detalle del env&iacute;o</h4>
           <table class="min-w-full text-sm">
             <thead class="text-left text-slate-600">
@@ -576,7 +419,7 @@
             </tbody>
           </table>
           <div class="mt-1 text-xs text-slate-500">Este detalle se usa para calcular el total e impuesto.</div>
-        <div *ngIf="!stagedDetalles.length" class="mt-3 rounded-md border border-dashed border-slate-300 bg-white px-3 py-3 text-sm text-slate-500">
+        <div *ngIf="!detallesLoading && !stagedDetalles.length" class="mt-3 rounded-md border border-dashed border-slate-300 bg-white px-3 py-3 text-sm text-slate-500">
           Sin &iacute;tems para facturar.
         </div>
         </div>
@@ -644,13 +487,13 @@
           Enviar WhatsApp
         </label>
         <div *ngIf="sendWhatsapp">
-          <input type="text" [(ngModel)]="whatsappPhone" placeholder="Celular (sin +51)"
+          <input type="text" [(ngModel)]="whatsappPhone" placeholder="Celular (sin +51)" class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
                  class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
         </div>
       </div>
 
 
-      <div *ngIf="!editing" class="mt-6">
+      <div *ngIf="!editing" class="mt-6 detalle-envio-resaltado">
 
 
         <h4 class="text-sm font-medium text-slate-800">Detalle del env&iacute;o</h4>
@@ -711,9 +554,10 @@
 
 
         </div>
+        <div *ngIf="detallesLoading" class="mt-3 text-sm text-slate-500">Cargando detalle…</div>
 
 
-        <div *ngIf="stagedDetalles.length" class="mt-3 overflow-x-auto">
+        <div *ngIf="!detallesLoading && stagedDetalles.length" class="mt-3 overflow-x-auto">
 
 
           <table class="min-w-full text-sm">
@@ -911,7 +755,7 @@
             </select>
 
 
-            <input type="text" [(ngModel)]="remitenteDocNumber" placeholder="Nro documento"
+            <input type="text" [(ngModel)]="remitenteDocNumber" (keydown.enter)="lookupRemitente()" placeholder="Nro documento"
                    class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
 
 
@@ -996,7 +840,7 @@
             </select>
 
 
-            <input type="text" [(ngModel)]="destinatarioDocNumber" placeholder="Nro documento"
+            <input type="text" [(ngModel)]="destinatarioDocNumber" (keydown.enter)="lookupDestinatario()" placeholder="Nro documento"
                    class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
 
 
@@ -1072,13 +916,13 @@
 
 
           <select [(ngModel)]="newEnvio.punto_origen_id"
-                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
+                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onOrigenChange($event)">
 
 
             <option [ngValue]="null">Seleccione...</option>
 
 
-            <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_destino_id">{{ p.nombre }}</option>
 
 
           </select>
@@ -1100,13 +944,13 @@
 
 
           <select [(ngModel)]="newEnvio.punto_destino_id"
-                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
+                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onDestinoChange($event)">
 
 
             <option [ngValue]="null">Seleccione...</option>
 
 
-            <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_origen_id">{{ p.nombre }}</option>
 
 
           </select>
@@ -1166,10 +1010,64 @@
           Enviar WhatsApp
         </label>
         <div *ngIf="sendWhatsapp">
-          <input type="text" [(ngModel)]="whatsappPhone" placeholder="Celular (sin +51)"
-                 class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+          <input type="text" [(ngModel)]="whatsappPhone" placeholder="Celular (sin +51)"/>
         </div>
       </div>
+      <div class="mt-6">
+        <h4 class="text-sm font-medium text-slate-800">Detalle del env&iacute;o</h4>
+        <div class="mt-2 grid grid-cols-1 sm:grid-cols-4 gap-2">
+          <div>
+            <label class="block text-sm text-slate-700">Cantidad</label>
+            <input type="number" min="1" [(ngModel)]="newDet.cantidad"
+                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm text-slate-700">Descripci&oacute;n</label>
+            <input type="text" [(ngModel)]="newDet.descripcion"
+                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+          </div>
+          <div>
+            <label class="block text-sm text-slate-700">Precio unitario</label>
+            <input type="number" min="0" step="0.01" [(ngModel)]="newDet.precio_unitario"
+                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+          </div>
+        </div>
+        <div class="mt-2 flex justify-end">
+          <button type="button" (click)="addDetalle()"
+                  class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-white/60">Agregar &iacute;tem</button>
+        </div>
+        <div *ngIf="detallesLoading" class="mt-3 text-sm text-slate-500">Cargando detalle…</div>
+        <div>{{ stagedDetalles.length }}</div>
+        <div *ngIf="!detallesLoading && stagedDetalles.length" class="mt-3 overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="text-left text-slate-600">
+              <tr>
+                <th class="px-2 py-1">#</th>
+                <th class="px-2 py-1">Cantidad</th>
+                <th class="px-2 py-1">Descripci&oacute;n</th>
+                <th class="px-2 py-1">P. Unitario</th>
+                <th class="px-2 py-1">Subtotal</th>
+                <th class="px-2 py-1"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of stagedDetalles; index as i" class="border-t border-slate-200">
+                <td class="px-2 py-1">{{ i + 1 }}</td>
+                <td class="px-2 py-1">{{ d.cantidad }}</td>
+                <td class="px-2 py-1">{{ d.descripcion }}</td>
+                <td class="px-2 py-1">{{ d.precio_unitario | number:'1.2-2' }}</td>
+                <td class="px-2 py-1">{{ (d.cantidad * d.precio_unitario) | number:'1.2-2' }}</td>
+                <td class="px-2 py-1 text-right">
+                  <button type="button" (click)="removeDetalle(i)"
+                          class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Quitar</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="mt-2 text-right text-sm text-slate-700">Total: {{ stagedSubtotal | number:'1.2-2' }}</div>
+        </div>
+      </div>
+
 
 
       <div class="mt-6 flex items-center justify-between gap-2">
@@ -1371,7 +1269,8 @@
 
 
     <!-- Detalle del envï¿½o (solo lectura) -->
-    <div *ngIf="stagedDetalles.length" class="mt-3 overflow-x-auto">
+  <div *ngIf="detallesLoading" class="mt-3 text-sm text-slate-500">Cargando detalle…</div>
+    <div *ngIf="!detallesLoading && stagedDetalles.length" class="mt-3 overflow-x-auto">
       <h4 class="text-sm font-medium text-slate-800 mb-1">Detalle del env&iacute;o</h4>
       <table class="min-w-full text-sm">
         <thead class="text-left text-slate-600">
@@ -1394,7 +1293,7 @@
         </tbody>
       </table>
     </div>
-    <div *ngIf="!stagedDetalles.length" class="mt-3 rounded-md border border-dashed border-slate-300 bg-white px-3 py-3 text-sm text-slate-500">
+    <div *ngIf="!detallesLoading && !stagedDetalles.length" class="mt-3 rounded-md border border-dashed border-slate-300 bg-white px-3 py-3 text-sm text-slate-500">
       Sin &iacute;tems para facturar.
     </div>
     <div class="mt-2 text-right text-sm text-slate-700">Total: {{ compTotal | number:'1.2-2' }}</div>
@@ -1593,7 +1492,7 @@
         </button>
 
 
-        <span>PÃ¡gina {{ page }} / {{ totalPages }}</span>
+        <span>Página {{ page }} / {{ totalPages }}</span>
 
 
         <button (click)="setPage(page+1)" [disabled]="page===totalPages"
@@ -1727,7 +1626,7 @@
           <div><span class="font-medium">Destino:</span> {{ getPuntoNombre(ticketEnvio?.punto_destino_id) }}</div>
 
 
-          <div><span class="font-medium">Fecha envío</span> {{ ticketEnvio?.fecha_envio }}</div>
+          <div><span class="font-medium">Fecha envío</span> {{ (ticketEnvio?.fecha_envio ?? '') | ymd }}</div>
 
 
           <div><span class="font-medium">Clave:</span> {{ ticketEnvio?.clave_recojo }}</div>
@@ -1912,7 +1811,7 @@
                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
 
 
-        <div class="mt-1 text-xs text-slate-500">Se registrarÃ¡n.</div>
+        <div class="mt-1 text-xs text-slate-500">Se registrarán.</div>
 
 
       </div>
@@ -1947,6 +1846,13 @@
 
 
 </ng-template>
+
+
+
+
+
+
+
 
 
 

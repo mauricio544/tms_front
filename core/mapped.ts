@@ -19,6 +19,7 @@ export interface Usuario {
   id: number;
   email: string;
   is_active: boolean;
+  password_hash: string;
   person_id: number | null;
 }
 
