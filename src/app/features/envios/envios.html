@@ -71,9 +71,9 @@
             </select>
             <input type="text" [(ngModel)]="remitenteDocNumber" (keydown.enter)="lookupRemitente()" placeholder="Nro documento"
                    class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-            <button type="button" (click)="lookupRemitente()" [disabled]="remLookupLoading"
+            <!--<button type="button" (click)="lookupRemitente()" [disabled]="remLookupLoading"
                     class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-white/60">{{ remLookupLoading ? 'Buscando...' : 'Buscar' }}
-            </button>
+            </button>-->
           </div>
           <div class="mt-1 relative">
             <div class="flex items-center gap-2">
@@ -111,9 +111,9 @@
             </select>
             <input type="text" [(ngModel)]="destinatarioDocNumber" (keydown.enter)="lookupDestinatario()" placeholder="Nro documento"
                    class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-            <button type="button" (click)="lookupDestinatario()" [disabled]="destLookupLoading"
+            <!--<button type="button" (click)="lookupDestinatario()" [disabled]="destLookupLoading"
                     class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-white/60">{{ destLookupLoading ? 'Buscando...' : 'Buscar' }}
-            </button>
+            </button>-->
           </div>
           <div class="mt-1 relative">
             <div class="flex items-center gap-2">
@@ -158,17 +158,11 @@
         </div>
 
 
-        <div>
-
-
+        <!--<div>
           <label class="block text-sm text-slate-700">Fecha recepci&oacute;n</label>
-
-
           <input type="date" [(ngModel)]="newEnvio.fecha_recepcion"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
-        </div>
+        </div>-->
 
 
       </div>
@@ -231,168 +225,67 @@
 
 
       <!-- Comprobante inline (mostrar solo si pagado) -->
-
-
       <div *ngIf="newEnvio.estado_pago"
            class="mt-4 rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]">
-
-
         <div class="text-sm font-semibold text-[#0A1A2F] mb-2">Comprobante</div>
-
-
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-
-
           <div>
-
-
             <label class="block text-sm text-slate-700">Tipo</label>
-
-
             <select [(ngModel)]="compTipoSel" (ngModelChange)="onCompTipoChange($event)"
-                    class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm">
-
-
+                    class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
               <option [ngValue]="null">Seleccione...</option>
-
-
               <option *ngFor="let t of compTipos" [ngValue]="t">{{ t.nombre }}</option>
-
-
             </select>
-
-
           </div>
-
-
           <div>
-
-
             <label class="block text-sm text-slate-700">Serie</label>
-
-
             <input type="text" [value]="compSerie" readonly
-                   class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm"/>
-
-
+                   class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
-
-
           <div>
-
-
             <label class="block text-sm text-slate-700">N&uacute;mero</label>
-
-
             <input type="text" [value]="compNumeroComprobante" readonly
-                   class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm"/>
-
-
+                   class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
-
-
           <div>
-
-
             <label class="block text-sm text-slate-700">Forma de pago</label>
-
-
             <select [(ngModel)]="compFormaPagoId"
-                    class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm">
-
-
+                    class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
               <option [ngValue]="null">Seleccione...</option>
-
-
               <option *ngFor="let p of payTipos" [ngValue]="p.id">{{ p.nombre }}</option>
-
-
-            </select>
-
-
+           </select>
           </div>
-
-
           <div>
-
-
             <label class="block text-sm text-slate-700">Fecha pago</label>
-
-
             <input type="date" [(ngModel)]="compFechaPago"
-                   class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm"/>
-
-
+                   class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
-
-
           <div class="sm:col-span-3"></div>
-
-
         </div>
-
-
         <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-
-
           <div class="sm:col-span-2">
-
-
             <label class="block text-sm text-slate-700">Cliente ({{ compDocType }})</label>
-
-
             <div class="mt-1 grid grid-cols-[auto,1fr,auto] items-center gap-2">
-
-
-              <select [(ngModel)]="compDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
-
-
+              <select [(ngModel)]="compDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm" style="background-color: #ffffff;">
                 <option [ngValue]="'DNI'">DNI</option>
-
-
                 <option [ngValue]="'RUC'">RUC</option>
-
-
               </select>
-
-
               <input type="text" [(ngModel)]="compDocNumber" placeholder="Documento"
-                     class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
-              <button type="button" (click)="lookupCliente()" [disabled]="compLookupLoading"
+                     class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (keydown.enter)="lookupCliente()" style="background-color: #ffffff;"/>
+              <!--<button type="button" (click)="lookupCliente()" [disabled]="compLookupLoading"
                       class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-white/60">{{ compLookupLoading ? 'Buscando...' : 'Buscar' }}
-              </button>
-
-
+              </button>-->
             </div>
-
-
             <span *ngIf="compClienteId"
                   class="text-xs text-slate-600 pl-1 truncate max-w-[14rem]">{{ compClienteLabel() }}</span>
-
-
             <div class="text-xs text-red-600 mt-1" *ngIf="compLookupError">{{ compLookupError }}</div>
-
-
           </div>
-
-
           <div>
-
-
             <label class="block text-sm text-slate-700">Impuesto</label>
-
-
             <input type="text" [value]="compImpuesto | number:'1.2-2'" readonly
-                   class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm"/>
-
-
+                   class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
-
-
         </div>
-
         <!-- Detalle del envío para cálculo del comprobante -->
       <div *ngIf="detallesLoading" class="mt-3 text-sm text-slate-500">Cargando detalle…</div>
         <div *ngIf="!detallesLoading && stagedDetalles.length" class="mt-3 overflow-x-auto border-1">
@@ -440,45 +333,81 @@
 
 
       <div>
-
-
         <label class="block text-sm text-slate-700">Clave de recojo</label>
-
-
-        <input type="text" [(ngModel)]="newEnvio.clave_recojo" placeholder="CLV-XXXX"
-               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
+        <input type="password" [(ngModel)]="newEnvio.clave_recojo" placeholder="CLV-XXXX"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" maxlength="4"/>
       </div>
 
+      <!--Detalle de envío-->
+      <div *ngIf="!editing" class="mt-6 detalle-envio-resaltado">
+        <h4 class="text-sm font-medium text-slate-800">Detalle del env&iacute;o</h4>
+        <div class="mt-2 grid grid-cols-1 sm:grid-cols-4 gap-2">
+          <div>
+            <label class="block text-sm text-slate-700">Cantidad</label>
+            <input type="number" min="1" [(ngModel)]="newDet.cantidad"
+                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm text-slate-700">Descripci&oacute;n</label>
+            <input type="text" [(ngModel)]="newDet.descripcion"
+                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+          </div>
+          <div>
+            <label class="block text-sm text-slate-700">Precio unitario</label>
+            <input type="number" min="0" step="0.01" [(ngModel)]="newDet.precio_unitario"
+                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+          </div>
+        </div>
+        <div class="mt-2 flex justify-end">
+          <button type="button" (click)="addDetalle()"
+                  class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-white/60">Agregar
+            &iacute;tem
+          </button>
+        </div>
+        <div *ngIf="detallesLoading" class="mt-3 text-sm text-slate-500">Cargando detalle…</div>
+        <div *ngIf="!detallesLoading && stagedDetalles.length" class="mt-3 overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="text-left text-slate-600">
+            <tr>
+              <th class="px-2 py-1">#</th>
+              <th class="px-2 py-1">Cantidad</th>
+              <th class="px-2 py-1">Descripci&oacute;n</th>
+              <th class="px-2 py-1">P. Unitario</th>
+              <th class="px-2 py-1">Subtotal</th>
+              <th class="px-2 py-1"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let d of stagedDetalles; index as i" class="border-t border-slate-200">
+              <td class="px-2 py-1">{{ i + 1 }}</td>
+              <td class="px-2 py-1">{{ d.cantidad }}</td>
+              <td class="px-2 py-1">{{ d.descripcion }}</td>
+              <td class="px-2 py-1">{{ d.precio_unitario | number:'1.2-2' }}</td>
+              <td class="px-2 py-1">{{ (d.cantidad * d.precio_unitario) | number:'1.2-2' }}</td>
+              <td class="px-2 py-1 text-right">
+                <button type="button" (click)="removeDetalle(i)"
+                        class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Quitar
+                </button>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+          <div class="mt-2 text-right text-sm text-slate-700">Total: {{ stagedSubtotal | number:'1.2-2' }}</div>
+        </div>
+      </div>
+      <!--end Detalle envío-->
 
       <div class="grid grid-cols-2 gap-3">
-
-
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-
-
           <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" class="h-4 w-4 accent-[#2F455C]"/>
-
-
           Pagado
-
-
         </label>
 
 
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-
-
           <input type="checkbox" [(ngModel)]="newEnvio.tipo_contenido" class="h-4 w-4 accent-[#2F455C]"/>
-
-
           Contenido especial
-
-
         </label>
-
-
       </div>
 
       <div class="grid grid-cols-2 gap-3 mt-2">
@@ -488,159 +417,9 @@
         </label>
         <div *ngIf="sendWhatsapp">
           <input type="text" [(ngModel)]="whatsappPhone" placeholder="Celular (sin +51)" class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-                 class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
         </div>
       </div>
 
-
-      <div *ngIf="!editing" class="mt-6 detalle-envio-resaltado">
-
-
-        <h4 class="text-sm font-medium text-slate-800">Detalle del env&iacute;o</h4>
-
-
-        <div class="mt-2 grid grid-cols-1 sm:grid-cols-4 gap-2">
-
-
-          <div>
-
-
-            <label class="block text-sm text-slate-700">Cantidad</label>
-
-
-            <input type="number" min="1" [(ngModel)]="newDet.cantidad"
-                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
-          </div>
-
-
-          <div class="sm:col-span-2">
-
-
-            <label class="block text-sm text-slate-700">Descripci&oacute;n</label>
-
-
-            <input type="text" [(ngModel)]="newDet.descripcion"
-                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
-          </div>
-
-
-          <div>
-
-
-            <label class="block text-sm text-slate-700">Precio unitario</label>
-
-
-            <input type="number" min="0" step="0.01" [(ngModel)]="newDet.precio_unitario"
-                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
-          </div>
-
-
-        </div>
-
-
-        <div class="mt-2 flex justify-end">
-
-
-          <button type="button" (click)="addDetalle()"
-                  class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-white/60">Agregar
-            &iacute;tem
-          </button>
-
-
-        </div>
-        <div *ngIf="detallesLoading" class="mt-3 text-sm text-slate-500">Cargando detalle…</div>
-
-
-        <div *ngIf="!detallesLoading && stagedDetalles.length" class="mt-3 overflow-x-auto">
-
-
-          <table class="min-w-full text-sm">
-
-
-            <thead class="text-left text-slate-600">
-
-
-            <tr>
-
-
-              <th class="px-2 py-1">#</th>
-
-
-              <th class="px-2 py-1">Cantidad</th>
-
-
-              <th class="px-2 py-1">Descripci&oacute;n</th>
-
-
-              <th class="px-2 py-1">P. Unitario</th>
-
-
-              <th class="px-2 py-1">Subtotal</th>
-
-
-              <th class="px-2 py-1"></th>
-
-
-            </tr>
-
-
-            </thead>
-
-
-            <tbody>
-
-
-            <tr *ngFor="let d of stagedDetalles; index as i" class="border-t border-slate-200">
-
-
-              <td class="px-2 py-1">{{ i + 1 }}</td>
-
-
-              <td class="px-2 py-1">{{ d.cantidad }}</td>
-
-
-              <td class="px-2 py-1">{{ d.descripcion }}</td>
-
-
-              <td class="px-2 py-1">{{ d.precio_unitario | number:'1.2-2' }}</td>
-
-
-              <td class="px-2 py-1">{{ (d.cantidad * d.precio_unitario) | number:'1.2-2' }}</td>
-
-
-              <td class="px-2 py-1 text-right">
-
-
-                <button type="button" (click)="removeDetalle(i)"
-                        class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Quitar
-                </button>
-
-
-              </td>
-
-
-            </tr>
-
-
-            </tbody>
-
-
-          </table>
-
-
-          <div class="mt-2 text-right text-sm text-slate-700">Total: {{ stagedSubtotal | number:'1.2-2' }}</div>
-
-
-        </div>
-
-
-      </div>
 
 
       <div class="mt-6 flex items-center justify-between gap-2">
@@ -889,19 +668,13 @@
 
         </div>
 
-
+        <!--
         <div>
-
-
           <label class="block text-sm text-slate-700">Fecha recepci&oacute;n</label>
-
-
           <input type="date" [(ngModel)]="newEnvio.fecha_recepcion"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
         </div>
-
+        -->
 
       </div>
 
@@ -968,7 +741,7 @@
         <label class="block text-sm text-slate-700">Clave de recojo</label>
 
 
-        <input type="text" [(ngModel)]="newEnvio.clave_recojo" placeholder="CLV-XXXX"
+        <input type="password" [(ngModel)]="newEnvio.clave_recojo" placeholder="CLV-XXXX"
                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
 
 
@@ -1110,164 +883,64 @@
 
   <div
     class="rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]">
-
-
     <div class="text-sm font-semibold text-[#0A1A2F] mb-2">Comprobante para env&iacute;o {{ compEnvioId }}</div>
-
-
     <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-
-
       <div>
-
-
         <label class="block text-sm text-slate-700">Tipo</label>
-
-
         <select [(ngModel)]="compTipoSel" (ngModelChange)="onCompTipoChange($event)"
-                class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm">
-
-
+                class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
           <option [ngValue]="null">Seleccione...</option>
-
-
           <option *ngFor="let t of compTipos" [ngValue]="t">{{ t.nombre }}</option>
-
-
         </select>
-
-
       </div>
-
-
       <div>
-
-
         <label class="block text-sm text-slate-700">Serie</label>
-
-
         <input type="text" [value]="compSerie" readonly
-               class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm"/>
-
-
+               class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm"  style="background-color: #ffffff;"/>
       </div>
-
-
       <div>
-
-
         <label class="block text-sm text-slate-700">N&uacute;mero</label>
-
-
         <input type="text" [value]="compNumeroComprobante" readonly
-               class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm"/>
-
-
+               class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
       </div>
-
-
       <div>
-
-
         <label class="block text-sm text-slate-700">Forma de pago</label>
-
-
-        <select [(ngModel)]="compFormaPagoId" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm">
-
-
+        <select [(ngModel)]="compFormaPagoId" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
           <option [ngValue]="null">Seleccione...</option>
-
-
           <option *ngFor="let p of payTipos" [ngValue]="p.id">{{ p.nombre }}</option>
-
-
         </select>
-
-
       </div>
-
-
       <div>
-
-
         <label class="block text-sm text-slate-700">Fecha pago</label>
-
-
         <input type="date" [(ngModel)]="compFechaPago"
-               class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm"/>
-
-
+               class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
       </div>
-
-
       <div class="sm:col-span-3"></div>
-
-
     </div>
-
-
     <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-
-
       <div class="sm:col-span-2">
-
-
         <label class="block text-sm text-slate-700">Cliente ({{ compDocType }})</label>
-
-
         <div class="mt-1 grid grid-cols-[auto,1fr,auto] items-center gap-2">
-
-
-          <select [(ngModel)]="compDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
-
-
+          <select [(ngModel)]="compDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm" style="background-color: #ffffff;">
             <option [ngValue]="'DNI'">DNI</option>
-
-
             <option [ngValue]="'RUC'">RUC</option>
-
-
           </select>
-
-
           <input type="text" [(ngModel)]="compDocNumber" placeholder="Documento"
-                 class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm"/>
-
-
-          <button type="button" (click)="lookupCliente()" [disabled]="compLookupLoading"
+                 class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" style="background-color: #ffffff;" (keydown.enter)="lookupCliente()"/>
+          <!--<button type="button" (click)="lookupCliente()" [disabled]="compLookupLoading"
                   class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">{{ compLookupLoading ? 'Buscando...' : 'Buscar' }}
-          </button>
-
-
+          </button>-->
         </div>
-
-
         <span *ngIf="compClienteId"
               class="text-xs text-slate-600 pl-1 truncate max-w-[14rem]">{{ compClienteLabel() }}</span>
-
-
         <div class="text-xs text-red-600 mt-1" *ngIf="compLookupError">{{ compLookupError }}</div>
-
-
       </div>
-
-
       <div>
-
-
         <label class="block text-sm text-slate-700">Impuesto</label>
-
-
         <input type="text" [value]="compImpuesto | number:'1.2-2'" readonly
-               class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm"/>
-
-
+               class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
       </div>
-
-
     </div>
-
-
     <!-- Detalle del envï¿½o (solo lectura) -->
   <div *ngIf="detallesLoading" class="mt-3 text-sm text-slate-500">Cargando detalle…</div>
     <div *ngIf="!detallesLoading && stagedDetalles.length" class="mt-3 overflow-x-auto">
@@ -1437,6 +1110,8 @@
           <th class="px-3 py-2 text-left">Fecha envío</th>
           <th class="px-3 py-2 text-left">Origen</th>
           <th class="px-3 py-2 text-left">Destino</th>
+          <th class="px-3 py-2 text-center">¿Pagado?</th>
+          <th class="px-3 py-2 text-center">¿Entregado?</th>
           <th class="px-3 py-2 text-right">Acciones</th>
         </tr>
         </thead>
@@ -1449,6 +1124,20 @@
           <td class="px-3 py-2">{{ item.fecha_envio | ymd }}</td>
           <td class="px-3 py-2">{{ getPuntoNombre(item.punto_origen_id) }}</td>
           <td class="px-3 py-2">{{ getPuntoNombre(item.punto_destino_id) }}</td>
+          <td class="px-3 py-2 text-center">
+            <span class="inline-block rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5"
+                *ngIf="item.estado_pago">S&iacute;</span>
+            <span class="inline-block rounded border border-red-200 bg-red-50 text-red-700 px-2 py-0.5"
+                  *ngIf="!item.estado_pago">No</span>
+          </td>
+          <td class="px-3 py-2 text-center">
+            <span *ngIf="item.fecha_recepcion"
+                class="rounded-md border border-green-200 bg-green-300 px-2.5 py-1.5 text-xs text-green-900 hover:bg-primary/20">Si <i
+            class=""></i></span>
+            <span *ngIf="!item.fecha_recepcion"
+                class="rounded-md border border-red-200 bg-red-300 px-2.5 py-1.5 text-xs text-red-900 hover:bg-primary/20">No <i
+            class=""></i></span>
+          </td>
           <td class="px-3 py-2 text-right">
             <button type="button" *ngIf="!item.fecha_recepcion"
                     class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-800 hover:bg-emerald-100"

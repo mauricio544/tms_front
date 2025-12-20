@@ -241,7 +241,7 @@ export class EnviosFeature implements OnInit {
   compNumero: string = '';
   compNumeroComprobante: string = '';
   compFormaPagoId: number | null = null;
-  compFechaPago: string = '';
+  compFechaPago: string = this.utilSrv.formatFecha(new Date());
   compDocType: 'RUC' | 'DNI' = 'DNI';
   compDocNumber: string = '';
   compClienteId: number | null = null;
@@ -601,11 +601,26 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
         },
         error: () => { this.stagedDetalles = []; }
       });
-      this.showNotif('El envÃ­o no estÃ¡ pagado. Genere un comprobante.', 'error');
+      this.showNotif('El envío no está pagado. Genere un comprobante.', 'error');
       return;
     }
     this.entregaSaving = true; this.entregaError = null; (this.entregaItem as any).fecha_recepcion = this.entregaFecha; (this.entregaItem as any).estado_entrega = true;
-    this.enviosSrv.updateEnvios(Number(id), this.entregaItem).subscribe({ next: (res: any) => { const fecha = res?.fecha_recepcion ?? this.entregaFecha; this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === id ? ({ ...v, fecha_recepcion: fecha }) : v); this.entregaSaving = false; this.closeEntrega(); this.showNotif('Entrega confirmada'); }, error: () => { this.entregaSaving = false; this.entregaError = 'No se pudo registrar la entrega'; this.showNotif(this.entregaError as string, 'error'); }, });
+    this.enviosSrv.updateEnvios(Number(id), this.entregaItem).subscribe({
+      next: (res: any) => {
+        const fecha = res?.fecha_recepcion ?? this.entregaFecha;
+        this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === id ? ({
+          ...v,
+          fecha_recepcion: fecha
+        }) : v);
+        this.entregaSaving = false;
+        this.closeEntrega();
+        this.showNotif('Entrega confirmada');
+      }, error: () => {
+        this.entregaSaving = false;
+        this.entregaError = 'No se pudo registrar la entrega';
+        this.showNotif(this.entregaError as string, 'error');
+      },
+    });
   }
 
   // Eliminar
@@ -615,7 +630,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
 
   showNotif(msg: string, type: 'success' | 'error' = 'success') {
     this.notifType = type; this.notif = msg;
-    try { setTimeout(() => { this.notif = null; }, 3000); } catch {}
+    try { setTimeout(() => { this.notif = null; }, 6000); } catch {}
   }
 
   onClickNuevo(ev?: Event) {
