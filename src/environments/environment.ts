@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://tms-front-tlrz.vercel.app', // cuando lo tengas
+  apiUrl: 'http://137.184.43.177:8000', // FastAPI TMS
 };

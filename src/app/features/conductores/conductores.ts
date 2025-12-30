@@ -240,9 +240,9 @@ export class Conductores implements OnInit {
         this.lista_conductores = response || [];
         this.loading = false;
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.error = 'No se pudieron cargar los conductores';
+        this.error = `No se pudieron cargar los conductores ${err}`;
       },
     });
   }

@@ -102,7 +102,7 @@ export class VehiculosFeature implements OnInit {
     this.editing = true;
     this.editingId = item.id;
     this.newVehiculo = {
-      placa: this.normalizePlaca(item.placa),
+      placa: item.placa,
       tonelaje: item.tonelaje,
       ejes: item.ejes,
       anio_fabricacion: item.anio_fabricacion as any,
@@ -141,7 +141,7 @@ export class VehiculosFeature implements OnInit {
     if (!this.isValidVehiculo) return;
     const v = this.newVehiculo as any;
     const payload = {
-      placa: this.normalizePlaca(v.placa || ''),
+      placa: v.placa || '',
       tonelaje: Number(v.tonelaje) || 0,
       ejes: Number(v.ejes) || 0,
       anio_fabricacion: v.anio_fabricacion ? Number(v.anio_fabricacion) : null,

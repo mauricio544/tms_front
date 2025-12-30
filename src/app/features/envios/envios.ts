@@ -400,11 +400,21 @@ export class EnviosFeature implements OnInit {
     return (p.razon_social || '').toString().trim() || null;
   }
 
+  currentDateTMS() {
+    const fecha = new Date();
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dd = String(fecha.getDate()).padStart(2, '0');
+
+    const resultado = `${yyyy}-${mm}-${dd}`;
+    return resultado;
+  }
+
   // Modal helpers
   openCreate() {
     this.editing = false; this.editingId = null;
-
-    try { (this.newEnvio as any).fecha_envio = new Date().toISOString().slice(0,10); } catch {}
+    //console.log(new Date().toISOString().slice(0,10));
+    try { (this.newEnvio as any).fecha_envio = this.currentDateTMS(); } catch {}
     this.saveError = null; this.showCreate = true; this.remitenteQuery = ''; this.destinatarioQuery = ''; this.showRemitenteOptions = false; this.showDestinatarioOptions = false; this.stagedDetalles = []; this.newDet = { cantidad: null, descripcion: '', precio_unitario: null };
     // Defaults for unified DNI/RUC lookup control
     this.remitenteDocType = 'DNI'; this.destinatarioDocType = 'DNI';
@@ -473,7 +483,27 @@ export class EnviosFeature implements OnInit {
     const okFecha = String(e?.fecha_envio || "").trim().length > 0;
     const okOrigen = Number(e?.punto_origen_id) > 0;
     const okDestino = Number(e?.punto_destino_id) > 0;
-    return okRemitente && okDestinatario && okPeso && okFecha && okOrigen && okDestino;
+    const lengthDetalle = this.stagedDetalles.length > 0;
+    return okRemitente && okDestinatario && okPeso && okFecha && okOrigen && okDestino && lengthDetalle;
+  }
+
+  cleanEnvio() {
+    this.newEnvio = {
+      remitente: null as any,
+      destinatario: null as any,
+      estado_pago: false,
+      clave_recojo: '',
+      peso: null as any,
+      fecha_envio: '',
+      fecha_recepcion: '',
+      tipo_contenido: false,
+      //guia: null as any,
+      manifiesto: null as any,
+      valida_restricciones: false,
+      punto_origen_id: null as any,
+      punto_destino_id: null as any,
+    };
+    //this.stagedDetalles = [];
   }
 
   submitEnvio() {
@@ -508,6 +538,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
       },
       error: () => { this.saving = false; this.saveError = 'No se pudo crear el env\u00edo'; this.showNotif(this.saveError as string, 'error'); },
     });
+    this.cleanEnvio();
   }
 
   private afterCreate(updated: Envio, newId: number, payload: any) {
@@ -523,7 +554,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
         const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario) || 0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true;
       }
     } else {
-      // WhatsApp: enviar si se solicitï¿½ y estï¿½ pagado
+      // WhatsApp: enviar si se solicitó y estás pagado
       if (this.sendWhatsapp && payload.estado_pago && newId) {
         try {
           const digits = String(this.whatsappPhone || '').replace(/\D/g, '');

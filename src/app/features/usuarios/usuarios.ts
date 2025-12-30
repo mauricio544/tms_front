@@ -57,7 +57,8 @@ export class UsuariosFeature implements OnInit {
     const emailOk = !!(this.newUser.email || '').trim();
     if (this.editing) return emailOk;
     const passOk = (this.newUser.password || '').length >= 6;
-    return emailOk && passOk;
+    const personOk = (this.newUser.person_id) !== null;
+    return emailOk && passOk && personOk;
   }
 
   get filteredUsuarios(): Usuario[] {

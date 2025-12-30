@@ -153,76 +153,33 @@
 
           <input type="date" [(ngModel)]="newEnvio.fecha_envio"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
         </div>
-
-
         <!--<div>
           <label class="block text-sm text-slate-700">Fecha recepci&oacute;n</label>
           <input type="date" [(ngModel)]="newEnvio.fecha_recepcion"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
         </div>-->
-
-
       </div>
-
-
       <div class="grid grid-cols-2 gap-3">
-
-
         <div>
-
-
           <label class="block text-sm text-slate-700">Origen</label>
-
-
           <select [(ngModel)]="newEnvio.punto_origen_id"
                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onOrigenChange($event)">
-
-
             <option [ngValue]="null">Seleccione...</option>
-
-
             <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_destino_id">{{ p.nombre }}</option>
-
-
           </select>
-
-
           <div class="text-xs text-slate-500 mt-1" *ngIf="puntosLoading">Cargando puntos...</div>
-
-
           <div class="text-xs text-red-600 mt-1" *ngIf="puntosError">{{ puntosError }}</div>
-
-
         </div>
-
-
         <div>
-
-
           <label class="block text-sm text-slate-700">Destino</label>
-
-
           <select [(ngModel)]="newEnvio.punto_destino_id"
                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onDestinoChange($event)">
-
-
             <option [ngValue]="null">Seleccione...</option>
-
-
             <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_origen_id">{{ p.nombre }}</option>
-
-
           </select>
-
-
         </div>
-
-
       </div>
-
 
       <!-- Comprobante inline (mostrar solo si pagado) -->
       <div *ngIf="newEnvio.estado_pago"
@@ -327,10 +284,7 @@
         <div class="mt-2 text-right text-xs text-slate-500" *ngIf="!compValid">Complete tipo, forma de pago y
           documento
         </div>
-
-
       </div>
-
 
       <div>
         <label class="block text-sm text-slate-700">Clave de recojo</label>
@@ -403,7 +357,6 @@
           Pagado
         </label>
 
-
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" [(ngModel)]="newEnvio.tipo_contenido" class="h-4 w-4 accent-[#2F455C]"/>
           Contenido especial
@@ -420,19 +373,12 @@
         </div>
       </div>
 
-
-
       <div class="mt-6 flex items-center justify-between gap-2">
-
 
         <button (click)="closeCreate()"
                 class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-white/60">Cancelar
         </button>
-
-
         <div class="text-sm text-red-600" *ngIf="saveError">{{ saveError }}</div>
-
-
         <button (click)="submitEnvio()" [disabled]="!isValidEnvio || saving"
 
 
@@ -1242,188 +1188,76 @@
 
 
 <!-- Ticket Modal -->
-
-
 <div *ngIf="showTicket" class="fixed inset-0 z-50 flex items-center justify-center">
-
-
   <div class="absolute inset-0 bg-black/30" (click)="closeTicket()"></div>
-
-
   <div class="relative z-10 w-[86mm] max-w-[86mm] rounded-md bg-white p-4 shadow-xl">
-
-
     <div class="flex items-center justify-between ticket-actions">
-
-
       <h3 class="text-sm font-semibold text-slate-800">Ticket de env&iacute;o</h3>
-
-
       <div class="flex gap-2">
-
-
         <button (click)="printTicket()"
                 class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Imprimir
         </button>
-
-
         <button (click)="closeTicket()"
                 class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Cerrar
         </button>
-
-
       </div>
-
-
     </div>
 
-
     <div class="mt-2 ticket w-[80mm] max-w-[80mm] text-[12px] text-slate-800">
-
-
       <div class="text-center">
-
-
         <div class="font-semibold">ENV&Iacute;O</div>
-
-
         <div class="text-xs text-slate-600">ID: {{ ticketEnvio?.id }}</div>
-
-
       </div>
-
-
       <div class="mt-2">
-
-
         <div class="mt-2">
-
-
           <div><span
             class="font-medium">Remitente:</span> {{ personaLabelById(ticketEnvio?.remitente) || ticketEnvio?.remitente }}
           </div>
-
-
           <div><span
             class="font-medium">Destinatario:</span> {{ personaLabelById(ticketEnvio?.destinatario) || ticketEnvio?.destinatario }}
           </div>
-
-
           <div><span class="font-medium">Origen:</span> {{ getPuntoNombre(ticketEnvio?.punto_origen_id) }}</div>
-
-
           <div><span class="font-medium">Destino:</span> {{ getPuntoNombre(ticketEnvio?.punto_destino_id) }}</div>
-
-
           <div><span class="font-medium">Fecha envío</span> {{ (ticketEnvio?.fecha_envio ?? '') | ymd }}</div>
-
-
-          <div><span class="font-medium">Clave:</span> {{ ticketEnvio?.clave_recojo }}</div>
-
-
+          <div><span class="font-medium">Clave:</span> **** </div>
+          <!--<div><span class="font-medium">Clave:</span> {{ ticketEnvio?.clave_recojo }}</div>-->
         </div>
-
-
       </div>
-
-
       <div class="mt-2 border-t border-dashed border-slate-300"></div>
-
-
       <div class="mt-2">
-
-
         <div class="font-medium">Detalle</div>
-
-
         <table class="mt-1 w-full">
-
-
           <thead class="text-left text-[11px] text-slate-600">
-
-
           <tr>
-
-
             <th class="pr-2">#</th>
-
-
             <th class="pr-2">Cant</th>
-
-
             <th class="pr-2">Desc</th>
-
-
             <th class="pr-2 text-right">P.Unit</th>
-
-
             <th class="text-right">Subt</th>
-
-
           </tr>
-
-
           </thead>
-
-
           <tbody class="text-[12px]">
-
-
           <tr *ngFor="let d of ticketDetalles" class="align-top">
-
-
             <td class="pr-2">{{ d.numero_item }}</td>
-
-
             <td class="pr-2">{{ d.cantidad }}</td>
-
-
             <td class="pr-2">{{ d.descripcion }}</td>
-
-
             <td class="pr-2 text-right">{{ d.precio_unitario | number:'1.2-2' }}</td>
-
-
             <td class="text-right">{{ (d.cantidad * d.precio_unitario) | number:'1.2-2' }}</td>
-
-
           </tr>
-
-
           </tbody>
-
-
         </table>
-
-
         <div class="mt-1 text-right text-[12px]">Total: {{ ticketTotal | number:'1.2-2' }}</div>
-
-
       </div>
-
-
       <div class="mt-3 flex items-center justify-center">
-
-
         <img *ngIf="ticketEnvio?.id"
              [src]="'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + ticketEnvio?.id"
              class="h-32 w-32" alt="QR"/>
-
-
       </div>
-
-
       <div class="mt-1 text-center text-[11px] text-slate-500">Gracias por su preferencia</div>
-
-
     </div>
-
-
   </div>
-
-
 </div>
-
+<!-- Fin de modal ticket de envío -->
 
 <ng-template cdkPortal #entregaTpl>
 
