@@ -111,54 +111,46 @@ export class EnviosFeature implements OnInit {
     const numero = String(c.serie || '-') + '-' + String(c.numero || '-');
     const ruc = String(localStorage.getItem('ruc') || '');
     const razon = String(localStorage.getItem('razon_social') || '');
-    const row = (x: any) => {
-      const subtotal = (Number(x.cantidad)||0) * (Number(x.precio_unitario)||0);
-      return '<tr>' +
-        '<td>' + String(x.numero_item||'') + '</td>' +
-        '<td>' + String(x.cantidad||'') + '</td>' +
-        '<td>' + String(x.descripcion||'') + '</td>' +
-        '<td class="right">' + this.format2(x.precio_unitario) + '</td>' +
-        '<td class="right">' + this.format2(subtotal) + '</td>' +
+            const row = (x: any) => {
+      const base = (Number(x.cantidad)||0) * (Number(x.precio_unitario)||0);
+      const isFac = Number(c.impuesto || 0) > 0;
+      const igvL = isFac ? base * 0.18 : 0;
+      const importe = base + igvL;
+      return '<tr class="align-top">' +
+        '<td class="border border-gray-300 px-2 py-1 text-center">' + String(x.numero_item||'') + '</td>' +
+        '<td class="border border-gray-300 px-2 py-1 text-center">' + this.format2(x.cantidad) + '</td>' +
+        '<td class="border border-gray-300 px-2 py-1 text-center">NIU</td>' +
+        '<td class="border border-gray-300 px-2 py-1">' + String(x.descripcion||'') + (isFac ? '<div class="text-[11px] text-gray-600">Afecto al IGV</div>' : '') + '</td>' +
+        '<td class="border border-gray-300 px-2 py-1 text-right">' + this.format2(x.precio_unitario) + '</td>' +
+        '<td class="border border-gray-300 px-2 py-1 text-right">' + this.format2(igvL) + '</td>' +
+        '<td class="border border-gray-300 px-2 py-1 text-right">' + this.format2(importe) + '</td>' +
       '</tr>';
     };
-    const rows = d.map(row).join('');
-    const impuesto = Number(c.impuesto || 0);
-    const total = Number(c.precio_total || 0);
-    const estilo = ' body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#0f172a} h1{font-size:18px;margin:0 0 10px} .muted{color:#64748b} .wrap{display:flex;justify-content:space-between;gap:16px;align-items:flex-start} .box{border:1px solid #e2e8f0;border-radius:8px;padding:10px;min-width:260px} .label{font-size:12px;color:#475569} .value{font-weight:600;color:#0f172a} .metaL{font-size:13px;line-height:1.4;margin:8px 0 16px} table{border-collapse:collapse;width:100%;font-size:12px} th,td{border:1px solid #e2e8f0;padding:6px;text-align:left} .right{text-align:right} tfoot td{border-top:1px solid #cbd5e1} .totals{width:100%;display:flex;justify-content:flex-end;margin-top:10px} .totals .box{min-width:240px} ';
-    let totalsHtml = '';
-    totalsHtml += '<div class="totals"><div class="box">';
-    if (impuesto > 0) { totalsHtml += '<div class="row"><span class="label">Impuesto</span><span class="value" style="float:right">' + this.format2(impuesto) + '</span></div>'; }
-    totalsHtml += '<div class="row"><span class="label">Total</span><span class="value" style="float:right">' + this.format2(total) + '</span></div>';
-    totalsHtml += '</div></div>';
-    const html = '<!doctype html><html><head><meta charset="utf-8"/>' +
-      '<title>' + docTitle + ' ' + numero + '</title>' +
-      '<style>' + estilo + '</style>' +
-      '</head><body>' +
-      '<div class="wrap">' +
-        '<div class="left">' +
-          '<h1>' + docTitle + '</h1>' +
-          '<div class="metaL">' +
-            '<div><span class="label">Emitido a:</span> <span class="value">' + String(c.cliente_documento || '-') + '</span></div>' +
-            '<div><span class="label">Fecha comprobante:</span> <span class="value">' +  this.utilSrv.formatFecha(c.fecha_comprobante || '') + '</span></div>' +
-            '<div><span class="label">Fecha pago:</span> <span class="value">' + this.utilSrv.formatFecha(c.fecha_pago || '') + '</span></div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="box rightBox">' +
-          '<div><span class="label">RUC:</span> <span class="value">' + (ruc || '-') + '</span></div>' +
-          '<div><span class="label">Razón social:</span> <span class="value">' + (razon || '-') + '</span></div>' +
-          '<div><span class="label">Número:</span> <span class="value">' + numero + '</span></div>' +
-        '</div>' +
-      '</div>' +
-      '<table style="margin-top:12px"><thead><tr><th>Ítem</th><th>Cantidad</th><th>Descripción</th><th class="right">P. Unitario</th><th class="right">Subtotal</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table>' +
-      totalsHtml +
-      '<div style="margin-top:12px;text-align:right"><button onclick="window.print()">Imprimir</button></div>' +
-      '</body></html>';
-    const w = window.open('', '_blank');
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    const rows = d.map(row).join("");
+    const isFactura = (this.tipoNombreById(Number(c.tipo_comprobante)).toLowerCase().includes("fact"));
+    const fechaEmision = this.utilSrv.formatFecha(c.fecha_comprobante || "");
+    const fechaPago = this.utilSrv.formatFecha(c.fecha_pago || "");
+    const clienteDocumento = String(c.cliente_documento || "-");
+    // Construye filas y totales
+    const compRows = (d || []).map((x, i) => {
+      const cantidad = Number((x as any).cantidad) || 0;
+      const v_unit = Number((x as any).precio_unitario) || 0;
+      const base = cantidad * v_unit;
+      const igv = isFactura ? +(base * 0.18).toFixed(2) : 0;
+      const importe = base + igv;
+      return { numero_item: (Number((x as any).numero_item) || (i+1)), cantidad, unidad: "NIU", descripcion: (x as any).descripcion, v_unit, igv, importe };
+    });
+    const baseTotal = compRows.reduce((s,r)=>s + r.cantidad * r.v_unit, 0);
+    const igvTotal = isFactura ? +((baseTotal * 0.18).toFixed(2)) : 0;
+    const totalTotal = baseTotal + igvTotal;
+    this.compRows = compRows;
+    this.compTotals = { base: baseTotal, igv: igvTotal, total: totalTotal };
+    this.compView = {
+      razon, ruc, docTitle, numero, fechaEmision, fechaPago, moneda: "PEN (S/)", formaPago: "-", clienteDocumento
+    };
+    this.showComprobante = true;
+    try { this.cdr.detectChanges(); } catch {}
+    try { this.cdr.detectChanges(); } catch {}
   }// Entrega (overlay)
   entregaOpen = false;
   entregaItem: Envio | null = null;
@@ -181,6 +173,20 @@ export class EnviosFeature implements OnInit {
   }
   closeTicket() { this.showTicket = false; this.ticketEnvio = null; this.ticketDetalles = []; }
   printTicket() { try { window.print(); } catch { } }
+
+  // Comprobante modal
+  showComprobante = false;
+  compView: any = { razon: "", ruc: "", docTitle: "", numero: "", fechaEmision: "", fechaPago: "", moneda: "PEN (S/)", formaPago: "-", clienteDocumento: "-" };
+  compRows: Array<{ numero_item: number; cantidad: number; unidad: string; descripcion: any; v_unit: number; igv: number; importe: number }> = [];
+  compTotals: { base: number; igv: number; total: number } = { base: 0, igv: 0, total: 0 };
+  closeComprobante() {
+    this.showComprobante = false;
+    this.compView = { razon: "", ruc: "", docTitle: "", numero: "", fechaEmision: "", fechaPago: "", moneda: "PEN (S/)", formaPago: "-", clienteDocumento: "-" };
+    this.compRows = [];
+    this.compTotals = { base: 0, igv: 0, total: 0 };
+  }
+  printComprobante() { try { window.print(); } catch { } }
+
 
   // Envío en edición/creación
   newEnvio: Partial<Envio> = {
@@ -759,6 +765,9 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
     });
   }
 }
+
+
+
 
 
 
