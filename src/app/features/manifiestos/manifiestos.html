@@ -9,6 +9,15 @@
 
   <div class="mt-4 flex flex-wrap items-center gap-2">
     <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar (serie, Número, conductor, puntos)" class="h-10 w-80 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+    <select [(ngModel)]="filterOrigenId" (ngModelChange)="onFilterChange()" class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
+      <option [ngValue]="null">Origen: Todos</option>
+      <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+    </select>
+
+    <select [(ngModel)]="filterDestinoId" (ngModelChange)="onFilterChange()" class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
+      <option [ngValue]="null">Destino: Todos</option>
+      <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+    </select>
 
     <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)" class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
       <option [ngValue]="8">8</option>
@@ -40,7 +49,7 @@
           <div class="mb-3 flex items-start justify-between">
             <div class="min-w-0">
               <div class="max-w-[14rem] truncate font-medium text-slate-800">{{ item.serie }}-{{ item.numero }}</div>
-              <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
+              <!--<div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>-->
             </div>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
@@ -151,11 +160,11 @@
     </form>    </div>
   </div>
 
-<!-- Envï¿½os en Pï¿½gina (inline) -->
+<!-- Envíos en Página (inline) -->
 <div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showEnviosModal">
   <div class="rounded-md border border-slate-200 bg-white p-6">
     <div class="mb-4 flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-slate-800">Envíos del Manifiesto {{ enviosManifiestoId }}</h3>
+      <h3 class="text-lg font-semibold text-slate-800">Envíos del Manifiesto - Conductor: {{ conductorLabel(enviosConductorId) }} | Origen: {{ nameFrom(enviosOrigenId) }} | Destino: {{ nameFrom(enviosDestinoId) }}</h3>
       <button (click)="closeEnvios()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
     </div>
     <div *ngIf="enviosLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando.</div>
@@ -165,12 +174,12 @@
         <thead class="bg-slate-50 text-left text-slate-600">
           <tr>
             <th class="px-3 py-2">Guía</th>
+            <th class="px-3 py-2">Origen</th>
+            <th class="px-3 py-2">Destino</th>
             <th class="px-3 py-2">Remitente</th>
             <th class="px-3 py-2">Destinatario</th>
             <th class="px-3 py-2">Peso</th>
             <th class="px-3 py-2">Fecha Envío</th>
-            <th class="px-3 py-2">Origen</th>
-            <th class="px-3 py-2">Destino</th>
             <th class="px-3 py-2">Pagado</th>
             <th class="px-3 py-2 text-center">Operaciones</th>
           </tr>
@@ -178,17 +187,17 @@
         <tbody>
           <tr *ngFor="let e of enviosLista" class="border-t border-slate-200">
             <td class="px-3 py-2">{{ e.id || '-' }}</td>
+            <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>
+            <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.destinatario) || e.destinatario }}</td>
             <td class="px-3 py-2">{{ e.peso }}</td>
             <td class="px-3 py-2">{{ e.fecha_envio }}</td>
-            <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>
-            <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
             <td class="px-3 py-2">{{ e.estado_pago ? 'Sí' : 'No' }}</td>
             <td class="px-3 py-2">
               <div class="flex items-center justify-end gap-2">
                 <a [routerLink]="['/envios']" [queryParams]="{ id: e.id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver Envío</a>
-                <a *ngIf="e.id" [routerLink]="['/comprobantes']" [queryParams]="{ id: e.id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver comprobante</a>
+                <a *ngIf="e.id" [routerLink]="['/comprobantes']" [queryParams]="{ envio_id: e.id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver comprobante</a>
                 <span *ngIf="!e.id" class="text-xs text-slate-400">Sin comprobante</span>
               </div>
             </td>
@@ -202,11 +211,11 @@
   </div>
 </div>
 
-<!-- Aï¿½adir Envï¿½os en Pï¿½gina (inline) -->
+<!-- Añadir Envíos en Página (inline) -->
 <div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showAddEnviosModal">
   <div class="rounded-md border border-slate-200 bg-white p-6">
     <div class="mb-4 flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-slate-800">Añadir Envíos al Manifiesto {{ addManifiestoId }}</h3>
+      <h3 class="text-lg font-semibold text-slate-800">Añadir Envíos — Conductor: {{ conductorLabel(addConductorId) }} | Origen: {{ nameFrom(addOrigenId) }} | Destino: {{ nameFrom(addDestinoId) }}</h3>
       <button (click)="closeAddEnvios()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
     </div>
     <div class="mb-3 flex items-center gap-2">
@@ -220,27 +229,27 @@
         <thead class="bg-slate-50 text-left text-slate-600">
           <tr>
             <th class="px-3 py-2">Guía</th>
+            <th class="px-3 py-2">Origen</th>
+            <th class="px-3 py-2">Destino</th>
             <th class="px-3 py-2">Remitente</th>
             <th class="px-3 py-2">Destinatario</th>
             <th class="px-3 py-2">Peso</th>
             <th class="px-3 py-2">Fecha Envío</th>
-            <th class="px-3 py-2">Origen</th>
-            <th class="px-3 py-2">Destino</th>
             <th class="px-3 py-2 text-center">Operaciones</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let e of filteredAddEnvios" class="border-t border-slate-200">
             <td class="px-3 py-2">{{ e.id || '-' }}</td>
+            <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>
+            <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.destinatario) || e.destinatario }}</td>
             <td class="px-3 py-2">{{ e.peso }}</td>
             <td class="px-3 py-2">{{ e.fecha_envio }}</td>
-            <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>
-            <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
             <td class="px-3 py-2">
               <div class="flex items-center justify-end">
-                <button (click)="attachEnvioToManifiesto(e)" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Añadir</button>
+                <button (click)="attachEnvioToManifiesto(e)" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Añadir a Manifiesto</button>
               </div>
             </td>
           </tr>
@@ -253,7 +262,7 @@
   </div>
 </div>
 
-<!-- Guï¿½a en Pï¿½gina (inline) -->
+<!-- Guía en Página (inline) -->
 <div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showGuiaModal">
   <div class="rounded-md border border-slate-200 bg-white p-6">
     <div class="mb-4 flex items-center justify-between">

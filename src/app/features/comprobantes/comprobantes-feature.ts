@@ -22,6 +22,7 @@ export class ComprobantesFeature implements OnInit {
 
   private readonly generalesSrv = inject(Generales);
   initialSelectId: number | null = null;
+  initialEnvioId: number | null = null;
 
   lista: Comprobante[] = [];
   loading = false;
@@ -100,7 +101,7 @@ export class ComprobantesFeature implements OnInit {
     this.loading = true;
     this.error = null;
     this.comprobantesSrv.getComprobantes().subscribe({
-      next: (res) => { this.lista = res || []; this.loading = false; this.trySelectById(); },
+      next: (res) => { this.lista = res || []; this.loading = false; this.trySelectById(); this.trySelectByEnvioId(); },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los comprobantes'; }
     });
   }
@@ -109,6 +110,12 @@ export class ComprobantesFeature implements OnInit {
   private trySelectById() {
     if (!this.initialSelectId) return;
     const found = (this.lista || []).find((x: any) => Number((x as any).id) === Number(this.initialSelectId));
+    if (found) { this.selected = found as any; this.loadDetalles((found as any).id); }
+  }
+
+  private trySelectByEnvioId() {
+    if (!this.initialEnvioId) return;
+    const found = (this.lista || []).find((x: any) => Number((x as any).envio_id) === Number(this.initialEnvioId));
     if (found) { this.selected = found as any; this.loadDetalles((found as any).id); }
   }
 
@@ -123,10 +130,12 @@ export class ComprobantesFeature implements OnInit {
 
   ngOnInit(): void { try { const saved = (localStorage.getItem('comprobantes.viewMode') || '').toLowerCase(); if (saved === 'grid' || saved === 'cards') this.viewMode = saved as any; } catch {}
     // Leer id de comprobante por query param para auto-selecci�n
-    this.route.queryParamMap.subscribe(pm => {
+        this.route.queryParamMap.subscribe(pm => {
       const idStr = pm.get('id');
       this.initialSelectId = idStr ? Number(idStr) : null;
-      if (this.lista && this.lista.length) { this.trySelectById(); }
+      const envioStr = pm.get('envio_id');
+      this.initialEnvioId = envioStr ? Number(envioStr) : null;
+      if (this.lista && this.lista.length) { this.trySelectById(); this.trySelectByEnvioId(); }
     });
     // Cargar cat�logos para nombres legibles
     this.generalesSrv.getGenerales().subscribe({

@@ -26,8 +26,9 @@ export class GastosFeature implements OnInit {
 
   // Filtro
   search = '';
+  selectedDate: string | null = null;
 
-  // Paginaci�n
+  // Paginación
   page = 1;
   pageSize = 10;
   get total(): number { return this.filtered.length; }
@@ -215,6 +216,24 @@ export class GastosFeature implements OnInit {
     });
   }
 
+    onDateChange() {
+      const d = (this.selectedDate || '').trim();
+      this.page = 1;
+      if (!d) { this.load(); return; }
+      this.loading = true; this.error = null;
+      const param = 'fecha=' + encodeURIComponent(d);
+      this.detalleSrv.getDetallesByFecha(param).subscribe({
+        next: (res) => { this.detalles = res || []; this.loading = false; },
+        error: () => { this.loading = false; this.error = 'No se pudieron cargar los movimientos por fecha'; }
+      });
+    }
+
+    clearDate() {
+      this.selectedDate = null;
+      this.page = 1;
+      this.load();
+    }
+
   // Generales
   generales: General[] = [];
   tiposComprobante: General[] = [];
@@ -228,6 +247,7 @@ export class GastosFeature implements OnInit {
     });
   }
 }
+
 
 
 

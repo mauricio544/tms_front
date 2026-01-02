@@ -667,7 +667,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
 
   showNotif(msg: string, type: 'success' | 'error' = 'success') {
     this.notifType = type; this.notif = msg;
-    try { setTimeout(() => { this.notif = null; }, 6000); } catch {}
+    try { setTimeout(() => { this.notif = null; }, 10000); } catch {}
   }
 
   onClickNuevo(ev?: Event) {
@@ -794,5 +794,11 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
       },
       error: () => { this.showNotif('No se pudo generar el comprobante', 'error'); }
     });
+  }
+  // Enfoque: de Remitente a Destinatario con Tab
+  focusDestinatarioDoc(event: Event, input: HTMLInputElement): void {
+    const e = event as KeyboardEvent; if (e.shiftKey) { return; }
+    e.preventDefault();
+    try { input.focus(); } catch {}
   }
 }

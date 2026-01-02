@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+﻿import { Component, OnInit, inject } from '@angular/core';
 import jsPDF from 'jspdf';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -39,10 +39,14 @@ export class ManifiestosFeature implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // Filtros y paginaci�n
+  // Filtros y paginaciï¿½n
   search = '';
   page = 1;
   pageSize = 8;
+
+  // Filtros adicionales
+  filterOrigenId: number | null = null;
+  filterDestinoId: number | null = null;
 
   // Vista: 'cards' o 'grid'
   viewMode: 'cards' | 'grid' = 'cards';
@@ -52,9 +56,9 @@ export class ManifiestosFeature implements OnInit {
   saving = false;
   saveError: string | null = null;
 
-  // Confirmación eliminacion
+  // ConfirmaciÃ³n eliminacion
   confirmOpen = false;
-  confirmTitle = 'Confirmar eliminación';
+  confirmTitle = 'Confirmar eliminaciÃ³n';
   confirmMessage = '';
   pendingDeleteId: number | null = null;
   pendingDeleteLabel: string = '';
@@ -68,23 +72,29 @@ export class ManifiestosFeature implements OnInit {
   conductores: Conductor[] = [];
   personas: Persona[] = [];
 
-  // Edición
+  // EdiciÃ³n
   editing = false;
   editingId: number | null = null;
 
-  // Ver env�os por manifiesto
+  // Ver envï¿½os por manifiesto
   showEnviosModal = false;
   enviosLoading = false;
   enviosError: string | null = null;
   enviosLista: Envio[] = [];
   enviosManifiestoId: number | null = null;
+  enviosConductorId: number | null = null;
+  enviosOrigenId: number | null = null;
+  enviosDestinoId: number | null = null;
 
-  // A�adir env�os a manifiesto
+  // Aï¿½adir envï¿½os a manifiesto
   showAddEnviosModal = false;
   addEnviosLoading = false;
   addEnviosError: string | null = null;
   addEnviosLista: Envio[] = [];
   addManifiestoId: number | null = null;
+  addConductorId: number | null = null;
+  addOrigenId: number | null = null;
+  addDestinoId: number | null = null;
   addSearch = '';
   get filteredAddEnvios(): Envio[] {
     const term = (this.addSearch || '').trim().toLowerCase();
@@ -100,20 +110,21 @@ export class ManifiestosFeature implements OnInit {
   // Lista filtrada
   get filteredManifiestos(): Manifiesto[] {
     const term = this.search.trim().toLowerCase();
-    return (this.lista_manifiestos || []).filter((m: any) => {
-      if (!term) return true;
-      const values = [
+    return (this.lista_manifiestos || []).filter((m: any) => {     const values = [
         String(m.conductor_id ?? ''),
         String(m.codigo_punto_origen ?? ''),
         String(m.codigo_punto_destino ?? ''),
         String(m.serie ?? ''),
         String(m.numero ?? ''),
       ].join(' ').toLowerCase();
-      return values.includes(term);
+      const okTerm = !term || values.includes(term);
+      const okOrigen = !this.filterOrigenId || Number(m.codigo_punto_origen) === Number(this.filterOrigenId);
+      const okDestino = !this.filterDestinoId || Number(m.codigo_punto_destino) === Number(this.filterDestinoId);
+      return okTerm && okOrigen && okDestino;
     });
   }
 
-  // Paginaci�n derivada
+  // Paginaciï¿½n derivada
   get total(): number { return this.filteredManifiestos.length; }
   get totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
   get pageItems(): Manifiesto[] {
@@ -209,7 +220,7 @@ export class ManifiestosFeature implements OnInit {
   askDelete(item: Manifiesto) {
     this.pendingDeleteId = (item as any).id ?? null;
     this.pendingDeleteLabel = `${(item as any).serie || ''}-${(item as any).numero || ''}`;
-    this.confirmMessage = `¿Eliminar manifiesto ${this.pendingDeleteLabel}?`;
+    this.confirmMessage = `Â¿Eliminar manifiesto ${this.pendingDeleteLabel}?`;
     this.confirmOpen = true;
   }
   onCancelDelete() {
@@ -290,7 +301,9 @@ export class ManifiestosFeature implements OnInit {
     if (!id) return '';
     const c = (this.conductores || []).find((cc:any) => cc.id === id);
     if (!c) return String(id);
-    return `${c.licencia || 'Conductor'} - ${c.tipo_licencia || ''}`.trim();
+    //return `${c.licencia || 'Conductor'} - ${c.tipo_licencia || ''}`.trim();
+    const persona = c.persona.tipo_documento === 'DNI' ? `${c.persona.nombre} ${c.persona.apellido}` : `${c.persona.razon_social}`;
+    return persona.trim();
   }
 
 
@@ -313,18 +326,21 @@ ngOnInit(): void {
     const id = (item as any)?.id;
     if (!id) return;
     this.enviosManifiestoId = id as any;
+    this.enviosConductorId = (item as any).conductor_id ?? null;
+    this.enviosOrigenId = this.safeOrigen(item as any);
+    this.enviosDestinoId = this.safeDestino(item as any);
     this.enviosLoading = true;
     this.enviosError = null;
     this.enviosLista = [];
     this.showEnviosModal = true;
     this.enviosSrv.getEnviosManifiesto(Number(id)).subscribe({
       next: (res) => { this.enviosLista = res || []; this.enviosLoading = false; },
-      error: () => { this.enviosLoading = false; this.enviosError = 'No se pudieron cargar los env�os'; }
+      error: () => { this.enviosLoading = false; this.enviosError = 'No se pudieron cargar los envíos'; }
     });
   }
   closeEnvios() { this.showEnviosModal = false; }
 
-  // Generar gu�a
+  // Generar guï¿½a
   showGuiaModal = false;
   guiaLoading = false;
   guiaError: string | null = null;
@@ -361,7 +377,7 @@ ngOnInit(): void {
           error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los detalles de comprobante'; }
         });
       },
-      error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los env�os del manifiesto'; }
+      error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los envï¿½os del manifiesto'; }
     });
   }
   closeGuia() { this.showGuiaModal = false; }
@@ -407,9 +423,9 @@ ngOnInit(): void {
     let destShow = "";
     if (uniq.length === 1) { destShow = uniq[0]; }
     else if (uniq.length > 1 && uniq.length <= 3) { destShow = uniq.join(", "); }
-    else if (uniq.length > 3) { destShow = uniq.slice(0,3).join(", ") + " +" + (uniq.length-3) + " m�s"; }
+    else if (uniq.length > 3) { destShow = uniq.slice(0,3).join(", ") + " +" + (uniq.length-3) + " mï¿½s"; }
     doc.line(marginX+40, y+2, marginX+280, y+2);
-    if (destShow) { doc.text('Recibido por: ' + destShow, marginX+60, y-6); }
+    if (destShow) { doc.text('Recibido por: ' , marginX+60, y-6); }
     doc.text('Recibido por', marginX+110, y+16);
     const today = new Date(); const f = today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
     doc.text('Fecha: ' + f, marginX+340, y+6);
@@ -420,23 +436,27 @@ ngOnInit(): void {
   anadirEnvio(item: Manifiesto) { this.showGuiaModal = false; this.showEnviosModal = false;
     const id = (item as any)?.id;
     if (!id) return;
-    this.addManifiestoId = Number(id);
+    this.addConductorId = (item as any)?.conductor_id ?? null;
+    this.addOrigenId = this.safeOrigen(item as any);
+    this.addDestinoId = this.safeDestino(item as any);
     this.showAddEnviosModal = true;
     this.addEnviosLoading = true;
     this.addEnviosError = null;
     this.addEnviosLista = [];
+    this.addManifiestoId = (item as any)?.id;
     this.enviosSrv.getEnvios().subscribe({
       next: (res) => {
         const all = (res || []) as any[];
-        this.addEnviosLista = all.filter(e => (e as any)?.manifiesto == null);
+        this.addEnviosLista = all.filter(e => (e as any)?.manifiesto == null && Number((e as any)?.punto_destino_id) === Number(this.addDestinoId));
         this.addEnviosLoading = false;
       },
-      error: () => { this.addEnviosLoading = false; this.addEnviosError = 'No se pudieron cargar los env�os'; }
+      error: () => { this.addEnviosLoading = false; this.addEnviosError = 'No se pudieron cargar los envï¿½os'; }
     });
   }
 
   closeAddEnvios() { this.showAddEnviosModal = false; }
   attachEnvioToManifiesto(envio: Envio) {
+    console.log(this.addManifiestoId);
     const mid = this.addManifiestoId;
     const eid = (envio as any)?.id;
     if (!mid || !eid) return;
@@ -445,9 +465,9 @@ ngOnInit(): void {
       next: () => {
         this.addEnviosLoading = false;
         this.addEnviosLista = (this.addEnviosLista || []).filter((e:any) => e.id !== eid);
-        this.showNotif('Envío a�adido al manifiesto');
+        this.showNotif('EnvÃ­o aï¿½adido al manifiesto');
       },
-      error: () => { this.addEnviosLoading = false; this.showNotif('No se pudo a�adir', 'error'); }
+      error: () => { this.addEnviosLoading = false; this.showNotif('No se pudo aï¿½adir', 'error'); }
     });
   }
 

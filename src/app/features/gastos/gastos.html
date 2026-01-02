@@ -6,6 +6,8 @@
     </div>
     <div class="flex items-center gap-2">
       <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar" class="h-9 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+      <input type="date" [(ngModel)]="selectedDate" (ngModelChange)="onDateChange()" class="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+      <button (click)="clearDate()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Limpiar fecha</button>
       <button (click)="load()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Refrescar</button>
       <button (click)="openAddMovimiento()" class="h-9 rounded-md bg-[#21D0B2] px-3 text-sm font-medium text-white hover:bg-[#21D0B2]/90">Agregar movimiento</button>
       <button (click)="exportCSV()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Exportar CSV</button>
@@ -135,7 +137,7 @@
       </div>
 
       <div>
-        <div class="text-sm font-medium text-slate-700">Detalle</div>
+        <div class="text-sm font-medium text-slate-700">Datos Comprobante</div>
         <div class="mt-2 grid grid-cols-2 gap-3">
           <div>
             <label class="block text-sm text-slate-700">Tipo comprobante</label>
@@ -152,14 +154,14 @@
             <label class="block text-sm text-slate-700">Descripción (opcional)</label>
             <input type="text" [(ngModel)]="detalleForm.descripcion" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           </div>
-          <div>
+          <!--<div>
             <label class="block text-sm text-slate-700">Tipo gasto (opcional)</label>
             <input type="number" [(ngModel)]="detalleForm.tipo_gasto" min="0" step="1" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           </div>
           <div>
             <label class="block text-sm text-slate-700">Monto detalle</label>
             <input type="number" [(ngModel)]="detalleForm.monto" min="0" step="0.01" placeholder="Por defecto usa el monto de cabecera" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          </div>
+          </div>-->
         </div>
       </div>
 

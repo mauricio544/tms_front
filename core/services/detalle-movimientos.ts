@@ -26,6 +26,10 @@ export class DetalleMovimientos {
     return this.api.get('/envios/movimientos/detalle/full');
   }
 
+  getDetallesByFecha(fecha: string): Observable<DetalleFull[]> {
+    return this.api.get(`/envios/movimientos/detalle/full/by-date?${fecha}`);
+  }
+
   createDetalles(body: DetalleCreate): Observable<Detalle> {
     return this.api.post('/envios/movimientos/detalle', body);
   }

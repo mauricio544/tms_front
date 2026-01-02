@@ -113,6 +113,7 @@ export interface Conductor {
   tipo_licencia: string;
   persona_id: number;
   compania_id: number;
+  persona: Persona;
 }
 
 export interface Envio {
