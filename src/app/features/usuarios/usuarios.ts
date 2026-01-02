@@ -51,14 +51,14 @@ export class UsuariosFeature implements OnInit {
   notifType: 'success' | 'error' = 'success';
   editing = false;
   editingId: number | null = null;
-  newUser = { email: '', is_active: true, person_id: null, password: '' } as { email: string; is_active: boolean; person_id: number | null; password: string };
+  newUser = { email: '', is_active: true, person_id: null, password: '', username: '' } as { email: string; is_active: boolean; person_id: number | null; password: string, username: string };
 
   get isValidUser(): boolean {
-    const emailOk = !!(this.newUser.email || '').trim();
-    if (this.editing) return emailOk;
+    const username = !!(this.newUser.username|| '').trim();
+    if (this.editing) return username;
     const passOk = (this.newUser.password || '').length >= 6;
     const personOk = (this.newUser.person_id) !== null;
-    return emailOk && passOk && personOk;
+    return username && passOk && personOk;
   }
 
   get filteredUsuarios(): Usuario[] {
@@ -87,7 +87,7 @@ export class UsuariosFeature implements OnInit {
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newUser = { email: '', is_active: true, person_id: null, password: '' } as any;
+    this.newUser = { email: '', is_active: true, person_id: null, password: '' , username: ''} as any;
     this.saveError = null;
     this.showModal = true;
   }
@@ -97,7 +97,7 @@ export class UsuariosFeature implements OnInit {
     console.log(item);
     this.editing = true;
     this.editingId = (item as any).id ?? null;
-    this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, password: '' } as any;
+    this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, password: '', username: (item as any).username } as any;
     this.saveError = null;
     this.showModal = true;
   }
@@ -105,7 +105,7 @@ export class UsuariosFeature implements OnInit {
   askDelete(item: Usuario) {
     this.pendingDeleteId = (item as any).id ?? null;
     this.pendingDeleteLabel = (item as any).email || '';
-    this.confirmMessage = `Â¿Eliminar usuario ${this.pendingDeleteLabel}?`;
+    this.confirmMessage = `¿Eliminar usuario ${this.pendingDeleteLabel}?`;
     this.confirmOpen = true;
   }
 
@@ -140,7 +140,8 @@ export class UsuariosFeature implements OnInit {
   submitNewUser() {
     if (!this.isValidUser) return;
     const payload: any = {
-      email: this.newUser.email,
+      email: null,
+      username: this.newUser.username,
       person_id: (this.newUser as any).person_id ?? null,
       is_active: (this.newUser as any).is_active,
     };
@@ -151,7 +152,7 @@ export class UsuariosFeature implements OnInit {
     obs.subscribe({
       next: (created: any) => {
         const wasEditing = this.editing;
-        const added = { id: (created?.id ?? (wasEditing ? this.editingId : null)) as number, email: created?.email ?? payload.email, is_active: created?.is_active ?? true, person_id: created?.person_id ?? payload.person_id } as any as Usuario;
+        const added = { id: (created?.id ?? (wasEditing ? this.editingId : null)) as number, email: created?.email ?? payload.email, is_active: created?.is_active ?? true, person_id: created?.person_id ?? payload.person_id, username: created?.username ?? payload?.username } as any as Usuario;
         if (wasEditing && this.editingId) {
           this.lista_usuarios = this.lista_usuarios.map(u => (u as any).id === this.editingId ? added : u);
         } else {
@@ -175,7 +176,7 @@ export class UsuariosFeature implements OnInit {
   showNotif(msg: string, type: 'success' | 'error' = 'success') {
     this.notifType = type;
     this.notif = msg;
-    setTimeout(() => { this.notif = null; }, 3000);
+    setTimeout(() => { this.notif = null; }, 10000);
   }
 
   loadUsuarios() {

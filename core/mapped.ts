@@ -9,6 +9,7 @@ export interface Company {
 export interface UsuarioMe {
   id: number;
   email: string;
+  username: string;
   is_active: boolean;
   person_id: number | null;
   permissions: string[];
@@ -18,6 +19,7 @@ export interface UsuarioMe {
 export interface Usuario {
   id: number;
   email: string;
+  username: string;
   is_active: boolean;
   password_hash: string;
   person_id: number | null;

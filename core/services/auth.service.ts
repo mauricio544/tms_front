@@ -6,7 +6,7 @@ import { ApiClientService } from './api-client.service';
 import { UsuarioMe } from '../mapped';
 
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -34,8 +34,7 @@ export class AuthService {
   login(payload: LoginRequest, remember = true): Observable<LoginResponse> {
     return this.api
       .post<LoginResponse>('/auth/login', {
-        email: payload.email,
-        username: payload.email,
+        username: payload.username,
         password: payload.password,
       })
       .pipe(
@@ -48,8 +47,8 @@ export class AuthService {
           if (refresh) {
             this.storage(remember).setItem('refresh_token', refresh);
           }
-          if (payload?.email) {
-            this.storage(remember).setItem('auth_user', payload.email);
+          if (payload?.username) {
+            this.storage(remember).setItem('auth_user', payload.username);
           }
         })
       );
@@ -76,7 +75,7 @@ export class AuthService {
     if (!token) return null;
     try {
       const payload = JSON.parse(atob(token.split('.')[1] || '')) as any;
-      return payload.name || payload.email || payload.sub || null;
+      return payload.name || payload.username || payload.sub || null;
     } catch {
       return null;
     }

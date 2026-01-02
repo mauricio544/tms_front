@@ -105,7 +105,7 @@ export class EnviosFeature implements OnInit {
 
   private openComprobanteWindow(header: any, detalles: Array<{ numero_item: number; cantidad: number; descripcion: any; precio_unitario: number }>) {
     const c: any = header || {};
-    const d = Array.isArray(detalles) ? detalles : [];
+    const d = Array.isArray(detalles) ? detalles : []; const fallback = (!d || d.length===0) ? (this.stagedDetalles||[]).map((x:any,i:number)=>({ numero_item: i+1, cantidad: Number((x as any).cantidad)||0, descripcion: (x as any).descripcion, precio_unitario: Number((x as any).precio_unitario)||0 })) : d;
     const tipoNombre = this.tipoNombreById(Number(c.tipo_comprobante)).toLowerCase();
     const docTitle = tipoNombre.includes('fact') ? 'Factura' : (tipoNombre.includes('bol') ? 'Boleta' : 'Comprobante');
     const numero = String(c.serie || '-') + '-' + String(c.numero || '-');
@@ -126,13 +126,13 @@ export class EnviosFeature implements OnInit {
         '<td class="border border-gray-300 px-2 py-1 text-right">' + this.format2(importe) + '</td>' +
       '</tr>';
     };
-    const rows = d.map(row).join("");
+    const rows = fallback.map(row).join("");
     const isFactura = (this.tipoNombreById(Number(c.tipo_comprobante)).toLowerCase().includes("fact"));
     const fechaEmision = this.utilSrv.formatFecha(c.fecha_comprobante || "");
     const fechaPago = this.utilSrv.formatFecha(c.fecha_pago || "");
     const clienteDocumento = String(c.cliente_documento || "-");
     // Construye filas y totales
-    const compRows = (d || []).map((x, i) => {
+    const compRows = (fallback || []).map((x, i) => {
       const cantidad = Number((x as any).cantidad) || 0;
       const v_unit = Number((x as any).precio_unitario) || 0;
       const base = cantidad * v_unit;
@@ -764,25 +764,35 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
       error: () => { this.showNotif('No se pudo generar el comprobante', 'error'); }
     });
   }
+  submitComprobanteEdicion() {
+    if (!this.editingId) return;
+    if (!this.compTipoId || !this.compFormaPagoId || !this.compNumeroComprobante || !this.compDocNumber) { this.showNotif("Complete el comprobante", 'error'); return; }
+    const envioId = this.editingId;
+    const ciaId = Number(localStorage.getItem('cia_id') || 0);
+    const ruc = String(localStorage.getItem('ruc') || '');
+    const tipoNombre = this.compTipoNombre().toLowerCase();
+    const estado_comp = tipoNombre.includes('fact') ? 'F' : 'B';
+    const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0, 10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0, 10), emisor: ciaId, cliente: null, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: envioId };
+    this.comprobantesSrv.createComprobantes(body).subscribe({
+      next: (comp: any) => {
+        const compHeader: any = comp && typeof comp === 'object' ? comp : body;
+        const compId = Number((compHeader as any)?.id || 0);
+        const detsBodies = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: d.descripcion as any, precio_unitario: Number(d.precio_unitario) || 0, comprobante_id: compId }));
+        try { this.openComprobanteWindow(compHeader, detsBodies); } catch {}
+        const afterDetalles = () => {
+          this.enviosSrv.updateEnvios(envioId, { estado_pago: true } as any).subscribe({ next: () => { this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === envioId ? ({ ...v, estado_pago: true }) : v); try { this.onFilterChange(); } catch { } this.showNotif('Comprobante generado'); this.closeEdit(); }, error: () => { this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === envioId ? ({ ...v, estado_pago: true }) : v); try { this.onFilterChange(); } catch { } this.showNotif('Comprobante generado'); this.closeEdit(); } });
+        };
+        if (compId && detsBodies.length) {
+          forkJoin(detsBodies.map(x => this.detCompSrv.createDetalles(x))).subscribe({ next: () => afterDetalles(), error: () => afterDetalles() });
+        } else { afterDetalles(); }
+        try {
+          const t: any = this.compTipoSel || (this.compTipos || []).find((g: any) => Number((g as any).codigo_principal) === Number(this.compTipoId));
+          const genId = Number((t as any)?.id || 0);
+          const nextCorr = (Number((t as any)?.correlativo || 0) || Number(this.compCorrelativo||0)) + 1;
+          if (genId) { this.generalesSrv.updateGenerales(genId, { correlativo: nextCorr } as any).subscribe({ next:()=>{}, error:()=>{} }); }
+        } catch {}
+      },
+      error: () => { this.showNotif('No se pudo generar el comprobante', 'error'); }
+    });
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

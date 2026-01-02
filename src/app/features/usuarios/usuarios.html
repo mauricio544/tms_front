@@ -45,8 +45,8 @@
               <ng-icon name="heroUserCircle" size="36"></ng-icon>
             </div>
             <div>
-              <div class="font-medium text-slate-800 truncate max-w-[12rem]">{{ item.email }}</div>
-              <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
+              <div class="font-medium text-slate-800 truncate max-w-[12rem]">{{ item.username }}</div>
+              <!--<div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>-->
             </div>
           </div>
           <span
@@ -59,7 +59,7 @@
 
         <div class="mt-2 flex items-center gap-2 text-xs text-slate-600">
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Usuario</span>
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Email verificado</span>
+          <!--<span class="inline-block rounded bg-slate-100 px-2 py-0.5">Email verificado</span>-->
         </div>
 
         <div class="mt-4 flex items-center justify-end gap-2">
@@ -103,9 +103,8 @@
 
     <div class="mt-4 space-y-4">
       <div>
-        <label class="block text-sm text-slate-700">Email</label>
-        <input type="email" [(ngModel)]="newUser.email" placeholder="correo@dominio.com"
-               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <label class="block text-sm text-slate-700">Usuario</label>
+        <input type="email" [(ngModel)]="newUser.username" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       </div>
       <div>
         <label class="block text-sm text-slate-700">Contraseña</label>

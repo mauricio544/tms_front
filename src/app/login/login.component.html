@@ -15,14 +15,14 @@
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="mt-6 space-y-6">
       <div class="-space-y-px rounded-md shadow-sm">
         <div>
-          <label for="email" class="sr-only">Correo</label>
+          <label for="email" class="sr-only">Usuario</label>
           <input
-            id="email"
-            type="email"
-            autocomplete="email"
-            formControlName="email"
+            id="username"
+            type="text"
+            autocomplete="username"
+            formControlName="username"
             class="relative block w-full rounded-t-md border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:z-10 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-[#1DCDFE]"
-            placeholder="Correo electrónico"
+            placeholder="Usuario"
           />
         </div>
         <div>

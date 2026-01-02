@@ -21,7 +21,7 @@ export class LoginComponent {
   error: string | null = null;
 
   form = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
+    username: ['', [Validators.required]],
     password: ['', [Validators.required, Validators.minLength(6)]],
     remember: [true],
   });
@@ -29,8 +29,8 @@ export class LoginComponent {
   onSubmit() {
     if (this.form.invalid) return;
 
-    const { email, password, remember } = this.form.value as {
-      email: string;
+    const { username, password, remember } = this.form.value as {
+      username: string;
       password: string;
       remember: boolean;
     };
@@ -39,7 +39,7 @@ export class LoginComponent {
     this.error = null;
 
     this.auth
-      .login({ email, password }, remember)
+      .login({ username, password }, remember)
       .subscribe({
         next: () => {
           this.loading = false;
@@ -62,7 +62,7 @@ export class LoginComponent {
         error: (err) => {
           this.loading = false;
           const message = err?.error?.detail || err?.error?.message || 'Credenciales inválidas';
-          this.error = typeof message === 'string' ? message : 'Error al iniciar sesi�n';
+          this.error = typeof message === 'string' ? message : 'Error al iniciar sesión';
         },
       });
   }
