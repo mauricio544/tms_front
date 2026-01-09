@@ -15,8 +15,9 @@ import { DetallesComprobante } from '../../../../core/services/detalles-comproba
 import { DetalleEnvio } from '../../../../core/services/detalle-envio';
 import { forkJoin, of } from 'rxjs';
 import { RouterLink } from '@angular/router';
+import { Utilitarios } from '../../../../core/services/utilitarios';
 
-export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; };
+export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; copiloto_id: number | null, turno: string | null, fecha_traslado: string | null };
 
 @Component({
   selector: 'feature-manifiestos',
@@ -33,6 +34,7 @@ export class ManifiestosFeature implements OnInit {
   private readonly personasSrv = inject(Personas);
   private readonly detCompSrv = inject(DetallesComprobante);
   private readonly detEnvSrv = inject(DetalleEnvio);
+  private readonly utilSrv = inject(Utilitarios);
 
   // Datos
   lista_manifiestos: Manifiesto[] = [];
@@ -124,7 +126,7 @@ export class ManifiestosFeature implements OnInit {
     });
   }
 
-  // Paginaciï¿½n derivada
+  // Paginaciòn derivada
   get total(): number { return this.filteredManifiestos.length; }
   get totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
   get pageItems(): Manifiesto[] {
@@ -136,13 +138,13 @@ export class ManifiestosFeature implements OnInit {
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
   onFilterChange() { this.page = 1; }
 
-  newManifiesto: FormManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' };
+  newManifiesto: FormManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', fecha_traslado: '' };
 
   // Modal helpers
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' };
+    this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', fecha_traslado: this.utilSrv.formatFecha(new Date() || "") };
     this.saveError = null;
     this.showModal = true;
   }
@@ -151,11 +153,15 @@ export class ManifiestosFeature implements OnInit {
     this.editingId = (item as any).id ?? null;
     this.newManifiesto = {
       conductor_id: (item as any).conductor_id ?? null,
+      copiloto_id: (item as any)?.copiloto_id ?? null,
+      turno: (item as any)?.turno ?? '',
+      fecha_traslado: this.utilSrv.formatFecha((item as any)?.fecha_traslado) ?? '',
       codigo_punto_origen: (item as any).codigo_punto_origen ?? null,
       codigo_punto_destino: (item as any).codigo_punto_destino ?? null,
       serie: (item as any).serie ?? '',
       numero: (item as any).numero ?? '',
     };
+    console.log(this.newManifiesto);
     this.saveError = null;
     this.showModal = true;
   }
@@ -164,11 +170,13 @@ export class ManifiestosFeature implements OnInit {
   get isValidManifiesto(): boolean {
     const m = this.newManifiesto;
     const okConductor = Number(m.conductor_id) > 0;
+    const okCopiloto = Number(m.copiloto_id) > 0;
     const okOrigen = Number(m?.codigo_punto_origen) > 0;
     const okDestino = Number(m.codigo_punto_destino) > 0;
     const okSerie = String(m.serie || '').trim().length > 0;
     const okNumero = String(m.numero || '').trim().length > 0;
-    return okConductor && okOrigen && okDestino && okSerie && okNumero;
+    const okTurno = String(m.turno || '') !== null;
+    return okConductor && okOrigen && okDestino && okSerie && okNumero && okCopiloto && okTurno;
   }
 
   submitManifiesto() {
@@ -176,6 +184,9 @@ export class ManifiestosFeature implements OnInit {
     const m = this.newManifiesto;
     const payload = {
       conductor_id: Number(m.conductor_id),
+      copiloto_id: Number(m.copiloto_id),
+      turno: String(m.turno),
+      fecha_traslado: String(this.utilSrv.formatFecha(m.fecha_traslado || "")),
       codigo_punto_origen: Number(m.codigo_punto_origen),
       codigo_punto_destino: Number(m.codigo_punto_destino),
       serie: String(m.serie || '').trim(),
@@ -191,6 +202,8 @@ export class ManifiestosFeature implements OnInit {
         const updated: any = {
           id: res?.id ?? (this.editingId ?? Math.max(0, ...(this.lista_manifiestos.map((x:any)=>x.id).filter(Number))) + 1),
           conductor_id: res?.conductor_id ?? payload.conductor_id,
+          copiloto_id: res?.copiloto_id ?? payload.copiloto_id,
+          turno: res?.turno ?? payload.turno,
           codigo_punto_origen: res?.codigo_punto_origen ?? payload.codigo_punto_origen,
           codigo_punto_destino: res?.codigo_punto_destino ?? payload.codigo_punto_destino,
           serie: res?.serie ?? payload.serie,
@@ -377,7 +390,7 @@ ngOnInit(): void {
           error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los detalles de comprobante'; }
         });
       },
-      error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los envï¿½os del manifiesto'; }
+      error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los envi&acuteos del manifiesto'; }
     });
   }
   closeGuia() { this.showGuiaModal = false; }

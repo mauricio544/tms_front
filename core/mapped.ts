@@ -93,18 +93,24 @@ export interface Puntos {
 export interface Manifiesto {
   id: number;
   conductor_id: number;
+  copiloto_id: number;
   codigo_ounto_origen: number;
   codigo_punto_destino: number;
   serie: string;
   numero: string;
+  turno: string;
+  fecha_traslado: string;
 }
 
 export interface ManifiestoCreate {
   conductor_id: number;
+  copiloto_id: number;
   codigo_ounto_origen?: number;
   codigo_punto_destino?: number;
   serie: string;
   numero: string;
+  turno: string;
+  fecha_traslado: string;
 }
 
 export interface Conductor {

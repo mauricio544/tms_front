@@ -16,11 +16,11 @@ export class Manifiestos {
     return this.api.get('/envios/manifiestos');
   }
 
-  createManifiestos(body: { conductor_id: number; codigo_punto_origen: number; codigo_punto_destino: number; serie: string; numero: string }): Observable<Manifiesto> {
+  createManifiestos(body: { conductor_id: number; codigo_punto_origen: number; codigo_punto_destino: number; serie: string; numero: string, copiloto_id: number, turno: string; fecha_traslado: string }): Observable<Manifiesto> {
     return this.api.post('/envios/manifiestos', body);
   }
 
-  updateManifiestos(id: number, body: { conductor_id: number; codigo_punto_origen: number; codigo_punto_destino: number; serie: string; numero: string }): Observable<Manifiesto> {
+  updateManifiestos(id: number, body: { conductor_id: number; codigo_punto_origen: number; codigo_punto_destino: number; serie: string; numero: string, copiloto_id: number; turno: string; fecha_traslado: string }): Observable<Manifiesto> {
     return this.api.patch(`/envios/manifiestos/${id}`, body);
   }
 

@@ -130,6 +130,13 @@
           <option *ngFor="let c of conductores" [ngValue]="c.id">{{ conductorLabel(c.id) }}</option>
         </select>
       </div>
+      <div class="md:col-span-2">
+        <label class="block text-sm text-slate-700">Copiloto</label>
+        <select [(ngModel)]="newManifiesto.copiloto_id" name="copiloto" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
+          <option [ngValue]="null">Seleccione copiloto</option>
+          <option *ngFor="let c of conductores" [ngValue]="c.id">{{ conductorLabel(c.id) }}</option>
+        </select>
+      </div>
       <div>
         <label class="block text-sm text-slate-700">Origen</label>
         <select [(ngModel)]="newManifiesto.codigo_punto_origen" name="origen" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
@@ -143,6 +150,20 @@
         <option [ngValue]="null">Seleccione destino</option>
         <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
         </select>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Turno</label>
+        <select [(ngModel)]="newManifiesto.turno" name="destino" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
+          <option [ngValue]="null">Seleccione turno</option>
+          <option value="M">Mañana</option>
+          <option value="T">Tarde</option>
+          <option value="N">Noche</option>
+        </select>
+      </div>
+      <div>
+          <label class="block text-sm text-slate-700">Fecha traslado</label>
+          <input type="date" [(ngModel)]="newManifiesto.fecha_traslado"
+                 class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" name="fecha_traslado"/>
       </div>
       <div>
         <label class="block text-sm text-slate-700">Serie</label>
