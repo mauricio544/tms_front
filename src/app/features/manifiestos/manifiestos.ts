@@ -17,7 +17,7 @@ import { forkJoin, of } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { Utilitarios } from '../../../../core/services/utilitarios';
 
-export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; copiloto_id: number | null, turno: string | null, fecha_traslado: string | null };
+export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; copiloto_id: number | null, turno: string | null, placa: string | null, fecha_traslado: string | null };
 
 @Component({
   selector: 'feature-manifiestos',
@@ -138,13 +138,13 @@ export class ManifiestosFeature implements OnInit {
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
   onFilterChange() { this.page = 1; }
 
-  newManifiesto: FormManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', fecha_traslado: '' };
+  newManifiesto: FormManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: '' };
 
   // Modal helpers
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', fecha_traslado: this.utilSrv.formatFecha(new Date() || "") };
+    this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: this.utilSrv.formatFecha(new Date() || "") };
     this.saveError = null;
     this.showModal = true;
   }
@@ -155,6 +155,7 @@ export class ManifiestosFeature implements OnInit {
       conductor_id: (item as any).conductor_id ?? null,
       copiloto_id: (item as any)?.copiloto_id ?? null,
       turno: (item as any)?.turno ?? '',
+      placa: (item as any)?.placa ?? '',
       fecha_traslado: this.utilSrv.formatFecha((item as any)?.fecha_traslado) ?? '',
       codigo_punto_origen: (item as any).codigo_punto_origen ?? null,
       codigo_punto_destino: (item as any).codigo_punto_destino ?? null,
@@ -176,7 +177,8 @@ export class ManifiestosFeature implements OnInit {
     const okSerie = String(m.serie || '').trim().length > 0;
     const okNumero = String(m.numero || '').trim().length > 0;
     const okTurno = String(m.turno || '') !== null;
-    return okConductor && okOrigen && okDestino && okSerie && okNumero && okCopiloto && okTurno;
+    const okPlaca = String(m.placa || '').trim().length > 0;
+    return okConductor && okOrigen && okDestino && okSerie && okNumero && okCopiloto && okTurno && okPlaca;
   }
 
   submitManifiesto() {
@@ -186,6 +188,7 @@ export class ManifiestosFeature implements OnInit {
       conductor_id: Number(m.conductor_id),
       copiloto_id: Number(m.copiloto_id),
       turno: String(m.turno),
+      placa: String(m.placa),
       fecha_traslado: String(this.utilSrv.formatFecha(m.fecha_traslado || "")),
       codigo_punto_origen: Number(m.codigo_punto_origen),
       codigo_punto_destino: Number(m.codigo_punto_destino),
@@ -204,6 +207,8 @@ export class ManifiestosFeature implements OnInit {
           conductor_id: res?.conductor_id ?? payload.conductor_id,
           copiloto_id: res?.copiloto_id ?? payload.copiloto_id,
           turno: res?.turno ?? payload.turno,
+          placa: res?.placa ?? payload.placa,
+          fecha_traslado: this.utilSrv.formatFecha(new Date() || ""),
           codigo_punto_origen: res?.codigo_punto_origen ?? payload.codigo_punto_origen,
           codigo_punto_destino: res?.codigo_punto_destino ?? payload.codigo_punto_destino,
           serie: res?.serie ?? payload.serie,
@@ -364,8 +369,22 @@ ngOnInit(): void {
   guiaOrigenId: number | null = null;
   guiaDestinoId: number | null = null;
   guiaConductorId: number | null = null;
+  guiaCopilotoId: number | null = null;
+  guiaTurno: string | null = null;
+  guiaFechaTraslado: string | null = null;
+  guiaPlaca: string | null = null;
+  guiaFechaLarga: string = '';
+  guiaFechaImpresion: string = '';
+  guiaOperador: string = '';
+  guiaSucursal: string = '';
+  guiaAgencia: string = '';
+  guiaNota: string = '';
+  guiaRows: { envio: Envio, detalle: any, cantidad: number, descripcion: string, precio_unitario: number, subtotal: number }[] = [];
+  guiaSubTotal = 0;
+  guiaIgv = 0;
+  guiaTotal = 0;
 
-  generarGuia(item: Manifiesto) { this.showEnviosModal = false; this.showAddEnviosModal = false;
+  generarManifiesto(item: Manifiesto) { this.showEnviosModal = false; this.showAddEnviosModal = false;
     const id = (item as any)?.id;
     if (!id) return;
     this.guiaManifiestoId = Number(id);
@@ -374,10 +393,20 @@ ngOnInit(): void {
     this.guiaOrigenId = this.safeOrigen(item as any);
     this.guiaDestinoId = this.safeDestino(item as any);
     this.guiaConductorId = (item as any).conductor_id ?? null;
+    this.guiaCopilotoId = (item as any).copiloto_id ?? null;
+    this.guiaTurno = (item as any).turno ?? null;
+    this.guiaFechaTraslado = (item as any).fecha_traslado ?? null;
+    this.guiaPlaca = (item as any).placa ?? null;
+    this.guiaFechaLarga = this.formatFechaLarga(new Date());
+    this.guiaFechaImpresion = this.formatFechaCorta(new Date());
     this.showGuiaModal = true;
     this.guiaLoading = true;
     this.guiaError = null;
     this.guiaItems = [];
+    this.guiaRows = [];
+    this.guiaSubTotal = 0;
+    this.guiaIgv = 0;
+    this.guiaTotal = 0;
     this.enviosSrv.getEnviosManifiesto(Number(id)).subscribe({
       next: (envs: any[]) => {
         const envios = envs || [];
@@ -385,6 +414,7 @@ ngOnInit(): void {
         forkJoin(calls).subscribe({
           next: (detList: any[]) => {
             this.guiaItems = envios.map((e:any, idx:number) => ({ envio: e as any, detalles: (detList[idx] || []) as any[] }));
+            this.guiaRows = this.buildGuiaRows(envios, detList || []);
             this.guiaLoading = false;
           },
           error: () => { this.guiaLoading = false; this.guiaError = 'No se pudieron cargar los detalles de comprobante'; }
@@ -397,51 +427,172 @@ ngOnInit(): void {
 
   exportGuiaPDF() {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    let y = 40;
-    const marginX = 40; const line = 16;
-    const add = (t:string, bold=false) => { doc.setFont('helvetica', bold?'bold':'normal'); doc.text(t, marginX, y); y += line; };
-    add('Manifiesto ' + (this.guiaSerie || '') + '-' + (this.guiaNumero || ''), true);
-    add('Conductor: ' + this.conductorLabel(this.guiaConductorId), false);
-    add('Origen: ' + this.nameFrom(this.guiaOrigenId) + '   Destino: ' + this.nameFrom(this.guiaDestinoId), false);
-    (this.guiaItems || []).forEach((g, gi) => {
-      if (y > 760) { doc.addPage(); y = 40; }
-      add('Envío: ' + (((g as any).envio?.guia ?? (g as any).envio?.id) || ''), true);
-      const dets:any[] = (g as any).detalles || [];
-      if (!dets.length) { add('Sin detalle'); return; }
-      doc.setFont('helvetica','bold');
-      doc.text('Ítem', marginX, y); doc.text('Cant.', marginX+50, y); doc.text('Descripción', marginX+110, y); doc.text('P. Unit', marginX+360, y); doc.text('Subtotal', marginX+450, y); y += 8; doc.line(marginX, y, marginX+520, y); y += 12; doc.setFont('helvetica','normal');
-      dets.forEach((d:any) => {
-        if (y > 780) { doc.addPage(); y = 40; }
-        const subtotal = (Number(d.cantidad)||0) * (Number(d.precio_unitario)||0);
-        doc.text(String(d.numero_item ?? ''), marginX, y);
-        doc.text(String(d.cantidad ?? ''), marginX+50, y);
-        doc.text(String(d.descripcion ?? ''), marginX+110, y, { maxWidth: 220 });
-        doc.text(String(Number(d.precio_unitario||0).toFixed(2)), marginX+360, y);
-        doc.text(String(Number(subtotal).toFixed(2)), marginX+450, y);
-        y += 14;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const marginX = 32;
+    const tableWidth = pageWidth - marginX * 2;
+    const colWidths = [24, 48, 62, 28, 120, 46, 70, 46, 70, 44, 44];
+    const colX = colWidths.reduce((acc: number[], w, i) => {
+      const last = acc.length ? acc[acc.length - 1] : marginX;
+      acc.push(i === 0 ? marginX : last + colWidths[i - 1]);
+      return acc;
+    }, []);
+    let y = 36;
+
+    const setFont = (size: number, bold = false) => {
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(size);
+    };
+    const addLine = (text: string, x: number, yPos: number, maxWidth?: number) => {
+      doc.text(text || '', x, yPos, maxWidth ? { maxWidth } : undefined);
+    };
+    const addHeaderBlock = () => {
+      setFont(10, true);
+      addLine('PILOTO:', marginX, y);
+      setFont(10, false);
+      addLine(this.conductorLabel(this.guiaConductorId), marginX + 48, y);
+      y += 14;
+
+      setFont(10, true);
+      addLine('COPILOTO:', marginX, y);
+      setFont(10, false);
+      addLine(this.conductorLabel(this.guiaCopilotoId), marginX + 60, y);
+      y += 14;
+
+      setFont(10, true);
+      addLine('FECHA TRASLADO:', marginX, y);
+      setFont(10, false);
+      addLine(this.formatFechaCorta(this.guiaFechaTraslado), marginX + 98, y);
+      y += 18;
+
+      const centerX = pageWidth / 2;
+      setFont(11, true);
+      addLine('MANIFIESTO DE ENCOMIENDAS', centerX - 90, 36);
+      setFont(11, true);
+      addLine(`${this.guiaSerie || ''}-${this.guiaNumero || ''}`, centerX - 30, 50);
+
+      setFont(10, true);
+      addLine('PLACA:', centerX - 90, 68);
+      setFont(10, false);
+      addLine(this.guiaPlaca || 'Pendiente', centerX - 45, 68);
+      y = Math.max(y, 82);
+
+      setFont(10, true);
+      addLine('ORIGEN:', centerX - 90, 82);
+      setFont(10, false);
+      addLine(this.nameFrom(this.guiaOrigenId), centerX - 45, 82);
+
+      setFont(10, true);
+      addLine('DESTINO:', pageWidth - marginX - 140, 82);
+      setFont(10, false);
+      addLine(this.nameFrom(this.guiaDestinoId), pageWidth - marginX - 80, 82);
+
+      setFont(10, true);
+      addLine(this.guiaFechaLarga || '', pageWidth - marginX - 140, 36);
+      setFont(10, true);
+      addLine('TURNO:', pageWidth - marginX - 140, 68);
+      setFont(10, false);
+      addLine(this.turnoLabel(this.guiaTurno), pageWidth - marginX - 90, 68);
+      y = 98;
+    };
+
+    const drawTableHeader = () => {
+      setFont(8, true);
+      const headers = ['N°', 'FECHA', 'NRO DOC.', 'CANT', 'DESCRIPCIÓN', 'DNI', 'REMITENTE', 'DNI', 'DESTINATARIO', 'USUARIO', 'TOT S/.'];
+      headers.forEach((h, i) => {
+        addLine(h, colX[i] + 2, y);
       });
-      y += 6;
-    });
-    // Firmas
-    y += 20; if (y > 700) { doc.addPage(); y = 60; }
-    // Conductor
-    doc.setLineWidth(0.5);
-    doc.line(marginX+40, y+2, marginX+280, y+2);
-    doc.text('Firma del Conductor', marginX+80, y+16);
-    doc.text(String(this.conductorLabel(this.guiaConductorId)), marginX+60, y-6);
-    // Recibido por
-    y += 50; if (y > 760) { doc.addPage(); y = 60; }
-    const allDests = ((this.guiaItems||[]) as any[]).map((g:any)=> (this.personaLabelById((g as any).envio?.destinatario) || "").trim()).filter((n:string)=> !!n);
-    const uniq = Array.from(new Set(allDests));
-    let destShow = "";
-    if (uniq.length === 1) { destShow = uniq[0]; }
-    else if (uniq.length > 1 && uniq.length <= 3) { destShow = uniq.join(", "); }
-    else if (uniq.length > 3) { destShow = uniq.slice(0,3).join(", ") + " +" + (uniq.length-3) + " mï¿½s"; }
-    doc.line(marginX+40, y+2, marginX+280, y+2);
-    if (destShow) { doc.text('Recibido por: ' , marginX+60, y-6); }
-    doc.text('Recibido por', marginX+110, y+16);
-    const today = new Date(); const f = today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
-    doc.text('Fecha: ' + f, marginX+340, y+6);
+      y += 12;
+      doc.line(marginX, y, marginX + tableWidth, y);
+      y += 10;
+    };
+
+    const drawRow = (row: any, idx: number) => {
+      setFont(8, false);
+      const values = [
+        String(idx + 1),
+        this.formatFechaCorta(row.envio?.fecha_envio),
+        this.envioDocumento(row.envio),
+        String(row.cantidad ?? ''),
+        String(row.descripcion ?? ''),
+        this.personaDocumentoById(row.envio?.remitente),
+        this.personaNombreById(row.envio?.remitente),
+        this.personaDocumentoById(row.envio?.destinatario),
+        this.personaNombreById(row.envio?.destinatario),
+        this.envioUsuario(row.envio),
+        Number(row.subtotal || 0).toFixed(2),
+      ];
+      const maxHeights = values.map((v, i) => doc.splitTextToSize(v || '', colWidths[i] - 4).length);
+      const rowLines = Math.max(...maxHeights, 1);
+      const rowHeight = rowLines * 10;
+      if (y + rowHeight > 770) {
+        doc.addPage();
+        y = 36;
+        addHeaderBlock();
+        drawTableHeader();
+      }
+      values.forEach((v, i) => {
+        const lines = doc.splitTextToSize(v || '', colWidths[i] - 4);
+        addLine(lines.join('\n'), colX[i] + 2, y);
+      });
+      y += rowHeight;
+      doc.line(marginX, y, marginX + tableWidth, y);
+      y += 2;
+    };
+
+    addHeaderBlock();
+    setFont(10, true);
+    addLine('DETALLE:', marginX, y);
+    y += 12;
+
+    drawTableHeader();
+    if ((this.guiaRows || []).length) {
+      this.guiaRows.forEach((row, idx) => drawRow(row, idx));
+    } else {
+      setFont(9, false);
+      addLine('No hay ítems para este manifiesto.', marginX, y + 4);
+      y += 16;
+    }
+
+    y += 6;
+    if (y > 720) { doc.addPage(); y = 36; }
+    setFont(9, true);
+    addLine('SUB TOTAL', marginX, y);
+    setFont(9, false);
+    addLine(this.guiaSubTotal.toFixed(2), marginX + 70, y);
+    y += 12;
+    setFont(9, true);
+    addLine('IGV', marginX, y);
+    setFont(9, false);
+    addLine(this.guiaIgv.toFixed(2), marginX + 70, y);
+    y += 12;
+    setFont(9, true);
+    addLine('TOTAL S/.', marginX, y);
+    addLine(this.guiaTotal.toFixed(2), marginX + 70, y);
+
+    y += 22;
+    setFont(8, true);
+    addLine('DATOS DE IMPRESIÓN', marginX, y);
+    y += 12;
+    setFont(8, false);
+    addLine('OPERADOR: ' + (this.guiaOperador || '-'), marginX, y);
+    y += 10;
+    addLine('SUCURSAL: ' + (this.guiaSucursal || '-'), marginX, y);
+    y += 10;
+    addLine('AGENCIA: ' + (this.guiaAgencia || '-'), marginX, y);
+    y += 10;
+    addLine('FECHA IMPRESIÓN: ' + (this.guiaFechaImpresion || ''), marginX, y);
+    y += 10;
+    addLine('NOTA: ' + (this.guiaNota || '-'), marginX, y);
+
+    y += 30;
+    doc.line(marginX + 40, y, marginX + 220, y);
+    setFont(9, false);
+    addLine('Firma del Conductor', marginX + 70, y + 14);
+    addLine(this.conductorLabel(this.guiaConductorId), marginX + 50, y - 6);
+
+    doc.line(pageWidth - marginX - 220, y, pageWidth - marginX - 40, y);
+    addLine('Recibido por', pageWidth - marginX - 160, y + 14);
+
     const fname = `guia_manifiesto_${this.guiaSerie || ''}-${this.guiaNumero || ''}.pdf`;
     doc.save(fname);
   }
@@ -484,6 +635,26 @@ ngOnInit(): void {
     });
   }
 
+  attachAllEnviosToManifiesto() {
+    const mid = this.addManifiestoId;
+    const list = (this.filteredAddEnvios || []).filter((e: any) => !!e?.id);
+    if (!mid || !list.length) return;
+    this.addEnviosLoading = true;
+    const calls = list.map((e: any) => this.enviosSrv.updateEnvios(Number(e.id), { manifiesto: Number(mid) } as any));
+    forkJoin(calls).subscribe({
+      next: () => {
+        const ids = new Set(list.map((e: any) => Number(e.id)));
+        this.addEnviosLista = (this.addEnviosLista || []).filter((e: any) => !ids.has(Number(e.id)));
+        this.addEnviosLoading = false;
+        this.showNotif('Envíos añadidos al manifiesto');
+      },
+      error: () => {
+        this.addEnviosLoading = false;
+        this.showNotif('No se pudieron añadir todos los envíos', 'error');
+      }
+    });
+  }
+
   personaLabelById(id: number | null | undefined): string {
     if (!id) return '';
     const f = (this.personas || []).find((pp: any) => Number(pp.id) === Number(id));
@@ -493,6 +664,93 @@ ngOnInit(): void {
     const base = (razon || nombre || '').trim();
     const doc = (f?.nro_documento || '').trim();
     return [base, doc].filter(Boolean).join(' - ');
+  }
+
+  personaNombreById(id: number | null | undefined): string {
+    if (!id) return '';
+    const f = (this.personas || []).find((pp: any) => Number(pp.id) === Number(id));
+    if (!f) return String(id);
+    const nombre = [f?.nombre, f?.apellido].filter(Boolean).join(' ').trim();
+    return (f?.razon_social || nombre || '').trim();
+  }
+
+  personaDocumentoById(id: number | null | undefined): string {
+    if (!id) return '';
+    const f = (this.personas || []).find((pp: any) => Number(pp.id) === Number(id));
+    if (!f) return '';
+    return (f?.nro_documento || '').trim();
+  }
+
+  conductorDocumento(id: number | null | undefined): string {
+    if (!id) return '';
+    const c = (this.conductores || []).find((cc:any) => cc.id === id);
+    return (c as any)?.persona?.nro_documento || '';
+  }
+
+  envioDocumento(envio: Envio | null | undefined): string {
+    if (!envio) return '-';
+    return String((envio as any)?.guia ?? (envio as any)?.id ?? '-');
+  }
+
+  envioUsuario(envio: Envio | null | undefined): string {
+    if (!envio) return '-';
+    return String((envio as any)?.usuario ?? '-');
+  }
+
+  turnoLabel(turno: string | null | undefined): string {
+    if (!turno) return '';
+    const t = String(turno).toUpperCase();
+    if (t === 'M') return 'Mañana';
+    if (t === 'T') return 'Tarde';
+    if (t === 'N') return 'Noche';
+    return t;
+  }
+
+  formatFechaCorta(date: string | Date | null | undefined): string {
+    if (!date) return '';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return String(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  formatFechaLarga(date: string | Date | null | undefined): string {
+    if (!date) return '';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return String(date);
+    return d.toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: '2-digit' });
+  }
+
+  private buildGuiaRows(envios: any[], detList: any[]): { envio: Envio, detalle: any, cantidad: number, descripcion: string, precio_unitario: number, subtotal: number }[] {
+    const rows: { envio: Envio, detalle: any, cantidad: number, descripcion: string, precio_unitario: number, subtotal: number }[] = [];
+    let total = 0;
+    (envios || []).forEach((envio: any, idx: number) => {
+      const detalles = (detList?.[idx] || []) as any[];
+      if (!detalles.length) {
+        rows.push({ envio, detalle: null, cantidad: 0, descripcion: 'Sin detalle', precio_unitario: 0, subtotal: 0 });
+        return;
+      }
+      detalles.forEach((det: any) => {
+        const cantidad = Number(det?.cantidad) || 0;
+        const precio = Number(det?.precio_unitario) || 0;
+        const subtotal = cantidad * precio;
+        total += subtotal;
+        rows.push({
+          envio,
+          detalle: det,
+          cantidad,
+          descripcion: String(det?.descripcion ?? ''),
+          precio_unitario: precio,
+          subtotal,
+        });
+      });
+    });
+    this.guiaSubTotal = total;
+    this.guiaIgv = 0;
+    this.guiaTotal = total;
+    return rows;
   }
 }
 

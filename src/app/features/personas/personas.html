@@ -116,15 +116,15 @@
       </div>
       <div>
         <label class="block text-sm text-slate-700">Nombre</label>
-        <input type="text" [(ngModel)]="newPersona.nombre" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <input type="text" [(ngModel)]="newPersona.nombre" (ngModelChange)="newPersona.nombre = $event.toUpperCase()" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       </div>
       <div>
         <label class="block text-sm text-slate-700">Apellido</label>
-        <input type="text" [(ngModel)]="newPersona.apellido" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <input type="text" [(ngModel)]="newPersona.apellido" (ngModelChange)="newPersona.apellido = $event.toUpperCase()" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       </div>
       <div *ngIf="newPersona.tipo_documento === 'RUC'">
         <label class="block text-sm text-slate-700">Razón social</label>
-        <input type="text" [(ngModel)]="newPersona.razon_social" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <input type="text" [(ngModel)]="newPersona.razon_social" (ngModelChange)="newPersona.razon_social = $event.toUpperCase()" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
         <div class="text-xs text-red-600" *ngIf="newPersona.tipo_documento === 'RUC' && !(newPersona.razon_social || '').trim()">Requerido para RUC</div>
       </div>      <div>
         <label class="block text-sm text-slate-700">Email</label>

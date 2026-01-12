@@ -131,7 +131,7 @@
           </div>
           <div>
             <label class="block text-sm text-slate-700">Placa (opcional)</label>
-            <input type="text" [(ngModel)]="cabeceraForm.placa" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <input type="text" [(ngModel)]="cabeceraForm.placa" (ngModelChange)="cabeceraForm.placa = $event.toUpperCase()" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           </div>
         </div>
       </div>
@@ -148,11 +148,11 @@
           </div>
           <div>
             <label class="block text-sm text-slate-700">N° comprobante</label>
-            <input type="text" [(ngModel)]="detalleForm.numero_comprobante" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <input type="text" [(ngModel)]="detalleForm.numero_comprobante" (ngModelChange)="detalleForm.numero_comprobante = $event.toUpperCase()" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           </div>
           <div class="col-span-2">
             <label class="block text-sm text-slate-700">Descripción (opcional)</label>
-            <input type="text" [(ngModel)]="detalleForm.descripcion" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <input type="text" [(ngModel)]="detalleForm.descripcion" (ngModelChange)="detalleForm.descripcion = $event.toUpperCase()" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           </div>
           <!--<div>
             <label class="block text-sm text-slate-700">Tipo gasto (opcional)</label>

@@ -304,3 +304,72 @@ export interface MessageCreate {
   message: string;
   envio_id: number;
 }
+
+export interface DespachoRead {
+  id: number;
+  estado: string;
+  compania_id: number;
+  origen_ubigeo: string;
+  origen_direccion: string;
+  destino_ubigeo: string;
+  destino_direccion: string;
+  razon_transferencia: string;
+  inicio: string;
+  aprobado_by: number;
+  notas: string;
+}
+
+export interface DespachoCreate {
+  estado: string;
+  compania_id: number;
+  origen_ubigeo: string;
+  origen_direccion: string;
+  destino_ubigeo: string;
+  destino_direccion: string;
+  razon_transferencia: string;
+  inicio: string;
+  aprobado_by: number;
+  notas: string;
+}
+
+export interface Guia {
+  id: number;
+  despacho_id: number;
+  doc_type: string;
+  series: string;
+  numero: number;
+  numero_completo: string;
+  emitido_en: string;
+  qr: string;
+  pdf_hash: string;
+  hash_sha: string;
+  anulado: string;
+}
+
+export interface GuiaCreate {
+  despacho_id: number;
+  doc_type: string;
+  series: string;
+  numero: number;
+  numero_completo: string;
+  emitido_en: string;
+}
+
+export interface ItemGuia {
+  id: number;
+  despacho_id: number;
+  sku: string;
+  descripcion: string;
+  uom: string;
+  cantidad: number;
+  peso: number;
+}
+
+export interface ItemGuiaCreate {
+  despacho_id: number;
+  sku: string;
+  descripcion: string;
+  uom: string;
+  cantidad: number;
+  peso: number;
+}

@@ -1,5 +1,6 @@
 ﻿import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import {Uppercase} from '../../core/services/uppercase';
 
 @Component({
   selector: 'app-root',

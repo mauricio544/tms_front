@@ -134,7 +134,8 @@ export class VehiculosFeature implements OnInit {
   }
 
   onPlacaChange(val: string) {
-    this.newVehiculo = { ...(this.newVehiculo as any), placa: val } as any;
+
+    this.newVehiculo = { ...(this.newVehiculo as any), placa: val.toUpperCase() } as any;
   }
 
   submitNewVehiculo() {
