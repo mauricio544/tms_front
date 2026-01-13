@@ -66,14 +66,14 @@ export class RutasFeature implements OnInit {
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newPunto = { nombre: '' };
+    this.newPunto = { nombre: '', direccion: '' };
     this.saveError = null;
     this.showModal = true;
   }
   openEdit(item: Points) {
     this.editing = true;
     this.editingId = (item as any).id ?? null;
-    this.newPunto = { nombre: item.nombre };
+    this.newPunto = { nombre: item.nombre, direccion: item.direccion };
     this.saveError = null;
     this.showModal = true;
   }
@@ -86,7 +86,7 @@ export class RutasFeature implements OnInit {
 
   submitPunto() {
     if (!this.isValidPunto) return;
-    const payload = { nombre: String((this.newPunto as any).nombre || '').trim() };
+    const payload = { nombre: String((this.newPunto as any).nombre || '').trim(), direccion: String((this.newPunto as any).direccion || '').trim() };
     this.saving = true;
     this.saveError = null;
     const obs = this.editing && this.editingId
@@ -97,6 +97,7 @@ export class RutasFeature implements OnInit {
         const updated: Points = {
           id: res?.id ?? (this.editingId ?? Math.max(0, ...(this.lista_puntos.map(x=>x.id).filter(Number))) + 1),
           nombre: res?.nombre ?? payload.nombre,
+          direccion: res?.direccion ?? payload.direccion,
         } as any;
         if (this.editing && this.editingId) {
           this.lista_puntos = this.lista_puntos.map(p => (p as any).id === this.editingId ? updated : p);

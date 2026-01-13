@@ -93,6 +93,11 @@
         <input type="text" [(ngModel)]="newPunto.nombre" (ngModelChange)="newPunto.nombre = $event.toUpperCase()" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
         <div class="text-xs text-red-600" *ngIf="!isValidPunto">Ingrese un nombre válido</div>
       </div>
+      <div>
+        <label class="block text-sm text-slate-700">Dirección</label>
+        <input type="text" [(ngModel)]="newPunto.direccion" (ngModelChange)="newPunto.direccion = $event.toUpperCase()" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <div class="text-xs text-red-600" *ngIf="!isValidPunto">Ingrese una dirección válido</div>
+      </div>
     </div>
 
     <div class="mt-6 flex items-center justify-between gap-2">

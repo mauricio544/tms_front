@@ -88,6 +88,7 @@ export interface Vehiculo {
 export interface Puntos {
   id: number;
   nombre: string;
+  direccion: string;
 }
 
 export interface Manifiesto {
