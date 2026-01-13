@@ -8,7 +8,7 @@ import { Manifiestos } from '../../../../core/services/manifiestos';
 import { Envios } from '../../../../core/services/envios';
 import { Puntos } from '../../../../core/services/puntos';
 import { Conductores as ConductoresService } from '../../../../core/services/conductores';
-import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante } from '../../../../core/mapped';
+import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate } from '../../../../core/mapped';
 import { Conductor } from '../../../../core/mapped';
 import { Personas } from '../../../../core/services/personas';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
@@ -16,6 +16,8 @@ import { DetalleEnvio } from '../../../../core/services/detalle-envio';
 import { forkJoin, of } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { Utilitarios } from '../../../../core/services/utilitarios';
+import { Guias } from '../../../../core/services/guias';
+import { AuthService } from '../../../../core/services/auth.service';
 
 export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; copiloto_id: number | null, turno: string | null, placa: string | null, fecha_traslado: string | null };
 
@@ -35,6 +37,8 @@ export class ManifiestosFeature implements OnInit {
   private readonly detCompSrv = inject(DetallesComprobante);
   private readonly detEnvSrv = inject(DetalleEnvio);
   private readonly utilSrv = inject(Utilitarios);
+  private readonly guiasSrv = inject(Guias);
+  private readonly authSrv = inject(AuthService);
 
   // Datos
   lista_manifiestos: Manifiesto[] = [];
@@ -384,6 +388,21 @@ ngOnInit(): void {
   guiaIgv = 0;
   guiaTotal = 0;
 
+  // Generar guia (despacho + guia + items)
+  showGuiaGeneradaModal = false;
+  guiaGenLoading = false;
+  guiaGenError: string | null = null;
+  guiaGenManifiestoId: number | null = null;
+  guiaGenSerie: string = '';
+  guiaGenNumero: string = '';
+  guiaGenDespacho: DespachoRead | null = null;
+  guiaGenGuia: Guia | null = null;
+  guiaGenItems: ItemGuia[] = [];
+  guiaGenEstado: string = '';
+  guiaDoc: any = null;
+  guiaDocNow = new Date();
+  guiaEstadoUpdating = false;
+
   generarManifiesto(item: Manifiesto) { this.showEnviosModal = false; this.showAddEnviosModal = false;
     const id = (item as any)?.id;
     if (!id) return;
@@ -424,6 +443,44 @@ ngOnInit(): void {
     });
   }
   closeGuia() { this.showGuiaModal = false; }
+
+  generarGuia(item: Manifiesto) {
+    this.showGuiaModal = false;
+    this.showEnviosModal = false;
+    this.showAddEnviosModal = false;
+    const id = (item as any)?.id;
+    if (!id) return;
+    this.guiaGenManifiestoId = Number(id);
+    this.guiaGenSerie = String(((item as any).serie || ''));
+    this.guiaGenNumero = String(((item as any).numero || ''));
+    this.guiaGenDespacho = null;
+    this.guiaGenGuia = null;
+    this.guiaGenItems = [];
+    this.guiaGenEstado = '';
+    this.guiaDoc = null;
+    this.guiaDocNow = new Date();
+    this.guiaGenError = null;
+    this.guiaGenLoading = true;
+    this.showGuiaGeneradaModal = true;
+
+    this.enviosSrv.getEnviosManifiesto(Number(id)).subscribe({
+      next: (envs: any[]) => {
+        const envios = envs || [];
+        if (!envios.length) {
+          this.guiaGenLoading = false;
+          this.guiaGenError = 'No hay envios asociados; no se puede generar la guia.';
+          return;
+        }
+        this.ensureDespachoGuiaItems(item, envios);
+      },
+      error: () => {
+        this.guiaGenLoading = false;
+        this.guiaGenError = 'No se pudieron cargar los envios del manifiesto.';
+      }
+    });
+  }
+
+  closeGuiaGenerada() { this.showGuiaGeneradaModal = false; }
 
   exportGuiaPDF() {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -751,6 +808,272 @@ ngOnInit(): void {
     this.guiaIgv = 0;
     this.guiaTotal = total;
     return rows;
+  }
+
+  private ensureDespachoGuiaItems(item: Manifiesto, envios: Envio[]) {
+    const manifiestoId = Number((item as any)?.id);
+    this.guiasSrv.getDespachoManifiesto(manifiestoId).subscribe({
+      next: (res: any[]) => {
+        const despacho = (res || [])[0] as DespachoRead | undefined;
+        if (despacho) {
+          this.guiaGenDespacho = despacho;
+          this.ensureGuiaItemsForDespacho(item, envios, despacho);
+          return;
+        }
+        this.createDespacho(item, envios);
+      },
+      error: (err) => {
+        console.log(err?.status);
+        if (err?.status === 404) {
+          this.createDespacho(item, envios);
+          return;
+        }
+        this.guiaGenLoading = false;
+        this.guiaGenError = 'No se pudo validar el despacho.';
+      }
+    });
+  }
+
+  private createDespacho(item: Manifiesto, envios: Envio[]) {
+    const payload = this.buildDespachoPayload(item);
+    this.guiasSrv.createDespacho(payload).subscribe({
+      next: (despacho) => {
+        this.guiaGenDespacho = despacho;
+        this.ensureGuiaItemsForDespacho(item, envios, despacho);
+      },
+      error: () => {
+        this.guiaGenLoading = false;
+        this.guiaGenError = 'No se pudo crear el despacho.';
+      }
+    });
+  }
+
+  private ensureGuiaItemsForDespacho(item: Manifiesto, envios: Envio[], despacho: DespachoRead) {
+    forkJoin({
+      guias: this.guiasSrv.getGuiasByDespacho(despacho.id),
+      items: this.guiasSrv.getItemsDespacho(despacho.id),
+    }).subscribe({
+      next: ({ guias, items }) => {
+        const guia = (guias || [])[0] as Guia | undefined;
+        const existingItems = (items || []) as ItemGuia[];
+        if (guia && existingItems.length) {
+          this.guiaGenGuia = guia;
+          this.guiaGenItems = existingItems;
+          this.guiaGenEstado = String((guia as any)?.estado || 'L');
+          this.guiaDoc = this.buildGuiaDoc(item, despacho, guia, existingItems);
+          this.guiaGenLoading = false;
+          this.showNotif('Guia ya generada');
+          return;
+        }
+        const guia$ = guia ? of(guia) : this.guiasSrv.createGuia(this.buildGuiaPayload(item, despacho.id));
+        guia$.subscribe({
+          next: (guiaRes) => {
+            this.guiaGenGuia = guiaRes as Guia;
+            this.guiaGenEstado = String((guiaRes as any)?.estado || (guia ? (guia as any)?.estado : 'L') || 'L');
+            if (existingItems.length) {
+              this.guiaGenItems = existingItems;
+              this.guiaDoc = this.buildGuiaDoc(item, despacho, guiaRes as Guia, existingItems);
+              this.guiaGenLoading = false;
+              return;
+            }
+            this.createItemsForDespacho(item, despacho, envios);
+          },
+          error: () => {
+            this.guiaGenLoading = false;
+            this.guiaGenError = 'No se pudo crear la guia.';
+          }
+        });
+      },
+      error: () => {
+        this.guiaGenLoading = false;
+        this.guiaGenError = 'No se pudo cargar la informacion de la guia.';
+      }
+    });
+  }
+
+  private createItemsForDespacho(item: Manifiesto, despacho: DespachoRead, envios: Envio[]) {
+    const calls = (envios || []).map((e: any) => (e?.id ? this.detEnvSrv.getDetallesEnvio(Number(e.id)) : of([])));
+    forkJoin(calls).subscribe({
+      next: (detList: any[]) => {
+        const payloads = this.buildGuiaItemPayloads(despacho.id, envios, detList || []);
+        if (!payloads.length) {
+          this.guiaGenItems = [];
+          this.guiaGenLoading = false;
+          this.guiaGenError = 'No hay detalles para crear items.';
+          return;
+        }
+        forkJoin(payloads.map((p) => this.guiasSrv.createItemDespacho(p))).subscribe({
+          next: (created: any[]) => {
+            this.guiaGenItems = (created || []) as ItemGuia[];
+            if (this.guiaGenGuia) {
+              this.guiaDoc = this.buildGuiaDoc(item, despacho, this.guiaGenGuia, this.guiaGenItems);
+            }
+            this.guiaGenLoading = false;
+            this.showNotif('Guia generada');
+          },
+          error: () => {
+            this.guiaGenLoading = false;
+            this.guiaGenError = 'No se pudieron crear los items de la guia.';
+          }
+        });
+      },
+      error: () => {
+        this.guiaGenLoading = false;
+        this.guiaGenError = 'No se pudieron cargar los detalles de envios.';
+      }
+    });
+  }
+
+  private buildDespachoPayload(item: Manifiesto): any {
+    const origenId = this.safeOrigen(item as any);
+    const destinoId = this.safeDestino(item as any);
+    const serie = String((item as any)?.serie || '');
+    const numero = String((item as any)?.numero || '');
+    const me: any = localStorage.getItem('me');
+
+    console.log(me.id);
+    return {
+      manifiesto_id: Number((item as any)?.id),
+      estado: 'B',
+      compania_id: Number(this.authSrv.getCompaniaId() || 0),
+      origen_ubigeo: String(origenId ?? ''),
+      origen_direccion: this.nameFrom(origenId),
+      destino_ubigeo: String(destinoId ?? ''),
+      destino_direccion: this.nameFrom(destinoId),
+      razon_transferencia: `Manifiesto ${serie}-${numero}`.trim(),
+      inicio: this.utilSrv.formatFecha(new Date()),
+      aprobado_by: Number(me.id),
+      notas: '',
+    };
+  }
+
+  private buildGuiaPayload(item: Manifiesto, despachoId: number): any {
+    const series = String((item as any)?.serie || '');
+    const numeroRaw = String((item as any)?.numero || '');
+    const numero = String(numeroRaw.replace(/\D+/g, '')) || 0;
+    const numeroCompleto = [series, numeroRaw].filter(Boolean).join('-');
+    return {
+      despacho_id: Number(despachoId),
+      doc_type: 'GRTI',
+      series,
+      numero,
+      numero_completo: numeroCompleto,
+      emitido_en: this.utilSrv.formatFecha(new Date()),
+      estado: 'L',
+    };
+  }
+
+  private buildGuiaItemPayloads(despachoId: number, envios: Envio[], detList: any[]): ItemGuiaCreate[] {
+    const payloads: ItemGuiaCreate[] = [];
+    (envios || []).forEach((envio: any, idx: number) => {
+      const detalles = (detList?.[idx] || []) as any[];
+      if (!detalles.length) {
+        payloads.push({
+          despacho_id: despachoId,
+          sku: `ENV-${envio?.id ?? ''}`,
+          descripcion: `Envio ${envio?.id ?? ''}`.trim(),
+          uom: 'UND',
+          cantidad: 1,
+          peso: Number(envio?.peso) || 0,
+        });
+        return;
+      }
+      detalles.forEach((det: any, detIdx: number) => {
+        const itemNum = Number(det?.numero_item) || detIdx + 1;
+        payloads.push({
+          despacho_id: despachoId,
+          sku: `ENV-${envio?.id ?? ''}-${itemNum}`,
+          descripcion: String(det?.descripcion ?? ''),
+          uom: 'UND',
+          cantidad: Number(det?.cantidad) || 0,
+          peso: Number(envio?.peso) || 0,
+        });
+      });
+    });
+    return payloads;
+  }
+
+  setGuiaEstado(stateLabel: 'LISTO' | 'EMITIDA' | 'ANULADA') {
+    if (!this.guiaGenGuia || this.guiaEstadoUpdating) return;
+    const code = stateLabel === 'LISTO' ? 'L' : (stateLabel === 'EMITIDA' ? 'E' : 'A');
+    this.guiaEstadoUpdating = true;
+    this.guiasSrv.updateGuia(this.guiaGenGuia.id, { estado: code } as any).subscribe({
+      next: (res: any) => {
+        this.guiaEstadoUpdating = false;
+        this.guiaGenEstado = code;
+        this.guiaGenGuia = (res || this.guiaGenGuia) as any;
+        this.showNotif(`Estado actualizado a ${stateLabel}`);
+      },
+      error: () => {
+        this.guiaEstadoUpdating = false;
+        this.showNotif('No se pudo actualizar el estado', 'error');
+      }
+    });
+  }
+
+  guiaEstadoLabel(code: string | null | undefined): string {
+    const c = String(code || '').toUpperCase();
+    if (c === 'L') return 'LISTO';
+    if (c === 'E') return 'EMITIDA';
+    if (c === 'A') return 'ANULADA';
+    return c || '-';
+  }
+
+  private buildGuiaDoc(item: Manifiesto, despacho: DespachoRead, guia: Guia, items: ItemGuia[]) {
+    const conductor = this.conductorById((item as any)?.conductor_id);
+    const companyName = String(localStorage.getItem('razon_social') || this.authSrv.getCompania() || '').trim();
+    const companyRuc = String(localStorage.getItem('ruc') || '').trim();
+    const mappedItems = (items || []).map((it: any) => ({
+      sku: it.sku || '',
+      description: it.descripcion || '',
+      uom: it.uom || '',
+      qty: Number(it.cantidad) || 0,
+      lot: '',
+      weightKg: Number(it.peso) || 0,
+    }));
+    const totalQty = mappedItems.reduce((acc: number, it: any) => acc + (Number(it.qty) || 0), 0);
+    const totalWeightKg = mappedItems.reduce((acc: number, it: any) => acc + (Number(it.weightKg) || 0), 0);
+    const fullNumber = String((guia as any)?.numero_completo || `${(guia as any)?.series || ''}-${(guia as any)?.numero || ''}`).trim();
+    const hashSha = String((guia as any)?.hash_sha || '');
+    return {
+      fullNumber,
+      issuedAt: (guia as any)?.emitido_en || null,
+      startDatetime: despacho?.inicio || null,
+      qrDataUrl: '',
+      verifyUrl: '',
+      companyName: companyName || '-',
+      companyRuc: companyRuc || '-',
+      transferReason: despacho?.razon_transferencia || '',
+      notes: despacho?.notas || '',
+      originUbigeo: despacho?.origen_ubigeo || '',
+      originAddress: despacho?.origen_direccion || '',
+      destUbigeo: despacho?.destino_ubigeo || '',
+      destAddress: despacho?.destino_direccion || '',
+      vehiclePlate: (item as any)?.placa || '',
+      trailerPlate: '',
+      driverName: conductor?.name || this.conductorLabel((item as any)?.conductor_id),
+      driverDocType: conductor?.docType || '',
+      driverDocNumber: conductor?.docNumber || '',
+      driverLicense: conductor?.license || '',
+      hashShort: hashSha ? hashSha.slice(0, 12) + '...' : '',
+      issuedBy: this.authSrv.getUserLabel() || '',
+      items: mappedItems,
+      totalQty,
+      totalWeightKg,
+      hashSha256: hashSha,
+    };
+  }
+
+  private conductorById(id: number | null | undefined) {
+    if (!id) return null;
+    const c = (this.conductores || []).find((cc: any) => Number(cc.id) === Number(id));
+    if (!c) return null;
+    return {
+      name: this.conductorLabel(id),
+      docType: (c as any)?.persona?.tipo_documento || '',
+      docNumber: (c as any)?.persona?.nro_documento || '',
+      license: (c as any)?.licencia || '',
+    };
   }
 }
 

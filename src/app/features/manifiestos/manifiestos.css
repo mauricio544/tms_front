@@ -1,1 +1,178 @@
-﻿
+﻿.page {
+  font-family: "Courier New", Courier, monospace;
+  color: #111827;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.header__left .title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.doc-number {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.meta {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.header__right {
+  text-align: right;
+}
+
+.qr img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  border: 1px solid #e5e7eb;
+  padding: 4px;
+}
+
+.verify {
+  margin-top: 6px;
+}
+
+.box {
+  border: 1px solid #111827;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.box__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.subbox {
+  border: 1px dashed #111827;
+  padding: 8px;
+}
+
+.subbox__title {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.line {
+  font-size: 12px;
+  margin: 2px 0;
+}
+
+.items {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.items th,
+.items td {
+  border: 1px solid #111827;
+  padding: 6px;
+  vertical-align: top;
+}
+
+.items thead th {
+  background: #f3f4f6;
+  text-align: left;
+}
+
+.items .num {
+  text-align: right;
+}
+
+.items .right {
+  text-align: right;
+}
+
+.items .empty {
+  text-align: center;
+  color: #6b7280;
+}
+
+.w-code {
+  width: 14%;
+}
+
+.w-uom {
+  width: 8%;
+}
+
+.w-qty {
+  width: 10%;
+}
+
+.w-lot {
+  width: 12%;
+}
+
+.w-weight {
+  width: 12%;
+}
+
+.footer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+}
+
+.small {
+  font-size: 11px;
+}
+
+.mono {
+  font-family: "Courier New", Courier, monospace;
+}
+
+.loading {
+  padding: 16px;
+  text-align: center;
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .header__right {
+    text-align: left;
+  }
+
+  .grid2,
+  .grid3 {
+    grid-template-columns: 1fr;
+  }
+
+  .footer {
+    flex-direction: column;
+  }
+}

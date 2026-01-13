@@ -59,7 +59,7 @@
           </div>
           <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Manifiesto</button>
-            <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Gu&iacute;a</button>
+            <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>
             <button class="rounded-md bg-[#21D0B2] px-2.5 py-1.5 text-xs text-white hover:bg-[#21D0B2]/90" (click)="verEnvios(item)">Ver Envíos</button>
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
@@ -89,7 +89,7 @@
               <td class="px-3 py-2">
                 <div class="flex items-center gap-2">
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Manifiesto</button>
-                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Gu&iacute;a</button>
+                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>
                   <button class="rounded-md bg-[#21D0B2] px-2 py-1 text-xs text-white hover:bg-[#21D0B2]/90" (click)="verEnvios(item)">Ver Envíos</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
@@ -436,6 +436,154 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Guía generada (Despacho/Guía/Items) -->
+<div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showGuiaGeneradaModal">
+  <div class="rounded-md border border-slate-200 bg-white p-6">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-slate-800">Guia del Manifiesto {{ guiaGenSerie }}-{{ guiaGenNumero }}</h3>
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="text-sm text-slate-600">Estado: <span class="font-semibold">{{ guiaEstadoLabel(guiaGenEstado) }}</span></div>
+        <button (click)="setGuiaEstado('LISTO')" [disabled]="guiaEstadoUpdating || !guiaGenGuia" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">LISTO</button>
+        <button (click)="setGuiaEstado('EMITIDA')" [disabled]="guiaEstadoUpdating || !guiaGenGuia" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">EMITIDA</button>
+        <button (click)="setGuiaEstado('ANULADA')" [disabled]="guiaEstadoUpdating || !guiaGenGuia" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">ANULADA</button>
+        <button (click)="closeGuiaGenerada()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
+      </div>
+    </div>
+    <div *ngIf="guiaGenLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando.</div>
+    <div *ngIf="guiaGenError" class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ guiaGenError }}</div>
+    <div *ngIf="!guiaGenLoading && !guiaGenError" class="rounded-md border border-slate-200 p-3">
+      <div class="page" *ngIf="guiaDoc">
+        <header class="header">
+          <div class="header__left">
+            <div class="title">Guia de Traslado Interno</div>
+            <div class="doc-number">{{ guiaDoc.fullNumber }}</div>
+            <div class="meta">
+              <div><b>Emitida:</b> {{ guiaDoc.issuedAt | date:'yyyy-MM-dd HH:mm' }}</div>
+              <div><b>Inicio traslado:</b> {{ guiaDoc.startDatetime | date:'yyyy-MM-dd HH:mm' }}</div>
+            </div>
+          </div>
+
+          <div class="header__right">
+            <div class="qr" *ngIf="guiaDoc.qrDataUrl">
+              <img [src]="guiaDoc.qrDataUrl" alt="QR" />
+            </div>
+            <div class="verify small" *ngIf="guiaDoc.verifyUrl">
+              <div><b>Verifique:</b></div>
+              <div class="mono">{{ guiaDoc.verifyUrl }}</div>
+            </div>
+          </div>
+        </header>
+
+        <section class="box">
+          <div class="box__title">Empresa</div>
+          <div class="grid2">
+            <div>
+              <div class="line"><b>Razon social:</b> {{ guiaDoc.companyName }}</div>
+              <div class="line"><b>RUC:</b> {{ guiaDoc.companyRuc }}</div>
+            </div>
+            <div>
+              <div class="line"><b>Motivo:</b> {{ guiaDoc.transferReason }}</div>
+              <div class="line"><b>Observaciones:</b> {{ guiaDoc.notes || '-' }}</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="box">
+          <div class="box__title">Origen / Destino</div>
+          <div class="grid2">
+            <div class="subbox">
+              <div class="subbox__title">Origen</div>
+              <div class="line"><b>Ubigeo:</b> {{ guiaDoc.originUbigeo }}</div>
+              <div class="line"><b>Direccion:</b> {{ guiaDoc.originAddress }}</div>
+            </div>
+
+            <div class="subbox">
+              <div class="subbox__title">Destino</div>
+              <div class="line"><b>Ubigeo:</b> {{ guiaDoc.destUbigeo }}</div>
+              <div class="line"><b>Direccion:</b> {{ guiaDoc.destAddress }}</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="box">
+          <div class="box__title">Datos de transporte</div>
+          <div class="grid3">
+            <div class="subbox">
+              <div class="subbox__title">Vehiculo</div>
+              <div class="line"><b>Placa:</b> {{ guiaDoc.vehiclePlate || '-' }}</div>
+              <div class="line"><b>Remolque:</b> {{ guiaDoc.trailerPlate || '-' }}</div>
+            </div>
+
+            <div class="subbox">
+              <div class="subbox__title">Conductor</div>
+              <div class="line"><b>Nombre:</b> {{ guiaDoc.driverName || '-' }}</div>
+              <div class="line"><b>Doc:</b> {{ guiaDoc.driverDocType || '' }} {{ guiaDoc.driverDocNumber || '' }}</div>
+              <div class="line"><b>Licencia:</b> {{ guiaDoc.driverLicense || '-' }}</div>
+            </div>
+
+            <div class="subbox">
+              <div class="subbox__title">Trazabilidad</div>
+              <div class="line"><b>Hash:</b> <span class="mono">{{ guiaDoc.hashShort }}</span></div>
+              <div class="line"><b>Usuario:</b> {{ guiaDoc.issuedBy || '-' }}</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="box">
+          <div class="box__title">Bienes trasladados</div>
+          <table class="items">
+            <thead>
+              <tr>
+                <th class="w-code">Codigo</th>
+                <th>Descripcion</th>
+                <th class="w-uom">U.M.</th>
+                <th class="w-qty">Cantidad</th>
+                <th class="w-lot">Lote</th>
+                <th class="w-weight">Peso (kg)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let it of guiaDoc.items; let i = index">
+                <td class="mono">{{ it.sku || '' }}</td>
+                <td>{{ it.description }}</td>
+                <td class="mono">{{ it.uom }}</td>
+                <td class="num">{{ it.qty }}</td>
+                <td class="mono">{{ it.lot || '' }}</td>
+                <td class="num">{{ it.weightKg || '' }}</td>
+              </tr>
+
+              <tr *ngIf="!guiaDoc.items?.length">
+                <td colspan="6" class="empty">Sin items</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" class="right"><b>Total</b></td>
+                <td class="num"><b>{{ guiaDoc.totalQty }}</b></td>
+                <td class="right"><b>Peso total</b></td>
+                <td class="num"><b>{{ guiaDoc.totalWeightKg }}</b></td>
+              </tr>
+            </tfoot>
+          </table>
+        </section>
+
+        <footer class="footer">
+          <div class="small">
+            Documento interno. Impreso el {{ guiaDocNow | date:'yyyy-MM-dd HH:mm' }}.
+          </div>
+          <div class="small mono">
+            {{ guiaDoc.fullNumber }} · {{ guiaDoc.hashSha256 }}
+          </div>
+        </footer>
+      </div>
+
+      <div class="page" *ngIf="!guiaDoc">
+        <div class="loading">Cargando guia...</div>
       </div>
     </div>
   </div>
