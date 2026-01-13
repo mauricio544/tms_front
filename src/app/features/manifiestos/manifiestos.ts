@@ -814,8 +814,8 @@ ngOnInit(): void {
     const manifiestoId = Number((item as any)?.id);
     this.guiasSrv.getDespachoManifiesto(manifiestoId).subscribe({
       next: (res: any[]) => {
-        const despacho = (res || [])[0] as DespachoRead | undefined;
-        if (despacho) {
+        const despacho = (Array.isArray(res) ? res[0] : res) as DespachoRead | undefined;
+        if (despacho && (despacho as any).id) {
           this.guiaGenDespacho = despacho;
           this.ensureGuiaItemsForDespacho(item, envios, despacho);
           return;
