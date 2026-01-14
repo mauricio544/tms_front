@@ -50,13 +50,13 @@ interface Item {
 })
 export class Dashboard {
   maestros: Item[] = [
-    { key: 'clientes', title: 'Clientes', description: 'Alta y gestión de clientes', route: '/clientes', icon: 'heroUsers' },
+    /*{ key: 'clientes', title: 'Clientes', description: 'Alta y gestión de clientes', route: '/clientes', icon: 'heroUsers' },*/
     { key: 'vehiculos', title: 'Vehículos', description: 'Flota y documentos', route: '/vehiculos', icon: 'heroTruck' },
     { key: 'usuarios', title: 'Usuarios', description: 'Cuentas y permisos', route: '/usuarios', icon: 'heroUserCircle' },
     { key: 'personas', title: 'Personas', description: 'Contactos y referencias', route: '/personas', icon: 'heroIdentification' },
     { key: 'roles', title: 'Roles', description: 'Perfiles y autorizaciones', route: '/roles', icon: 'heroShieldCheck' },
-    { key: 'rutas', title: 'Puntos', description: 'Origen, destino y tarifas', route: '/puntos', icon: 'heroMap' },
-    { key: 'sedes', title: 'Sedes', description: 'Sucursales y bodegas', route: '/sedes', icon: 'heroBuildingOffice' },
+    { key: 'rutas', title: 'Sedes', description: 'Origen, destino y tarifas', route: '/puntos', icon: 'heroMap' },
+    /*{ key: 'sedes', title: 'Sedes', description: 'Sucursales y bodegas', route: '/sedes', icon: 'heroBuildingOffice' },*/
     { key: 'conductores', title: 'Conductores', description: 'Licencias y asignacion', route: '/conductores', icon: 'heroUserCircle' },
   ];
 

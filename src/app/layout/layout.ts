@@ -76,13 +76,13 @@ export class LayoutComponent {
   }
 
   maestros: NavItem[] = [
-    { label: 'Clientes', route: '/clientes', icon: 'heroUsers' },
+    /*{ label: 'Clientes', route: '/clientes', icon: 'heroUsers' },*/
     { label: 'Vehículos', route: '/vehiculos', icon: 'heroTruck' },
     { label: 'Usuarios', route: '/usuarios', icon: 'heroUserCircle' },
     { label: 'Personas', route: '/personas', icon: 'heroIdentification' },
     { label: 'Roles', route: '/roles', icon: 'heroShieldCheck' },
-    { label: 'Puntos', route: '/puntos', icon: 'heroMap' },
-    { label: 'Sedes', route: '/sedes', icon: 'heroBuildingOffice' },
+    { label: 'Sedes', route: '/puntos', icon: 'heroMap' },
+    /*{ label: 'Sedes', route: '/sedes', icon: 'heroBuildingOffice' },*/
     { label: 'Conductores', route: '/conductores', icon: 'heroUserCircle' },
   ] ;
 

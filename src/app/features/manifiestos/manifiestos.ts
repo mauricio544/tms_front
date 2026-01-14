@@ -18,13 +18,14 @@ import { RouterLink } from '@angular/router';
 import { Utilitarios } from '../../../../core/services/utilitarios';
 import { Guias } from '../../../../core/services/guias';
 import { AuthService } from '../../../../core/services/auth.service';
+import {Utils} from '../../../../core/services/utils';
 
 export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; copiloto_id: number | null, turno: string | null, placa: string | null, fecha_traslado: string | null };
 
 @Component({
   selector: 'feature-manifiestos',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, RouterLink],
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, RouterLink, Utils],
   templateUrl: './manifiestos.html',
   styleUrl: './manifiestos.css',
 })
@@ -224,6 +225,9 @@ export class ManifiestosFeature implements OnInit {
           this.lista_manifiestos = [updated, ...this.lista_manifiestos];
         }
         const wasEditing = this.editing;
+        if (!wasEditing) {
+          this.attachEnviosByDestino(updated);
+        }
         this.saving = false;
         this.editing = false;
         this.editingId = null;
@@ -235,6 +239,31 @@ export class ManifiestosFeature implements OnInit {
         this.saving = false;
         this.saveError = this.editing ? 'No se pudo actualizar' : 'No se pudo crear el manifiesto';
         this.showNotif('No se pudo crear/actualizar el manifiesto', 'error');
+      }
+    });
+  }
+
+  private attachEnviosByDestino(item: Manifiesto) {
+    const mid = Number((item as any)?.id);
+    const destinoId = Number((item as any)?.codigo_punto_destino);
+    if (!mid || !destinoId) return;
+    this.enviosSrv.getEnvios().subscribe({
+      next: (res) => {
+        const all = (res || []) as any[];
+        const toAttach = all.filter((e: any) => e?.manifiesto == null && Number(e?.punto_destino_id) === destinoId);
+        if (!toAttach.length) return;
+        const calls = toAttach.map((e: any) => this.enviosSrv.updateEnvios(Number(e.id), { manifiesto: mid } as any));
+        forkJoin(calls).subscribe({
+          next: () => {
+            this.showNotif('Envios agregados al manifiesto');
+          },
+          error: () => {
+            this.showNotif('No se pudieron agregar los envios', 'error');
+          }
+        });
+      },
+      error: () => {
+        this.showNotif('No se pudieron cargar los envios', 'error');
       }
     });
   }
@@ -324,7 +353,7 @@ export class ManifiestosFeature implements OnInit {
     const c = (this.conductores || []).find((cc:any) => cc.id === id);
     if (!c) return String(id);
     //return `${c.licencia || 'Conductor'} - ${c.tipo_licencia || ''}`.trim();
-    const persona = c.persona.tipo_documento === 'DNI' ? `${c.persona.nombre} ${c.persona.apellido}` : `${c.persona.razon_social}`;
+    const persona = c.persona.tipo_documento === 'DNI' ? `${c.persona.nombre.toUpperCase()} ${c.persona.apellido.toUpperCase()}` : `${c.persona.razon_social.toUpperCase()}`;
     return persona.trim();
   }
 
@@ -859,7 +888,7 @@ ngOnInit(): void {
         if (guia && existingItems.length) {
           this.guiaGenGuia = guia;
           this.guiaGenItems = existingItems;
-          this.guiaGenEstado = String((guia as any)?.estado || 'L');
+          this.guiaGenEstado = String((despacho as any)?.estado || 'B');
           this.guiaDoc = this.buildGuiaDoc(item, despacho, guia, existingItems);
           this.guiaGenLoading = false;
           this.showNotif('Guia ya generada');
@@ -869,7 +898,7 @@ ngOnInit(): void {
         guia$.subscribe({
           next: (guiaRes) => {
             this.guiaGenGuia = guiaRes as Guia;
-            this.guiaGenEstado = String((guiaRes as any)?.estado || (guia ? (guia as any)?.estado : 'L') || 'L');
+            this.guiaGenEstado = String((despacho as any)?.estado || 'B');
             if (existingItems.length) {
               this.guiaGenItems = existingItems;
               this.guiaDoc = this.buildGuiaDoc(item, despacho, guiaRes as Guia, existingItems);
@@ -959,7 +988,6 @@ ngOnInit(): void {
       numero,
       numero_completo: numeroCompleto,
       emitido_en: this.utilSrv.formatFecha(new Date()),
-      estado: 'L',
     };
   }
 
@@ -994,14 +1022,14 @@ ngOnInit(): void {
   }
 
   setGuiaEstado(stateLabel: 'LISTO' | 'EMITIDA' | 'ANULADA') {
-    if (!this.guiaGenGuia || this.guiaEstadoUpdating) return;
+    if (!this.guiaGenDespacho || this.guiaEstadoUpdating) return;
     const code = stateLabel === 'LISTO' ? 'L' : (stateLabel === 'EMITIDA' ? 'E' : 'A');
     this.guiaEstadoUpdating = true;
-    this.guiasSrv.updateGuia(this.guiaGenGuia.id, { estado: code } as any).subscribe({
+    this.guiasSrv.updateDespacho(this.guiaGenDespacho.id, { estado: code } as any).subscribe({
       next: (res: any) => {
         this.guiaEstadoUpdating = false;
         this.guiaGenEstado = code;
-        this.guiaGenGuia = (res || this.guiaGenGuia) as any;
+        this.guiaGenDespacho = (res || this.guiaGenDespacho) as any;
         this.showNotif(`Estado actualizado a ${stateLabel}`);
       },
       error: () => {
@@ -1013,10 +1041,59 @@ ngOnInit(): void {
 
   guiaEstadoLabel(code: string | null | undefined): string {
     const c = String(code || '').toUpperCase();
+    if (c === 'B') return 'BORRADOR';
     if (c === 'L') return 'LISTO';
     if (c === 'E') return 'EMITIDA';
     if (c === 'A') return 'ANULADA';
     return c || '-';
+  }
+
+  printGuia() {
+    if (!this.guiaDoc) return;
+    const printContent = document.getElementById('guia-print');
+    if (!printContent) {
+      this.showNotif('No se pudo preparar la impresion', 'error');
+      return;
+    }
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (!win) {
+      this.showNotif('No se pudo abrir la ventana de impresion', 'error');
+      return;
+    }
+    const style = `
+      body { font-family: "Courier New", Courier, monospace; color: #111827; margin: 20px; }
+      .header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 12px; }
+      .header__left .title { font-size: 16px; font-weight: 700; }
+      .doc-number { font-size: 14px; font-weight: 600; margin-top: 2px; }
+      .meta { margin-top: 6px; font-size: 12px; }
+      .header__right { text-align: right; }
+      .qr img { width: 90px; height: 90px; object-fit: contain; border: 1px solid #e5e7eb; padding: 4px; }
+      .box { border: 1px solid #111827; padding: 10px; margin-top: 10px; }
+      .box__title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+      .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+      .subbox { border: 1px dashed #111827; padding: 8px; }
+      .subbox__title { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+      .line { font-size: 12px; margin: 2px 0; }
+      .items { width: 100%; border-collapse: collapse; font-size: 12px; }
+      .items th, .items td { border: 1px solid #111827; padding: 6px; vertical-align: top; }
+      .items thead th { background: #f3f4f6; text-align: left; }
+      .items .num, .items .right { text-align: right; }
+      .items .empty { text-align: center; color: #6b7280; }
+      .w-code { width: 14%; }
+      .w-uom { width: 8%; }
+      .w-qty { width: 10%; }
+      .w-lot { width: 12%; }
+      .w-weight { width: 12%; }
+      .footer { margin-top: 10px; display: flex; justify-content: space-between; gap: 10px; font-size: 11px; }
+      .small { font-size: 11px; }
+      .mono { font-family: "Courier New", Courier, monospace; }
+    `;
+    win.document.write(`<!doctype html><html><head><title>Guia ${this.guiaDoc.fullNumber || ''}</title><style>${style}</style></head><body>${printContent.outerHTML}</body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
   }
 
   private buildGuiaDoc(item: Manifiesto, despacho: DespachoRead, guia: Guia, items: ItemGuia[]) {

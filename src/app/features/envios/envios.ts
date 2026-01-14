@@ -311,7 +311,7 @@ export class EnviosFeature implements OnInit {
   puntosError: string | null = null;
   getPuntoNombre(id: number | null | undefined): string {
     const p = (this.puntos || []).find(x => (x as any).id === Number(id));
-    return p ? (p as any).nombre : (id != null ? String(id) : '-');
+    return p ? (p as any).nombre.toUpperCase() : (id != null ? String(id) : '-');
   }
 
   // Lista filtrada y paginaciÃ³n

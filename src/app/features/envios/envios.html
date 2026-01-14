@@ -31,12 +31,12 @@
     <select [(ngModel)]="origenFilterId" (ngModelChange)="onFilterChange()"
             class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
       <option [ngValue]="null">Origen: Todos</option>
-      <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+      <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre.toUpperCase() }}</option>
     </select>
     <select [(ngModel)]="destinoFilterId" (ngModelChange)="onFilterChange()"
             class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
       <option [ngValue]="null">Destino: Todos</option>
-      <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre }}</option>
+      <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre.toUpperCase() }}</option>
     </select>
     <button (click)="openCreate()"
             class="inline-flex items-center rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 focus:outline-none focus:ring-2 focus:ring-[#26A69A]">
@@ -69,7 +69,7 @@
               <option [ngValue]="'RUC'">RUC</option>
               <option [ngValue]="'DNI'">DNI</option>
             </select>
-            <input type="text" [(ngModel)]="remitenteDocNumber" (keydown.enter)="lookupRemitente()" placeholder="Nro documento"`r`n                   (keydown.tab)="focusDestinatarioDoc($event, destinatarioDocNumberInput)"
+            <input type="text" [(ngModel)]="remitenteDocNumber" (keydown.enter)="lookupRemitente()" placeholder="Nro documento" (keydown.tab)="focusDestinatarioDoc($event, destinatarioDocNumberInput)"
                    class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
             <!--<button type="button" (click)="lookupRemitente()" [disabled]="remLookupLoading"
                     class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-white/60">{{ remLookupLoading ? 'Buscando...' : 'Buscar' }}
@@ -166,7 +166,7 @@
           <select [(ngModel)]="newEnvio.punto_origen_id"
                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onOrigenChange($event)">
             <option [ngValue]="null">Seleccione...</option>
-            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_destino_id">{{ p.nombre }}</option>
+            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_destino_id">{{ p.nombre.toUpperCase() }}</option>
           </select>
           <div class="text-xs text-slate-500 mt-1" *ngIf="puntosLoading">Cargando puntos...</div>
           <div class="text-xs text-red-600 mt-1" *ngIf="puntosError">{{ puntosError }}</div>
@@ -176,7 +176,7 @@
           <select [(ngModel)]="newEnvio.punto_destino_id"
                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onDestinoChange($event)">
             <option [ngValue]="null">Seleccione...</option>
-            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_origen_id">{{ p.nombre }}</option>
+            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_origen_id">{{ p.nombre.toUpperCase() }}</option>
           </select>
         </div>
       </div>
