@@ -332,7 +332,7 @@ export class ManifiestosFeature implements OnInit {
   nameFrom(id: number | null): string {
     if (!id) return '';
     const f = (this.puntos || []).find((p:any) => p.id === id);
-    return (f as any)?.nombre || String(id);
+    return (f as any)?.nombre.toUpperCase() || String(id);
   }
 
   loadConductores() {
@@ -786,6 +786,7 @@ ngOnInit(): void {
   turnoLabel(turno: string | null | undefined): string {
     if (!turno) return '';
     const t = String(turno).toUpperCase();
+    if (t.includes(':')) return String(turno);
     if (t === 'M') return 'Mañana';
     if (t === 'T') return 'Tarde';
     if (t === 'N') return 'Noche';

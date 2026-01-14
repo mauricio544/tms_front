@@ -189,8 +189,8 @@ export class GastosFeature implements OnInit {
   showPersonaOptions = false;
   personasError: string | null = null;
   personaLabel(p: Persona): string {
-    const nombre = [p.nombre, p.apellido].filter(Boolean).join(' ').trim();
-    const razon = (p.razon_social || '').trim();
+    const nombre = [(p.nombre ?? '').toUpperCase(), (p.apellido ?? '').toUpperCase()].filter(Boolean).join(' ').trim();
+    const razon = ((p.razon_social ?? '').toUpperCase() || '').trim();
     const base = (razon || nombre || '').trim();
     const doc = (p.nro_documento || '').trim();
     return [base, doc].filter(Boolean).join(' - ');

@@ -187,6 +187,36 @@ export class EnviosFeature implements OnInit {
   }
   printComprobante() { try { window.print(); } catch { } }
 
+  private loadComprobanteForEnvio(envioId: number) {
+    this.comprobantesSrv.getComprobanteEnvio(envioId).subscribe({
+      next: (comp: any) => {
+        const compHeader: any = comp && typeof comp === 'object' ? comp : null;
+        const compId = Number((compHeader as any)?.id || 0);
+        if (!compId) {
+          this.showNotif('No se encontro comprobante para este envio', 'error');
+          return;
+        }
+        this.detCompSrv.getDetalles(compId).subscribe({
+          next: (list: any[]) => {
+            const detalles = (list || []).map((d: any, i: number) => ({
+              numero_item: Number(d?.numero_item ?? i + 1),
+              cantidad: Number(d?.cantidad) || 0,
+              descripcion: (d?.descripcion as any),
+              precio_unitario: Number(d?.precio_unitario) || 0,
+            }));
+            this.openComprobanteWindow(compHeader, detalles);
+          },
+          error: () => {
+            this.openComprobanteWindow(compHeader, []);
+          }
+        });
+      },
+      error: () => {
+        this.showNotif('No se pudo cargar el comprobante', 'error');
+      }
+    });
+  }
+
 
   // Envío en edición/creación
   newEnvio: Partial<Envio> = {
@@ -428,27 +458,34 @@ export class EnviosFeature implements OnInit {
     // Reset WhatsApp helpers
     this.sendWhatsapp = false; this.whatsappPhone = '';
   }
-  closeCreate() { this.showCreate = false; }
+  closeCreate() { this.showCreate = false; this.editing = false;}
 
   openEdit(item: Envio) {
     this.editing = true; this.editingId = (item as any).id ?? null;
 
     this.newEnvio = {
-  remitente: (item as any).remitente,
-  destinatario: (item as any).destinatario,
-  estado_pago: (item as any).estado_pago,
-  clave_recojo: (item as any).clave_recojo,
-  peso: (item as any).peso,
-  fecha_envio: this.normalizeDate((item as any).fecha_envio),
-  fecha_recepcion: (item as any).fecha_recepcion,
-  tipo_contenido: (item as any).tipo_contenido,
-  guia: (item as any).guia,
-  manifiesto: (item as any).manifiesto,
-  valida_restricciones: (item as any).valida_restricciones,
-  punto_origen_id: (item as any).punto_origen_id,
-  punto_destino_id: (item as any).punto_destino_id,
-} as any;
+      remitente: (item as any).remitente,
+      destinatario: (item as any).destinatario,
+      estado_pago: (item as any).estado_pago,
+      clave_recojo: (item as any).clave_recojo,
+      peso: (item as any).peso,
+      fecha_envio: this.normalizeDate((item as any).fecha_envio),
+      fecha_recepcion: (item as any).fecha_recepcion,
+      tipo_contenido: (item as any).tipo_contenido,
+      guia: (item as any).guia,
+      manifiesto: (item as any).manifiesto,
+      valida_restricciones: (item as any).valida_restricciones,
+      punto_origen_id: (item as any).punto_origen_id,
+      punto_destino_id: (item as any).punto_destino_id,
+    } as any;
     this.saveError = null; this.remitenteQuery = this.personaLabelById((item as any).remitente) || ''; this.destinatarioQuery = this.personaLabelById((item as any).destinatario) || ''; this.showEdit = true;
+    this.closeComprobante();
+    if ((this.newEnvio as any).estado_pago) {
+      const envioId = Number((item as any).id || 0);
+      if (envioId) {
+        this.loadComprobanteForEnvio(envioId);
+      }
+    }
     // Cargar el detalle del envío para mostrarlo en la edición
     try {
       const id = Number((item as any).id || 0);
@@ -479,7 +516,7 @@ export class EnviosFeature implements OnInit {
       }
     } catch { }
   }
-  closeEdit() { this.showEdit = false; }
+  closeEdit() { this.showEdit = false; this.editing = false;}
 
   get isValidEnvio(): boolean {
     const e: any = this.newEnvio;

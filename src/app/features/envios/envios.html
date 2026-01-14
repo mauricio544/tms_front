@@ -366,8 +366,8 @@
 
 
       <!-- Comprobante inline (editar: mostrar si pagado) -->
-      <div *ngIf="newEnvio.estado_pago && editing"
-           class="mt-4 rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]">
+<!--      <span>{{ newEnvio.estado_pago }}</span>-->
+      <div class="mt-4 rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]">
         <div class="text-sm font-semibold text-[#0A1A2F] mb-2">Comprobante Edición</div>
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
@@ -793,7 +793,7 @@
 
       </div>
       <!-- Comprobante inline (editar: mostrar si pagado) -->
-      <div *ngIf="newEnvio.estado_pago"
+      <div *ngIf="newEnvio.estado_pago && editing"
            class="mt-4 rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]">
         <div class="text-sm font-semibold text-[#0A1A2F] mb-2">Comprobante</div>
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">

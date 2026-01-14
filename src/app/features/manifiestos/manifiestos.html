@@ -160,9 +160,30 @@
         <label class="block text-sm text-slate-700">Turno</label>
         <select [(ngModel)]="newManifiesto.turno" name="destino" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
           <option [ngValue]="null">Seleccione turno</option>
-          <option value="M">Mañana</option>
-          <option value="T">Tarde</option>
-          <option value="N">Noche</option>
+          <option value="12:00 am">12:00 am</option>
+          <option value="01:00 am">01:00 am</option>
+          <option value="02:00 am">02:00 am</option>
+          <option value="03:00 am">03:00 am</option>
+          <option value="04:00 am">04:00 am</option>
+          <option value="05:00 am">05:00 am</option>
+          <option value="06:00 am">06:00 am</option>
+          <option value="07:00 am">07:00 am</option>
+          <option value="08:00 am">08:00 am</option>
+          <option value="09:00 am">09:00 am</option>
+          <option value="10:00 am">10:00 am</option>
+          <option value="11:00 am">11:00 am</option>
+          <option value="12:00 pm">12:00 pm</option>
+          <option value="01:00 pm">01:00 pm</option>
+          <option value="02:00 pm">02:00 pm</option>
+          <option value="03:00 pm">03:00 pm</option>
+          <option value="04:00 pm">04:00 pm</option>
+          <option value="05:00 pm">05:00 pm</option>
+          <option value="06:00 pm">06:00 pm</option>
+          <option value="07:00 pm">07:00 pm</option>
+          <option value="08:00 pm">08:00 pm</option>
+          <option value="09:00 pm">09:00 pm</option>
+          <option value="10:00 pm">10:00 pm</option>
+          <option value="11:00 pm">11:00 pm</option>
         </select>
       </div>
       <div>
@@ -222,7 +243,7 @@
             <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.destinatario) || e.destinatario }}</td>
             <td class="px-3 py-2">{{ e.peso }}</td>
-            <td class="px-3 py-2">{{ e.fecha_envio }}</td>
+            <td class="px-3 py-2">{{ e.fecha_envio | ymd }}</td>
             <td class="px-3 py-2">{{ e.estado_pago ? 'Sí' : 'No' }}</td>
             <td class="px-3 py-2">
               <div class="flex items-center justify-end gap-2">

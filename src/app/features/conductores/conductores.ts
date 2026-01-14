@@ -266,8 +266,8 @@ export class Conductores implements OnInit {
   personaName(id: number | null | undefined): string {
     const p = this.personas.find(pp => (pp as any).id === id);
     if (!p) return '';
-    const full = `${p.nombre || ''} ${p.apellido || ''}`.trim();
-    return full || p.razon_social || '';
+    const full = `${p.nombre.toUpperCase() || ''} ${p.apellido.toUpperCase() || ''}`.trim();
+    return full || p.razon_social.toUpperCase() || '';
   }
 }
 

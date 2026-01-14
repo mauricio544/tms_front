@@ -6,7 +6,9 @@ import { Envios } from '../../../../core/services/envios';
 import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
 import { Personas } from '../../../../core/services/personas';
 import { Puntos } from '../../../../core/services/puntos';
-import { Envio, DetalleFull as Detalle, Persona, Puntos as Punto } from '../../../../core/mapped';
+import { Manifiestos } from '../../../../core/services/manifiestos';
+import { Guias } from '../../../../core/services/guias';
+import { Envio, DetalleFull as Detalle, Persona, Puntos as Punto, Manifiesto, DespachoRead } from '../../../../core/mapped';
 
 @Component({
   selector: 'feature-reportes',
@@ -22,6 +24,8 @@ export class ReportesFeature implements OnInit {
   private readonly detalleSrv = inject(DetalleMovimientos);
   private readonly personasSrv = inject(Personas);
   private readonly puntosSrv = inject(Puntos);
+  private readonly manifiestosSrv = inject(Manifiestos);
+  private readonly guiasSrv = inject(Guias);
 
   loading = false;
   error: string | null = null;
@@ -30,6 +34,8 @@ export class ReportesFeature implements OnInit {
   movimientos: Detalle[] = [];
   personas: Persona[] = [];
   puntos: Punto[] = [];
+  manifiestos: Manifiesto[] = [];
+  despachos: DespachoRead[] = [];
 
   // Leaflet map state
   private leafletPromise: Promise<void> | null = null;
@@ -46,9 +52,9 @@ export class ReportesFeature implements OnInit {
   load() {
     this.loading = true;
     this.error = null;
-    let enviosLoaded = false, movsLoaded = false, personasLoaded = false, puntosLoaded = false;
+    let enviosLoaded = false, movsLoaded = false, personasLoaded = false, puntosLoaded = false, manifiestosLoaded = false, despachosLoaded = false;
     const done = () => {
-      if (enviosLoaded && movsLoaded && personasLoaded && puntosLoaded) {
+      if (enviosLoaded && movsLoaded && personasLoaded && puntosLoaded && manifiestosLoaded && despachosLoaded) {
         this.loading = false;
         this.setupMapIfReady();
       }
@@ -69,9 +75,40 @@ export class ReportesFeature implements OnInit {
       next: (res) => { this.puntos = res || []; puntosLoaded = true; done(); },
       error: () => { this.puntos = []; puntosLoaded = true; done(); }
     });
+    this.manifiestosSrv.getManifiestos().subscribe({
+      next: (res) => { this.manifiestos = res || []; manifiestosLoaded = true; done(); },
+      error: () => { this.manifiestos = []; manifiestosLoaded = true; done(); }
+    });
+    this.guiasSrv.getDespachos().subscribe({
+      next: (res: any) => {
+        this.despachos = this.normalizeArray<DespachoRead>(res);
+        despachosLoaded = true;
+        done();
+      },
+      error: () => { this.despachos = []; despachosLoaded = true; done(); }
+    });
   }
 
   // Helpers de etiquetas
+  private normalizeArray<T>(res: T | T[] | null | undefined): T[] {
+    if (Array.isArray(res)) return res;
+    return res ? [res] : [];
+  }
+
+  private getDateRange(): { fd: Date | null; td: Date | null } {
+    const fd = this.fromDate ? new Date(this.fromDate) : null;
+    const td = this.toDate ? new Date(this.toDate) : null;
+    if (fd) fd.setHours(0, 0, 0, 0);
+    if (td) td.setHours(23, 59, 59, 999);
+    return { fd, td };
+  }
+
+  private parseDate(value: any): Date | null {
+    if (!value) return null;
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   personaLabelById(id: number | null | undefined): string {
     if (!id) return '';
     const f = (this.personas || []).find((p:any) => Number(p.id) === Number(id));
@@ -99,10 +136,9 @@ export class ReportesFeature implements OnInit {
 
   // KPIs env�os
   get filteredEnvios(): Envio[] {
-    const fd = this.fromDate ? new Date(this.fromDate) : null;
-    const td = this.toDate ? new Date(this.toDate) : null;
+    const { fd, td } = this.getDateRange();
     return (this.envios || []).filter((e: any) => {
-      const d = e?.fecha_envio ? new Date(e.fecha_envio) : null;
+      const d = this.parseDate(e?.fecha_envio);
       if (fd && (!d || d < fd)) return false;
       if (td && (!d || d > td)) return false;
       return true;
@@ -114,13 +150,73 @@ export class ReportesFeature implements OnInit {
   get kpiNoPagados(): number { return this.filteredEnvios.filter((e:any) => !e?.estado_pago).length; }
 
   // KPIs movimientos
+  get filteredMovimientos(): Detalle[] {
+    const { fd, td } = this.getDateRange();
+    return (this.movimientos || []).filter((it: any) => {
+      if (!fd && !td) return true;
+      const raw = it?.cabecera?.fecha || it?.cabecera?.created_at || it?.cabecera?.fecha_movimiento || it?.fecha;
+      const d = this.parseDate(raw);
+      if (!d) return false;
+      if (fd && d < fd) return false;
+      if (td && d > td) return false;
+      return true;
+    });
+  }
   get totalIngresos(): number {
-    return (this.movimientos || []).reduce((acc: number, it: any) => acc + (((it?.cabecera?.tipo_movimiento || '') === 'I') ? Number(it?.monto || 0) : 0), 0);
+    return (this.filteredMovimientos || []).reduce((acc: number, it: any) => acc + (((it?.cabecera?.tipo_movimiento || '') === 'I') ? Number(it?.monto || 0) : 0), 0);
   }
   get totalEgresos(): number {
-    return (this.movimientos || []).reduce((acc: number, it: any) => acc + (((it?.cabecera?.tipo_movimiento || '') === 'E') ? Number(it?.monto || 0) : 0), 0);
+    return (this.filteredMovimientos || []).reduce((acc: number, it: any) => acc + (((it?.cabecera?.tipo_movimiento || '') === 'E') ? Number(it?.monto || 0) : 0), 0);
   }
   get totalNeto(): number { return this.totalIngresos - this.totalEgresos; }
+
+  // KPIs manifiestos y guias
+  get filteredManifiestos(): Manifiesto[] {
+    const { fd, td } = this.getDateRange();
+    return (this.manifiestos || []).filter((m: any) => {
+      if (!fd && !td) return true;
+      const d = this.parseDate(m?.fecha_traslado || m?.fecha || m?.created_at);
+      if (!d) return false;
+      if (fd && d < fd) return false;
+      if (td && d > td) return false;
+      return true;
+    });
+  }
+  private despachoMap(): Map<number, DespachoRead> {
+    const map = new Map<number, DespachoRead>();
+    (this.despachos || []).forEach((d: any) => {
+      const mid = Number(d?.manifiesto_id || d?.manifiestoId || 0);
+      if (mid) map.set(mid, d as DespachoRead);
+    });
+    return map;
+  }
+  get totalManifiestos(): number { return this.filteredManifiestos.length; }
+  get manifiestosConGuia(): number {
+    const map = this.despachoMap();
+    return (this.filteredManifiestos || []).filter((m: any) => map.has(Number(m?.id || 0))).length;
+  }
+  get manifiestosSinGuia(): number { return Math.max(0, this.totalManifiestos - this.manifiestosConGuia); }
+  get guiaEstadoCounts(): { label: string; value: number }[] {
+    const map = this.despachoMap();
+    const counts: Record<string, number> = { B: 0, L: 0, E: 0, A: 0 };
+    (this.filteredManifiestos || []).forEach((m: any) => {
+      const d = map.get(Number(m?.id || 0)) as any;
+      if (!d) return;
+      const estado = String(d?.estado || '').toUpperCase();
+      if (!estado) return;
+      counts[estado] = (counts[estado] || 0) + 1;
+    });
+    return ['B', 'L', 'E', 'A'].map((k) => ({ label: this.guiaEstadoLabel(k), value: counts[k] || 0 }));
+  }
+
+  private guiaEstadoLabel(code: string): string {
+    const c = String(code || '').toUpperCase();
+    if (c === 'B') return 'BORRADOR';
+    if (c === 'L') return 'LISTO';
+    if (c === 'E') return 'EMITIDA';
+    if (c === 'A') return 'ANULADA';
+    return c || '-';
+  }
 
   // Datos para gr�ficas simples
   get totalEnvios(): number { return this.filteredEnvios.length; }
@@ -276,6 +372,14 @@ export class ReportesFeature implements OnInit {
     lines.push(['Pagados', this.kpiPagados].map(esc).join(','));
     lines.push(['No pagados', this.kpiNoPagados].map(esc).join(','));
     lines.push('');
+    lines.push(['Manifiestos','Valor'].map(esc).join(','));
+    lines.push(['Total manifiestos', this.totalManifiestos].map(esc).join(','));
+    lines.push(['Con guía', this.manifiestosConGuia].map(esc).join(','));
+    lines.push(['Sin guía', this.manifiestosSinGuia].map(esc).join(','));
+    (this.guiaEstadoCounts || []).forEach((it) => {
+      lines.push([`Estado ${it.label}`, it.value].map(esc).join(','));
+    });
+    lines.push('');
     lines.push(['Resumen','Monto'].map(esc).join(','));
     lines.push(['Ingresos', this.totalIngresos.toFixed(2)].map(esc).join(','));
     lines.push(['Egresos', this.totalEgresos.toFixed(2)].map(esc).join(','));
@@ -302,6 +406,15 @@ export class ReportesFeature implements OnInit {
     doc.text(`No entregados: ${this.kpiNoEntregados}`, x, y); y += line;
     doc.text(`Pagados: ${this.kpiPagados}`, x, y); y += line;
     doc.text(`No pagados: ${this.kpiNoPagados}`, x, y); y += line * 1.2;
+    doc.setFont('helvetica','bold'); doc.text('Manifiestos', x, y); y += line;
+    doc.setFont('helvetica','normal');
+    doc.text(`Total: ${this.totalManifiestos}`, x, y); y += line;
+    doc.text(`Con guía: ${this.manifiestosConGuia}`, x, y); y += line;
+    doc.text(`Sin guía: ${this.manifiestosSinGuia}`, x, y); y += line;
+    (this.guiaEstadoCounts || []).forEach((it) => {
+      doc.text(`Estado ${it.label}: ${it.value}`, x, y); y += line;
+    });
+    y += line * 0.2;
     doc.setFont('helvetica','bold'); doc.text('Movimientos', x, y); y += line;
     doc.setFont('helvetica','normal');
     doc.text(`Ingresos: ${this.totalIngresos.toFixed(2)}`, x, y); y += line;

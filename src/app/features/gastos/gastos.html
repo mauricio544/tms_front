@@ -54,8 +54,8 @@
         <tr *ngFor="let it of pageItems" class="border-t border-slate-200">
           <td class="px-3 py-2">{{ it.id }}</td>
           <td class="px-3 py-2">{{ it.tipo_comprobante }}</td>
-          <td class="px-3 py-2">{{ it.numero_comprobante }}</td>
-          <td class="px-3 py-2">{{ it.descripcion || '-' }}</td>
+          <td class="px-3 py-2">{{ it.numero_comprobante.toUpperCase() }}</td>
+          <td class="px-3 py-2">{{ it.descripcion.toUpperCase() || '-' }}</td>
           <td class="px-3 py-2">{{ it.tipo_gasto || '-' }}</td>
           <td class="px-3 py-2"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" [ngClass]="{ 'bg-emerald-100 text-emerald-700': (it.cabecera.tipo_movimiento||'') === 'I', 'bg-red-100 text-red-700': (it.cabecera.tipo_movimiento||'') === 'E' }">{{ (it.cabecera.tipo_movimiento||'') === 'I' ? 'Ingreso' : 'Egreso' }}</span></td>
           <td class="px-3 py-2 text-right font-medium" [ngClass]="{ 'text-emerald-700': (it.cabecera.tipo_movimiento||'') === 'I', 'text-red-700': (it.cabecera.tipo_movimiento||'') === 'E' }">{{ (((it.cabecera.tipo_movimiento||'') === 'E' ? -1 : 1) * (it.monto || 0)) | number:'1.2-2' }}</td>

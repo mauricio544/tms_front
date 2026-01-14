@@ -41,7 +41,7 @@
             </div>
             <div class="min-w-0">
               <div class="font-medium text-slate-800 truncate max-w-[12rem]">
-                {{ item.razon_social || (item.nombre + ' ' + (item.apellido || '')) || item.email }}
+                {{ (item.razon_social ?? '').toUpperCase() || ((item.nombre ?? '').toUpperCase() + ' ' + ((item.apellido ?? '').toUpperCase() || '')) || item.email }}
               </div>
               <!--<div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>-->
             </div>
