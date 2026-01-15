@@ -135,11 +135,22 @@
                 Sin resultados
               </div>
             </div>
-            <div>
-              <label class="block text-sm text-slate-700">Celular destinatario</label>
-              <input type="text" [(ngModel)]="destinatarioCelular" placeholder="Celular"
-                     class="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-            </div>
+        <div class="rounded-md border border-slate-200 bg-white/70 p-3">
+          <label class="block text-sm text-slate-700">Celular destinatario</label>
+          <input type="text" [(ngModel)]="destinatarioCelular" placeholder="Celular"
+                 class="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+        </div>
+        <div class="col-span-2 rounded-md border border-slate-200 bg-white/70 p-3">
+          <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" [(ngModel)]="newEnvio.entrega_domicilio" class="h-4 w-4 accent-[#2F455C]"/>
+            Entrega a domicilio
+          </label>
+          <div class="mt-2">
+            <label class="block text-sm text-slate-700">Dirección de entrega</label>
+            <input type="text" [(ngModel)]="newEnvio.direccion_envio" [disabled]="!newEnvio.entrega_domicilio" [readOnly]="!newEnvio.entrega_domicilio"
+                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" />
+          </div>
+        </div>
           </div>
           <div class="text-xs text-red-600 mt-1" *ngIf="destLookupError">{{ destLookupError }}</div>
         </div>
@@ -763,10 +774,21 @@
         </div>
 
 
-        <div>
+        <div class="rounded-md border border-slate-200 bg-white/70 p-3">
           <label class="block text-sm text-slate-700">Celular destinatario</label>
           <input type="text" [(ngModel)]="destinatarioCelular" placeholder="Celular"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+        </div>
+        <div class="col-span-2 rounded-md border border-slate-200 bg-white/70 p-3">
+          <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" [(ngModel)]="newEnvio.entrega_domicilio" class="h-4 w-4 accent-[#2F455C]"/>
+            Entrega a domicilio
+          </label>
+          <div class="mt-2">
+            <label class="block text-sm text-slate-700">Dirección de entrega</label>
+            <input type="text" [(ngModel)]="newEnvio.direccion_envio" [disabled]="!newEnvio.entrega_domicilio" [readOnly]="!newEnvio.entrega_domicilio"
+                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" />
+          </div>
         </div>
 
       </div>

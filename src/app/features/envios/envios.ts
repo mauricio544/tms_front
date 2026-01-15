@@ -222,6 +222,8 @@ export class EnviosFeature implements OnInit {
   newEnvio: Partial<Envio> = {
     remitente: null as any,
     destinatario: null as any,
+    entrega_domicilio: false,
+    direccion_envio: '',
     estado_pago: false,
     clave_recojo: '',
     peso: null as any,
@@ -498,6 +500,8 @@ export class EnviosFeature implements OnInit {
     this.newEnvio = {
   remitente: (item as any).remitente,
   destinatario: (item as any).destinatario,
+  entrega_domicilio: !!(item as any).entrega_domicilio,
+  direccion_envio: ((item as any).direccion_envio ?? '').toUpperCase() ?? '',
   estado_pago: (item as any).estado_pago,
   clave_recojo: (item as any).clave_recojo,
   peso: (item as any).peso,
@@ -570,6 +574,8 @@ export class EnviosFeature implements OnInit {
     this.newEnvio = {
       remitente: null as any,
       destinatario: null as any,
+      entrega_domicilio: false,
+      direccion_envio: '',
       estado_pago: false,
       clave_recojo: '',
       peso: null as any,
@@ -592,13 +598,13 @@ export class EnviosFeature implements OnInit {
     const e: any = this.newEnvio;
     const doSubmit = () => {
     const payload: any = {
-      remitente: Number(e.remitente), destinatario: Number(e.destinatario), estado_pago: !!e.estado_pago, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id)
+      remitente: Number(e.remitente), destinatario: Number(e.destinatario), entrega_domicilio: !!e.entrega_domicilio, direccion_envio: String(e.direccion_envio || '').toUpperCase().trim(), estado_pago: !!e.estado_pago, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id)
     };
     this.saving = true; this.saveError = null;
     if (this.editing && this.editingId) {
       this.enviosSrv.updateEnvios(this.editingId, payload).subscribe({
         next: (res: any) => {
-          const updated: Envio = { id: res?.id ?? this.editingId!, remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega } as Envio;
+          const updated: Envio = { id: res?.id ?? this.editingId!, remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio } as Envio;
           this.lista_envios = this.lista_envios.map(v => (v as any).id === this.editingId ? updated : v);
           this.saving = false; this.editing = false; this.editingId = null; this.onFilterChange();
 this.closeEdit(); this.showNotif('Env\u00edo actualizado');
@@ -610,7 +616,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
     this.enviosSrv.createEnvios(payload).subscribe({
       next: (res: any) => {
         const newId = Number(res?.id);
-        const updated: Envio = { id: newId || (Math.max(0, ...(this.lista_envios.map((x: any) => x.id).filter(Number))) + 1), remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega } as Envio;
+        const updated: Envio = { id: newId || (Math.max(0, ...(this.lista_envios.map((x: any) => x.id).filter(Number))) + 1), remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio } as Envio;
         const detalles = (this.stagedDetalles || []).map((d, i) => ({ id: 0, numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: (d.descripcion as any), precio_unitario: Number(d.precio_unitario) || 0, envio_id: newId })) as DetalleEnvioCreate[];
         if (newId && detalles.length) {
           forkJoin(detalles.map(d => this.detalleSrv.createDetalleEnvio(d))).subscribe({ next: () => this.afterCreate(updated, newId, payload), error: () => { this.saving = false; this.saveError = 'No se pudo crear el detalle del env\u00edo'; this.showNotif(this.saveError as string, 'error'); } });

@@ -140,6 +140,8 @@ export interface Envio {
   punto_origen_id: number;
   punto_destino_id: number;
   estado_entrega: boolean;
+  entrega_domicilio: boolean;
+  direccion_envio: string;
 }
 
 export interface EnvioCreate {
@@ -155,6 +157,8 @@ export interface EnvioCreate {
   valida_restricciones: boolean;
   punto_origen_id: number;
   punto_destino_id: number;
+  entrega_domicilio: boolean;
+  direccion_envio: string;
 }
 
 export interface Comprobante {
