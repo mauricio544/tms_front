@@ -234,6 +234,8 @@ export class EnviosFeature implements OnInit {
     punto_origen_id: null as any,
     punto_destino_id: null as any,
   } as any;
+  destinatarioCelular = '';
+  confirmClaveRecojo = '';
 
   // Detalle de envío (creación)
   stagedDetalles: Array<{ cantidad: number; descripcion: any; precio_unitario: number }> = [];
@@ -376,8 +378,36 @@ export class EnviosFeature implements OnInit {
   get filteredDestinatarios(): Persona[] { const q = (this.destinatarioQuery || '').toLowerCase().trim(); const list = this.personas || []; if (!q) return list.slice(0, 10); return list.filter(p => this.personaLabel(p).toLowerCase().includes(q)).slice(0, 10); }
   personaLabel(p: Persona): string { const nombre = [p.nombre, p.apellido].filter(Boolean).join(' ').trim(); const razon = (p.razon_social || '').trim(); const base = (razon || nombre || '').trim(); const doc = (p.nro_documento || '').trim(); return [base, doc].filter(Boolean).join(' - '); }
   personaLabelById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? this.personaLabel(p) : null; }
+  personaCelularById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? String((p as any).celular || '') : null; }
+  private updateDestinatarioCelular(destinatarioId: number, celular: string, next: () => void) {
+    if (!destinatarioId || !celular) { next(); return; }
+    const current = this.personaCelularById(destinatarioId) || '';
+    if (current === celular) { next(); return; }
+    this.personasSrv.updatePersona(destinatarioId, { celular }).subscribe({
+      next: (res: any) => {
+        this.personas = (this.personas || []).map((p: any) => (Number(p.id) === destinatarioId ? { ...p, ...res } : p));
+        next();
+      },
+      error: () => {
+        this.showNotif('No se pudo actualizar el celular del destinatario', 'error');
+        next();
+      }
+    });
+  }
+
+  private syncDestinatarioCelular() {
+    const destId = Number((this.newEnvio as any)?.destinatario || 0);
+    if (!destId || (this.destinatarioCelular || '').trim()) return;
+    const celular = this.personaCelularById(destId) || '';
+    if (celular) this.destinatarioCelular = celular;
+  }
   selectRemitente(p: Persona) { (this.newEnvio as any).remitente = (p as any).id; this.remitenteQuery = this.personaLabel(p); this.showRemitenteOptions = false; }
-  selectDestinatario(p: Persona) { (this.newEnvio as any).destinatario = (p as any).id; this.destinatarioQuery = this.personaLabel(p); this.showDestinatarioOptions = false; }
+  selectDestinatario(p: Persona) {
+    (this.newEnvio as any).destinatario = (p as any).id;
+    this.destinatarioQuery = this.personaLabel(p);
+    this.destinatarioCelular = String((p as any).celular || '');
+    this.showDestinatarioOptions = false;
+  }
   clearRemitente() { (this.newEnvio as any).remitente = null as any; this.remitenteQuery = ''; }
   clearDestinatario() { (this.newEnvio as any).destinatario = null as any; this.destinatarioQuery = ''; }
 
@@ -452,6 +482,8 @@ export class EnviosFeature implements OnInit {
     //console.log(new Date().toISOString().slice(0,10));
     try { (this.newEnvio as any).fecha_envio = this.currentDateTMS(); } catch {}
     this.saveError = null; this.showCreate = true; this.remitenteQuery = ''; this.destinatarioQuery = ''; this.showRemitenteOptions = false; this.showDestinatarioOptions = false; this.stagedDetalles = []; this.newDet = { cantidad: null, descripcion: '', precio_unitario: null };
+    this.confirmClaveRecojo = '';
+    this.destinatarioCelular = '';
     // Defaults for unified DNI/RUC lookup control
     this.remitenteDocType = 'DNI'; this.destinatarioDocType = 'DNI';
     this.remitenteDocNumber = ''; this.destinatarioDocNumber = '';
@@ -464,11 +496,11 @@ export class EnviosFeature implements OnInit {
     this.editing = true; this.editingId = (item as any).id ?? null;
 
     this.newEnvio = {
-      remitente: (item as any).remitente,
-      destinatario: (item as any).destinatario,
-      estado_pago: (item as any).estado_pago,
-      clave_recojo: (item as any).clave_recojo,
-      peso: (item as any).peso,
+  remitente: (item as any).remitente,
+  destinatario: (item as any).destinatario,
+  estado_pago: (item as any).estado_pago,
+  clave_recojo: (item as any).clave_recojo,
+  peso: (item as any).peso,
       fecha_envio: this.normalizeDate((item as any).fecha_envio),
       fecha_recepcion: (item as any).fecha_recepcion,
       tipo_contenido: (item as any).tipo_contenido,
@@ -479,6 +511,8 @@ export class EnviosFeature implements OnInit {
       punto_destino_id: (item as any).punto_destino_id,
     } as any;
     this.saveError = null; this.remitenteQuery = this.personaLabelById((item as any).remitente) || ''; this.destinatarioQuery = this.personaLabelById((item as any).destinatario) || ''; this.showEdit = true;
+    this.destinatarioCelular = this.personaCelularById((item as any).destinatario) || '';
+    this.confirmClaveRecojo = String((item as any).clave_recojo || '');
     this.closeComprobante();
     if ((this.newEnvio as any).estado_pago) {
       const envioId = Number((item as any).id || 0);
@@ -527,7 +561,9 @@ export class EnviosFeature implements OnInit {
     const okOrigen = Number(e?.punto_origen_id) > 0;
     const okDestino = Number(e?.punto_destino_id) > 0;
     const lengthDetalle = this.stagedDetalles.length > 0;
-    return okRemitente && okDestinatario && okPeso && okFecha && okOrigen && okDestino && lengthDetalle;
+    const clave = String(e?.clave_recojo || '');
+    const okClave = !clave || clave === String(this.confirmClaveRecojo || '');
+    return okRemitente && okDestinatario && okPeso && okFecha && okOrigen && okDestino && lengthDetalle && okClave;
   }
 
   cleanEnvio() {
@@ -546,12 +582,15 @@ export class EnviosFeature implements OnInit {
       punto_origen_id: null as any,
       punto_destino_id: null as any,
     };
+    this.confirmClaveRecojo = '';
+    this.destinatarioCelular = '';
     //this.stagedDetalles = [];
   }
 
   submitEnvio() {
     if (!this.isValidEnvio) return;
     const e: any = this.newEnvio;
+    const doSubmit = () => {
     const payload: any = {
       remitente: Number(e.remitente), destinatario: Number(e.destinatario), estado_pago: !!e.estado_pago, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id)
     };
@@ -582,6 +621,10 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
       error: () => { this.saving = false; this.saveError = 'No se pudo crear el env\u00edo'; this.showNotif(this.saveError as string, 'error'); },
     });
     this.cleanEnvio();
+    };
+    const destId = Number(e.destinatario || 0);
+    const celular = String(this.destinatarioCelular || '').trim();
+    this.updateDestinatarioCelular(destId, celular, doSubmit);
   }
 
   private afterCreate(updated: Envio, newId: number, payload: any) {
@@ -728,7 +771,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los envíos'; },
     });
   }
-  loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }
+  loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; this.syncDestinatarioCelular(); }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }
   loadPuntos() { this.puntosLoading = true; this.puntosError = null; this.puntosSrv.getPuntos().subscribe({ next: (res) => { this.puntos = res || []; this.puntosLoading = false; }, error: () => { this.puntosLoading = false; this.puntosError = 'No se pudieron cargar los puntos'; }, }); }
 
   ngOnInit(): void {

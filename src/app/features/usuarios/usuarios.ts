@@ -51,7 +51,7 @@ export class UsuariosFeature implements OnInit {
   notifType: 'success' | 'error' = 'success';
   editing = false;
   editingId: number | null = null;
-  newUser = { email: '', is_active: true, person_id: null, password: '', username: '' } as { email: string; is_active: boolean; person_id: number | null; password: string, username: string };
+  newUser = { email: '', is_active: true, person_id: null, password: '', username: '', acceso: 'Lectura' } as { email: string; is_active: boolean; person_id: number | null; password: string, username: string; acceso: 'Lectura' | 'Escritura' };
 
   get isValidUser(): boolean {
     const username = !!(this.newUser.username|| '').trim();
@@ -87,7 +87,7 @@ export class UsuariosFeature implements OnInit {
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newUser = { email: '', is_active: true, person_id: null, password: '' , username: ''} as any;
+    this.newUser = { email: '', is_active: true, person_id: null, password: '' , username: '', acceso: 'Lectura' } as any;
     this.saveError = null;
     this.showModal = true;
   }
@@ -97,7 +97,9 @@ export class UsuariosFeature implements OnInit {
     console.log(item);
     this.editing = true;
     this.editingId = (item as any).id ?? null;
-    this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, password: '', username: (item as any).username } as any;
+    const tipoAcceso = String((item as any).tipo_acceso || (item as any).acceso || '').toLowerCase();
+    const acceso = tipoAcceso === 'user_write' || tipoAcceso === 'escritura' ? 'Escritura' : 'Lectura';
+    this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, password: '', username: (item as any).username, acceso } as any;
     this.saveError = null;
     this.showModal = true;
   }
@@ -139,11 +141,15 @@ export class UsuariosFeature implements OnInit {
 
   submitNewUser() {
     if (!this.isValidUser) return;
+    const ciaId = Number(localStorage.getItem('cia_id') || 0);
+    const tipoAcceso = this.newUser.acceso === 'Escritura' ? 'user_write' : 'user_read';
     const payload: any = {
       email: null,
       username: this.newUser.username,
       person_id: (this.newUser as any).person_id ?? null,
       is_active: (this.newUser as any).is_active,
+      company_id: ciaId || null,
+      permission_type: tipoAcceso,
     };
     if ((this.newUser.password || '').length >= 6) { payload.password = this.newUser.password; } else if (this.editing) { payload.password = null; }
     this.saving = true;

@@ -41,6 +41,7 @@
   </div>
 </ng-template>
 <ui-confirm [show]="confirmOpen" [title]="confirmTitle" [message]="confirmMessage" [confirmText]="'Eliminar'" [type]="'danger'" (confirm)="onConfirmDelete()" (cancel)="onCancelDelete()"></ui-confirm>
+<ui-confirm [show]="confirmDetachOpen" [title]="confirmDetachTitle" [message]="confirmDetachMessage" [confirmText]="'Quitar'" [type]="'default'" (confirm)="onConfirmDetach()" (cancel)="onCancelDetach()"></ui-confirm>
 <section class="px-3 sm:px-4 pb-4 mt-4" *ngIf="!loading && !error; else stateTpl">
   <ng-container *ngIf="pageItems?.length; else empty">
     <ng-container *ngIf="viewMode === 'cards'; else gridView">
@@ -192,8 +193,15 @@
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" name="fecha_traslado"/>
       </div>
       <div class="md:col-span-2">
+        <label class="block text-sm text-slate-700">Vehículo</label>
+        <select [(ngModel)]="newManifiesto.vehiculo_id" (ngModelChange)="onVehiculoChange($event)" name="vehiculo" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
+          <option [ngValue]="null">Seleccione vehículo</option>
+          <option *ngFor="let v of vehiculos" [ngValue]="v.id">{{ (v.placa ?? '').toUpperCase() }}</option>
+        </select>
+      </div>
+      <div class="md:col-span-2">
         <label class="block text-sm text-slate-700">Placa</label>
-        <input type="text" [(ngModel)]="newManifiesto.placa" (ngModelChange)="newManifiesto.placa = $event.toUpperCase()" name="placa" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <input type="text" [(ngModel)]="newManifiesto.placa" name="placa" readonly class="mt-1 w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       </div>
       <div>
         <label class="block text-sm text-slate-700">Serie</label>
@@ -250,6 +258,7 @@
                 <a [routerLink]="['/envios']" [queryParams]="{ id: e.id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver Envío</a>
                 <a *ngIf="e.id" [routerLink]="['/comprobantes']" [queryParams]="{ envio_id: e.id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver comprobante</a>
                 <span *ngIf="!e.id" class="text-xs text-slate-400">Sin comprobante</span>
+                <button (click)="detachEnvioFromManifiesto(e)" class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 hover:bg-red-100">Quitar</button>
               </div>
             </td>
           </tr>

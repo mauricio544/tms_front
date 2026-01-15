@@ -62,7 +62,7 @@
     <div class="mt-4 space-y-4">
       <div class="grid grid-cols-2 gap-3">
         <!--control remitente-->
-        <div class="relative" (click)="$event.stopPropagation()">
+        <div class="relative rounded-md bg-emerald-50/60 p-2" (click)="$event.stopPropagation()">
           <label class="block text-sm text-slate-700">Remitente</label>
           <div class="mt-2 grid grid-cols-[auto,1fr,auto,auto] items-center gap-2">
             <select [(ngModel)]="remitenteDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
@@ -101,7 +101,7 @@
         </div>
 
         <!--control destinatario-->
-        <div class="relative" (click)="$event.stopPropagation()">
+        <div class="relative rounded-md bg-sky-50/60 p-2" (click)="$event.stopPropagation()">
           <label class="block text-sm text-slate-700">Destinatario</label>
           <div class="mt-2 grid grid-cols-[auto,1fr,auto] items-center gap-2">
             <select [(ngModel)]="destinatarioDocType"
@@ -135,9 +135,15 @@
                 Sin resultados
               </div>
             </div>
+            <div>
+              <label class="block text-sm text-slate-700">Celular destinatario</label>
+              <input type="text" [(ngModel)]="destinatarioCelular" placeholder="Celular"
+                     class="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+            </div>
           </div>
           <div class="text-xs text-red-600 mt-1" *ngIf="destLookupError">{{ destLookupError }}</div>
         </div>
+
       </div>
       <div class="grid grid-cols-3 gap-3">
         <div>
@@ -186,6 +192,14 @@
         <label class="block text-sm text-slate-700">Clave de recojo</label>
         <input type="password" [(ngModel)]="newEnvio.clave_recojo" placeholder="****"
                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" maxlength="4"/>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Confirmar clave</label>
+        <input type="password" [(ngModel)]="confirmClaveRecojo" placeholder="****"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" maxlength="4"/>
+        <div class="mt-1 text-xs text-red-600" *ngIf="newEnvio.clave_recojo && confirmClaveRecojo && newEnvio.clave_recojo !== confirmClaveRecojo">
+          Las claves no coinciden.
+        </div>
       </div>
 
       <!--Detalle de envío-->
@@ -367,7 +381,8 @@
 
       <!-- Comprobante inline (editar: mostrar si pagado) -->
 <!--      <span>{{ newEnvio.estado_pago }}</span>-->
-      <div class="mt-4 rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]">
+      <div *ngIf="editing && !newEnvio.estado_pago"
+           class="mt-4 rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]">
         <div class="text-sm font-semibold text-[#0A1A2F] mb-2">Comprobante Edición</div>
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
@@ -748,6 +763,12 @@
         </div>
 
 
+        <div>
+          <label class="block text-sm text-slate-700">Celular destinatario</label>
+          <input type="text" [(ngModel)]="destinatarioCelular" placeholder="Celular"
+                 class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+        </div>
+
       </div>
 
 
@@ -761,6 +782,14 @@
                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
 
 
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700">Confirmar clave</label>
+        <input type="password" [(ngModel)]="confirmClaveRecojo" placeholder="****"
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+        <div class="mt-1 text-xs text-red-600" *ngIf="newEnvio.clave_recojo && confirmClaveRecojo && newEnvio.clave_recojo !== confirmClaveRecojo">
+          Las claves no coinciden.
+        </div>
       </div>
 
 
@@ -793,7 +822,7 @@
 
       </div>
       <!-- Comprobante inline (editar: mostrar si pagado) -->
-      <div *ngIf="newEnvio.estado_pago && editing"
+      <div *ngIf="!newEnvio.estado_pago && editing"
            class="mt-4 rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]">
         <div class="text-sm font-semibold text-[#0A1A2F] mb-2">Comprobante</div>
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -870,6 +899,9 @@
         </div>
       </div>
       <div class="mt-6">
+        <div *ngIf="editing && newEnvio.estado_pago" class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          El envío ya tiene comprobante generado.
+        </div>
         <h4 class="text-sm font-medium text-slate-800">Detalle del env&iacute;o</h4>
         <div class="mt-2 grid grid-cols-1 sm:grid-cols-4 gap-2">
           <div>

@@ -41,8 +41,8 @@
               <ng-icon name="heroMapPin" size="36"></ng-icon>
             </div>
             <div class="min-w-0">
-              <div class="font-medium text-slate-800 truncate max-w-[12rem]">{{ item.nombre }}</div>
-              <div class="text-xs text-slate-500">ID: {{ i + 1 + (page-1)*pageSize }}</div>
+              <div class="font-medium text-slate-800 truncate max-w-[12rem]">{{ item.nombre.toUpperCase() }}</div>
+              <div class="text-xs text-slate-500">DIRECCIÓN:: {{ (item.direccion ?? '').toUpperCase() }}</div>
             </div>
           </div>
         </div>

@@ -8,7 +8,7 @@ import { Manifiestos } from '../../../../core/services/manifiestos';
 import { Envios } from '../../../../core/services/envios';
 import { Puntos } from '../../../../core/services/puntos';
 import { Conductores as ConductoresService } from '../../../../core/services/conductores';
-import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate } from '../../../../core/mapped';
+import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate, Vehiculo } from '../../../../core/mapped';
 import { Conductor } from '../../../../core/mapped';
 import { Personas } from '../../../../core/services/personas';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
@@ -18,9 +18,10 @@ import { RouterLink } from '@angular/router';
 import { Utilitarios } from '../../../../core/services/utilitarios';
 import { Guias } from '../../../../core/services/guias';
 import { AuthService } from '../../../../core/services/auth.service';
+import { Vehiculos } from '../../../../core/services/vehiculos';
 import {Utils} from '../../../../core/services/utils';
 
-export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; copiloto_id: number | null, turno: string | null, placa: string | null, fecha_traslado: string | null };
+export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; copiloto_id: number | null, turno: string | null, placa: string | null, fecha_traslado: string | null; vehiculo_id: number | null };
 
 @Component({
   selector: 'feature-manifiestos',
@@ -40,6 +41,7 @@ export class ManifiestosFeature implements OnInit {
   private readonly utilSrv = inject(Utilitarios);
   private readonly guiasSrv = inject(Guias);
   private readonly authSrv = inject(AuthService);
+  private readonly vehiculosSrv = inject(Vehiculos);
 
   // Datos
   lista_manifiestos: Manifiesto[] = [];
@@ -69,6 +71,10 @@ export class ManifiestosFeature implements OnInit {
   confirmMessage = '';
   pendingDeleteId: number | null = null;
   pendingDeleteLabel: string = '';
+  confirmDetachOpen = false;
+  confirmDetachTitle = 'Confirmar';
+  confirmDetachMessage = '';
+  pendingDetachEnvioId: number | null = null;
 
   // Notificaciones
   notif: string | null = null;
@@ -78,6 +84,7 @@ export class ManifiestosFeature implements OnInit {
   puntos: Points[] = [];
   conductores: Conductor[] = [];
   personas: Persona[] = [];
+  vehiculos: Vehiculo[] = [];
 
   // EdiciÃ³n
   editing = false;
@@ -143,13 +150,13 @@ export class ManifiestosFeature implements OnInit {
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
   onFilterChange() { this.page = 1; }
 
-  newManifiesto: FormManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: '' };
+  newManifiesto: FormManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: '', vehiculo_id: null };
 
   // Modal helpers
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: this.utilSrv.formatFecha(new Date() || "") };
+    this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: this.utilSrv.formatFecha(new Date() || ""), vehiculo_id: null };
     this.saveError = null;
     this.showModal = true;
   }
@@ -162,11 +169,15 @@ export class ManifiestosFeature implements OnInit {
       turno: (item as any)?.turno ?? '',
       placa: (item as any)?.placa ?? '',
       fecha_traslado: this.utilSrv.formatFecha((item as any)?.fecha_traslado) ?? '',
+      vehiculo_id: (item as any)?.vehiculo_id ?? null,
       codigo_punto_origen: (item as any).codigo_punto_origen ?? null,
       codigo_punto_destino: (item as any).codigo_punto_destino ?? null,
       serie: (item as any).serie ?? '',
       numero: (item as any).numero ?? '',
     };
+    if (this.newManifiesto.vehiculo_id) {
+      this.onVehiculoChange(this.newManifiesto.vehiculo_id);
+    }
     console.log(this.newManifiesto);
     this.saveError = null;
     this.showModal = true;
@@ -195,6 +206,7 @@ export class ManifiestosFeature implements OnInit {
       turno: String(m.turno),
       placa: String(m.placa),
       fecha_traslado: String(this.utilSrv.formatFecha(m.fecha_traslado || "")),
+      vehiculo_id: m.vehiculo_id != null ? Number(m.vehiculo_id) : null,
       codigo_punto_origen: Number(m.codigo_punto_origen),
       codigo_punto_destino: Number(m.codigo_punto_destino),
       serie: String(m.serie || '').trim(),
@@ -213,6 +225,7 @@ export class ManifiestosFeature implements OnInit {
           copiloto_id: res?.copiloto_id ?? payload.copiloto_id,
           turno: res?.turno ?? payload.turno,
           placa: res?.placa ?? payload.placa,
+          vehiculo_id: (res as any)?.vehiculo_id ?? payload.vehiculo_id,
           fecha_traslado: this.utilSrv.formatFecha(new Date() || ""),
           codigo_punto_origen: res?.codigo_punto_origen ?? payload.codigo_punto_origen,
           codigo_punto_destino: res?.codigo_punto_destino ?? payload.codigo_punto_destino,
@@ -347,6 +360,22 @@ export class ManifiestosFeature implements OnInit {
       error: () => { this.personas = []; },
     });
   }
+  loadVehiculos() {
+    this.vehiculosSrv.getVehiculos().subscribe({
+      next: (res) => { this.vehiculos = res || []; },
+      error: () => { this.vehiculos = []; },
+    });
+  }
+
+  onVehiculoChange(value: number | null) {
+    const id = Number(value || 0);
+    if (!id) {
+      this.newManifiesto.placa = '';
+      return;
+    }
+    const found = (this.vehiculos || []).find((v: any) => Number(v.id) === id);
+    this.newManifiesto.placa = String((found as any)?.placa.toUpperCase() || '');
+  }
 
   conductorLabel(id: number | null | undefined): string {
     if (!id) return '';
@@ -370,6 +399,7 @@ ngOnInit(): void {
     this.loadPuntos();
     this.loadConductores();
     this.loadPersonas();
+    this.loadVehiculos();
   }
 
   // Acciones tarjeta
@@ -739,6 +769,33 @@ ngOnInit(): void {
         this.showNotif('No se pudieron añadir todos los envíos', 'error');
       }
     });
+  }
+  onCancelDetach() {
+    this.confirmDetachOpen = false;
+    this.pendingDetachEnvioId = null;
+  }
+  onConfirmDetach() {
+    const eid = this.pendingDetachEnvioId;
+    if (!eid) { this.onCancelDetach(); return; }
+    this.enviosSrv.updateEnvios(Number(eid), { manifiesto: null } as any).subscribe({
+      next: () => {
+        this.enviosLista = (this.enviosLista || []).filter((e: any) => e.id !== eid);
+        this.onCancelDetach();
+        this.showNotif('Envio removido del manifiesto');
+      },
+      error: () => {
+        this.onCancelDetach();
+        this.showNotif('No se pudo quitar el envio', 'error');
+      }
+    });
+  }
+
+  detachEnvioFromManifiesto(envio: Envio) {
+    const eid = (envio as any)?.id;
+    if (!eid) return;
+    this.pendingDetachEnvioId = Number(eid);
+    this.confirmDetachMessage = `¿Quitar el envío ${eid} del manifiesto?`;
+    this.confirmDetachOpen = true;
   }
 
   personaLabelById(id: number | null | undefined): string {

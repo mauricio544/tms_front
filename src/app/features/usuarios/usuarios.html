@@ -123,6 +123,19 @@
           </option>
         </select>
       </div>
+      <div>
+        <label class="block text-sm text-slate-700">Acceso</label>
+        <div class="mt-2 flex items-center gap-4 text-sm text-slate-700">
+          <label class="inline-flex items-center gap-2">
+            <input type="radio" name="acceso" [(ngModel)]="newUser.acceso" [value]="'Lectura'" class="h-4 w-4 accent-[#2F455C]" />
+            Lectura
+          </label>
+          <label class="inline-flex items-center gap-2">
+            <input type="radio" name="acceso" [(ngModel)]="newUser.acceso" [value]="'Escritura'" class="h-4 w-4 accent-[#2F455C]" />
+            Escritura
+          </label>
+        </div>
+      </div>
       <label class="inline-flex items-center gap-2 text-sm text-slate-700">
         <input type="checkbox" [(ngModel)]="newUser.is_active" class="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-primary" />
         Activo

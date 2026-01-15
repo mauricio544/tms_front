@@ -23,6 +23,8 @@ export interface Usuario {
   is_active: boolean;
   password_hash: string;
   person_id: number | null;
+  company_id: number | null;
+  permission_type: string;
 }
 
 export interface Persona {
