@@ -123,6 +123,16 @@
           </option>
         </select>
       </div>
+      <div *ngIf="!editing">
+        <label class="block text-sm text-slate-700">Punto</label>
+        <select [(ngModel)]="newUser.punto_id"
+                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" required>
+          <option [ngValue]="null">Selecciona un punto</option>
+          <option *ngFor="let p of puntos" [ngValue]="p.id">
+            {{ p.nombre }}
+          </option>
+        </select>
+      </div>
       <div>
         <label class="block text-sm text-slate-700">Acceso</label>
         <div class="mt-2 flex items-center gap-4 text-sm text-slate-700">

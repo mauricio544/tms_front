@@ -33,4 +33,6 @@ export class Comprobantes {
   getComprobanteEnvio(envio_id: number): Observable<Comprobante> {
     return this.api.get(`/envios/comprobantes/${envio_id}/envio`);
   }
+
+  simularSunat(comprobante_id: number, codigo: string, mensaje: string):Observable<any> {}
 }

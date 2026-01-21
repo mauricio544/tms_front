@@ -5,7 +5,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Users } from '../../../../core/services/users';
 import { Personas } from '../../../../core/services/personas';
-import { Usuario, Persona } from '../../../../core/mapped';
+import { Puntos } from '../../../../core/services/puntos';
+import { UserSede } from '../../../../core/services/user-sede';
+import { Usuario, Persona, Puntos as Points } from '../../../../core/mapped';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroUserCircle } from '@ng-icons/heroicons/outline';
 
@@ -25,9 +27,12 @@ import { heroUserCircle } from '@ng-icons/heroicons/outline';
 export class UsuariosFeature implements OnInit {
   private readonly user = inject(Users);
   private readonly personasSvc = inject(Personas);
+  private readonly puntosSvc = inject(Puntos);
+  private readonly userSedeSvc = inject(UserSede);
 
   lista_usuarios: Usuario[] = [];
   personas: Persona[] = [];
+  puntos: Points[] = [];
   loading = false;
   error: string | null = null;
 
@@ -51,14 +56,15 @@ export class UsuariosFeature implements OnInit {
   notifType: 'success' | 'error' = 'success';
   editing = false;
   editingId: number | null = null;
-  newUser = { email: '', is_active: true, person_id: null, password: '', username: '', acceso: 'Lectura' } as { email: string; is_active: boolean; person_id: number | null; password: string, username: string; acceso: 'Lectura' | 'Escritura' };
+  newUser = { email: '', is_active: true, person_id: null, punto_id: null, password: '', username: '', acceso: 'Lectura' } as { email: string; is_active: boolean; person_id: number | null; punto_id: number | null; password: string, username: string; acceso: 'Lectura' | 'Escritura' };
 
   get isValidUser(): boolean {
     const username = !!(this.newUser.username|| '').trim();
     if (this.editing) return username;
     const passOk = (this.newUser.password || '').length >= 6;
     const personOk = (this.newUser.person_id) !== null;
-    return username && passOk && personOk;
+    const puntoOk = (this.newUser.punto_id) !== null;
+    return username && passOk && personOk && puntoOk;
   }
 
   get filteredUsuarios(): Usuario[] {
@@ -87,7 +93,7 @@ export class UsuariosFeature implements OnInit {
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newUser = { email: '', is_active: true, person_id: null, password: '' , username: '', acceso: 'Lectura' } as any;
+    this.newUser = { email: '', is_active: true, person_id: null, punto_id: null, password: '' , username: '', acceso: 'Lectura' } as any;
     this.saveError = null;
     this.showModal = true;
   }
@@ -99,7 +105,7 @@ export class UsuariosFeature implements OnInit {
     this.editingId = (item as any).id ?? null;
     const tipoAcceso = String((item as any).tipo_acceso || (item as any).acceso || '').toLowerCase();
     const acceso = tipoAcceso === 'user_write' || tipoAcceso === 'escritura' ? 'Escritura' : 'Lectura';
-    this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, password: '', username: (item as any).username, acceso } as any;
+    this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, punto_id: null, password: '', username: (item as any).username, acceso } as any;
     this.saveError = null;
     this.showModal = true;
   }
@@ -158,7 +164,8 @@ export class UsuariosFeature implements OnInit {
     obs.subscribe({
       next: (created: any) => {
         const wasEditing = this.editing;
-        const added = { id: (created?.id ?? (wasEditing ? this.editingId : null)) as number, email: created?.email ?? payload.email, is_active: created?.is_active ?? true, person_id: created?.person_id ?? payload.person_id, username: created?.username ?? payload?.username } as any as Usuario;
+        const createdId = (created?.id ?? (wasEditing ? this.editingId : null)) as number;
+        const added = { id: createdId, email: created?.email ?? payload.email, is_active: created?.is_active ?? true, person_id: created?.person_id ?? payload.person_id, username: created?.username ?? payload?.username } as any as Usuario;
         if (wasEditing && this.editingId) {
           this.lista_usuarios = this.lista_usuarios.map(u => (u as any).id === this.editingId ? added : u);
         } else {
@@ -170,6 +177,13 @@ export class UsuariosFeature implements OnInit {
         this.onFilterChange();
         this.closeModal();
         this.showNotif(wasEditing ? 'Usuario actualizado' : 'Usuario creado');
+        if (!wasEditing && createdId && this.newUser.punto_id) {
+          this.userSedeSvc.createUsuarioSede({ usuario_id: createdId, punto_id: this.newUser.punto_id }).subscribe({
+            error: () => {
+              this.showNotif('Usuario creado, pero no se pudo asignar el punto', 'error');
+            },
+          });
+        }
       },
       error: () => {
         this.saving = false;
@@ -197,12 +211,20 @@ export class UsuariosFeature implements OnInit {
   ngOnInit(): void {
     this.loadUsuarios();
     this.loadPersonas();
+    this.loadPuntos();
   }
 
   loadPersonas() {
     this.personasSvc.getPersonas().subscribe({
       next: (res) => { this.personas = res || []; },
       error: () => { this.personas = []; },
+    });
+  }
+
+  loadPuntos() {
+    this.puntosSvc.getPuntos().subscribe({
+      next: (res) => { this.puntos = res || []; },
+      error: () => { this.puntos = []; },
     });
   }
 }

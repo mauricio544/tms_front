@@ -14,6 +14,7 @@ export interface UsuarioMe {
   person_id: number | null;
   permissions: string[];
   companies: Company[];
+  sedes: Puntos[];
 }
 
 export interface Usuario {
@@ -25,6 +26,8 @@ export interface Usuario {
   person_id: number | null;
   company_id: number | null;
   permission_type: string;
+  permissions: string[];
+  sedes: Puntos[];
 }
 
 export interface Persona {
@@ -379,4 +382,22 @@ export interface ItemGuiaCreate {
   uom: string;
   cantidad: number;
   peso: number;
+}
+
+export interface UsuarioSede {
+  usuario_id: number;
+  punto_id: number;
+}
+
+export interface ComprobanteSunat {
+  id: number;
+  comprobante_id: number;
+  ambiente: string;
+  hash: string;
+  qr: string;
+  sunat_cod: string;
+  sunat_msg: string;
+  ticket: string;
+  fecha_envio: string;
+  fecha_respuesta: string;
 }
