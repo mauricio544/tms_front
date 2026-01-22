@@ -401,3 +401,16 @@ export interface ComprobanteSunat {
   fecha_envio: string;
   fecha_respuesta: string;
 }
+
+export interface Cliente {
+  id: number;
+  persona_id: number;
+  cliente_compania_id: number;
+  rol: string;
+}
+
+export interface ClienteCreate {
+  persona_id: number;
+  cliente_compania_id: number;
+  rol: string;
+}

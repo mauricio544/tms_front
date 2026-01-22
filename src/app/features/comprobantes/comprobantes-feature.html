@@ -105,8 +105,13 @@
         <button (click)="printSelected()" class="rounded-md bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900">Imprimir</button>
         <button (click)="exportSelectedCSV()" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50">Exportar CSV</button>
         <button (click)="exportSelectedPDF()" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50">Exportar PDF</button>
+        <button (click)="generarSunat()" [disabled]="sunatLoading" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Generar SUNAT</button>
         <button class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" (click)="selected=null">Cerrar</button>
       </div>
+    </div>
+    <div class="mb-3 text-xs">
+      <span class="text-emerald-700" *ngIf="sunatOk">{{ sunatOk }}</span>
+      <span class="text-red-600" *ngIf="sunatError">{{ sunatError }}</span>
     </div>
 
 <div class="rounded-md border border-slate-200 bg-slate-50 p-3">

@@ -40,6 +40,9 @@ export class ComprobantesFeature implements OnInit {
   detalles: DetalleComprobante[] = [];
   detallesLoading = false;
   detallesError: string | null = null;
+  sunatLoading = false;
+  sunatError: string | null = null;
+  sunatOk: string | null = null;
 
   // Catálogos
   generales: any[] = [];
@@ -94,6 +97,8 @@ export class ComprobantesFeature implements OnInit {
 
   select(c: Comprobante) {
     this.selected = c;
+    this.sunatOk = null;
+    this.sunatError = null;
     this.loadDetalles((c as any).id);
   }
 
@@ -241,6 +246,30 @@ export class ComprobantesFeature implements OnInit {
 
     const filename = `comprobante_${c.serie||''}-${c.numero||''}.pdf`;
     doc.save(filename);
+  }
+
+  generarSunat() {
+    const c: any = this.selected;
+    if (!c?.id || this.sunatLoading) return;
+    const codigo = window.prompt('Codigo SUNAT', '0');
+    if (codigo === null) return;
+    const mensaje = window.prompt('Mensaje SUNAT', 'OK');
+    if (mensaje === null) return;
+    this.sunatLoading = true;
+    this.sunatError = null;
+    this.sunatOk = null;
+    this.comprobantesSrv.simularSunat(Number(c.id), String(codigo), String(mensaje)).subscribe({
+      next: (res: any) => {
+        const code = (res as any)?.sunat_cod ?? codigo;
+        const msg = (res as any)?.sunat_msg ?? mensaje;
+        this.sunatLoading = false;
+        this.sunatOk = `SUNAT: ${code} - ${msg}`;
+      },
+      error: () => {
+        this.sunatLoading = false;
+        this.sunatError = 'No se pudo generar SUNAT';
+      }
+    });
   }
 }
 

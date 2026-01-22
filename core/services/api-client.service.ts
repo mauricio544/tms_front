@@ -2,6 +2,7 @@
 import { HttpClient } from '@angular/common/http';
 //import { environment } from "../../src/environments/environment.development";
 import { environment } from "../../src/environments/environment.development";
+import {Observable} from 'rxjs';
 
 
 @Injectable({ providedIn: 'root' })
@@ -13,7 +14,7 @@ export class ApiClientService {
     return this.http.get<T>(`${this.baseUrl}${url}`, { observe: 'body' as const });
   }
 
-  post<T>(url: string, body: unknown) {
+  post<T>(url: string, body?: unknown) {
     return this.http.post<T>(`${this.baseUrl}${url}`, body, { observe: 'body' as const });
   }
 

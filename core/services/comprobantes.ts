@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import {Comprobante, ComprobanteCreate} from '../mapped';
+import { Comprobante, ComprobanteCreate, ComprobanteSunat } from '../mapped';
 import { AuthService } from './auth.service';
 
 @Injectable({
@@ -34,5 +34,7 @@ export class Comprobantes {
     return this.api.get(`/envios/comprobantes/${envio_id}/envio`);
   }
 
-  simularSunat(comprobante_id: number, codigo: string, mensaje: string):Observable<any> {}
+  simularSunat(comprobante_id: number, codigo: string, mensaje: string):Observable<ComprobanteSunat> {
+    return this.api.post(`/envios/comprobantes/${comprobante_id}/simular-sunat?codigo=${codigo}&mensaje=${mensaje}`);
+  }
 }
