@@ -19,6 +19,7 @@ import { Comprobantes } from '../../../../core/services/comprobantes';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
 import { Movimientos } from '../../../../core/services/movimientos';
 import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
+import { Clientes } from '../../../../core/services/clientes';
 import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General, MessageCreate } from '../../../../core/mapped';
 import { Utilitarios } from '../../../../core/services/utilitarios';
 import { forkJoin } from 'rxjs';
@@ -45,6 +46,7 @@ export class EnviosFeature implements OnInit {
   private readonly detCompSrv = inject(DetallesComprobante);
   private readonly movsSrv = inject(Movimientos);
   private readonly detMovsSrv = inject(DetalleMovimientos);
+  private readonly clientesSrv = inject(Clientes);
   private readonly messageSrv = inject(Message);
   private readonly utilSrv = inject(Utilitarios);
   // Estado principal
@@ -102,6 +104,27 @@ export class EnviosFeature implements OnInit {
     return (f as any)?.nombre ?? String(id);
   }
   private format2(n: any): string { try { return (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); } catch { return String(n); } }
+  private resolveClientePersonaId(): number {
+    const current = Number(this.compClienteId || 0);
+    if (current) return current;
+    const nro = String(this.compDocNumber || '').trim();
+    const tipo = this.compDocType;
+    if (!nro || !tipo) return 0;
+    const found = (this.personas || []).find(p => (p as any).nro_documento === nro && (p as any).tipo_documento === tipo);
+    const id = Number((found as any)?.id || 0);
+    if (id) this.compClienteId = id;
+    return id;
+  }
+  private withClienteForComprobante(next: (clienteId: number | null) => void) {
+    const personaId = this.resolveClientePersonaId();
+    const cia = Number(localStorage.getItem('cia') || 0) || Number(localStorage.getItem('cia_id') || 0);
+    if (!personaId || !cia) { next(null); return; }
+    const body: any = { persona_id: personaId, cliente_compania_id: cia, rol: 'user_cliente' };
+    this.clientesSrv.createCliente(body).subscribe({
+      next: (created: any) => { const id = Number((created as any)?.id || 0); next(id || null); },
+      error: () => { next(null); }
+    });
+  }
 
   private openComprobanteWindow(header: any, detalles: Array<{ numero_item: number; cantidad: number; descripcion: any; precio_unitario: number }>) {
     const c: any = header || {};
@@ -665,8 +688,9 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
       const ruc = String(localStorage.getItem('ruc') || '');
       const tipoNombre = this.compTipoNombre().toLowerCase();
       const estado_comp = tipoNombre.includes('fact') ? 'F' : 'B';
-      const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0, 10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0, 10), emisor: ciaId, cliente: null, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: newId };
-      this.comprobantesSrv.createComprobantes(body).subscribe({
+      this.withClienteForComprobante((clienteId) => {
+        const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0, 10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0, 10), emisor: ciaId, cliente: clienteId, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: newId };
+        this.comprobantesSrv.createComprobantes(body).subscribe({
   next: (comp: any) => {
     const compHeader: any = comp && typeof comp === 'object' ? comp : body;
     const compId = Number((compHeader as any)?.id || 0);
@@ -698,6 +722,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
   },
   error: () => { this.closeCreate(); }
 });
+      });
     }
     this.showNotif('Env\u00edo creado');
   }
@@ -796,8 +821,9 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
     const ruc = String(localStorage.getItem('ruc') || '');
     const tipoNombre = this.compTipoNombre().toLowerCase();
     const estado_comp = tipoNombre.includes('fact') ? 'F' : 'B';
-    const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0, 10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0, 10), emisor: ciaId, cliente: null, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: envioId };
-    this.comprobantesSrv.createComprobantes(body).subscribe({
+    this.withClienteForComprobante((clienteId) => {
+      const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0, 10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0, 10), emisor: ciaId, cliente: clienteId, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: envioId };
+      this.comprobantesSrv.createComprobantes(body).subscribe({
       next: (comp: any) => {
         const compHeader: any = comp && typeof comp === 'object' ? comp : body;
         const compId = Number((compHeader as any)?.id || 0);
@@ -849,6 +875,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
       },
       error: () => { this.showNotif('No se pudo generar el comprobante', 'error'); }
     });
+    });
   }
   submitComprobanteEdicion() {
     if (!this.editingId) return;
@@ -858,8 +885,9 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
     const ruc = String(localStorage.getItem('ruc') || '');
     const tipoNombre = this.compTipoNombre().toLowerCase();
     const estado_comp = tipoNombre.includes('fact') ? 'F' : 'B';
-    const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0, 10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0, 10), emisor: ciaId, cliente: null, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: envioId };
-    this.comprobantesSrv.createComprobantes(body).subscribe({
+    this.withClienteForComprobante((clienteId) => {
+      const body: any = { tipo_comprobante: this.compTipoId || 0, numero_comprobante: this.compNumeroComprobante, forma_pago: this.compFormaPagoId || 0, precio_total: this.compTotalConImpuesto, fecha_comprobante: new Date().toISOString().slice(0, 10), impuesto: this.compImpuesto, serie: this.compSerie, numero: this.compNumero, estado_comprobante: estado_comp, fecha_pago: this.compFechaPago || new Date().toISOString().slice(0, 10), emisor: ciaId, cliente: clienteId, emisor_ruc: ruc, cliente_documento: this.compDocNumber || '', envio_id: envioId };
+      this.comprobantesSrv.createComprobantes(body).subscribe({
       next: (comp: any) => {
         const compHeader: any = comp && typeof comp === 'object' ? comp : body;
         const compId = Number((compHeader as any)?.id || 0);
@@ -879,6 +907,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
         } catch {}
       },
       error: () => { this.showNotif('No se pudo generar el comprobante', 'error'); }
+    });
     });
   }
   // Enfoque: de Remitente a Destinatario con Tab

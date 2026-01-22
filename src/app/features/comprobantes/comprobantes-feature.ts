@@ -4,9 +4,11 @@ import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Comprobantes } from '../../../../core/services/comprobantes';
+import { Clientes } from '../../../../core/services/clientes';
+import { Personas } from '../../../../core/services/personas';
 import { Generales } from '../../../../core/services/generales';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
-import { Comprobante, DetalleComprobante } from '../../../../core/mapped';
+import { Cliente, Comprobante, DetalleComprobante, Persona } from '../../../../core/mapped';
 import { Utils } from '../../../../core/services/utils';
 
 @Component({
@@ -19,6 +21,8 @@ export class ComprobantesFeature implements OnInit {
   private readonly comprobantesSrv = inject(Comprobantes);
   private readonly detallesSrv = inject(DetallesComprobante);
   private readonly route = inject(ActivatedRoute);
+  private readonly clientesSrv = inject(Clientes);
+  private readonly personasSrv = inject(Personas);
 
   private readonly generalesSrv = inject(Generales);
   initialSelectId: number | null = null;
@@ -43,11 +47,15 @@ export class ComprobantesFeature implements OnInit {
   sunatLoading = false;
   sunatError: string | null = null;
   sunatOk: string | null = null;
+  sunatStatus: 'accepted' | 'pending' | null = null;
+  sunatStatusLoading = false;
 
   // Catálogos
   generales: any[] = [];
   tiposComprobante: any[] = [];
   formasPago: any[] = [];
+  clientes: Cliente[] = [];
+  personas: Persona[] = [];
 
   tipoNombre(id: number | null | undefined): string {
     if (id == null) return '';
@@ -65,6 +73,43 @@ export class ComprobantesFeature implements OnInit {
 
 
   get subtotal(): number { return (this.detalles || []).reduce((acc, it: any) => acc + (Number(it.cantidad)||0)*(Number(it.precio_unitario)||0), 0); }
+  get selectedIsFactura(): boolean {
+    const c: any = this.selected;
+    if (!c) return false;
+    const name = this.tipoNombre(c.tipo_comprobante).toLowerCase();
+    return name.includes('fact') || Number(c.impuesto || 0) > 0;
+  }
+  get selectedIgv(): number {
+    if (!this.selectedIsFactura) return 0;
+    return +(this.subtotal * 0.18).toFixed(2);
+  }
+  get selectedTotal(): number {
+    const c: any = this.selected;
+    if (!c) return 0;
+    const total = Number(c.precio_total || 0);
+    return total || (this.subtotal + this.selectedIgv);
+  }
+  clienteNombre(c: Comprobante | null): string {
+    if (!c) return '-';
+    const clienteId = Number((c as any).cliente || 0);
+    let personaId = 0;
+    if (clienteId) {
+      const cli = (this.clientes || []).find(x => Number((x as any).id) === clienteId);
+      personaId = Number((cli as any)?.persona_id || 0);
+    }
+    let persona = null as any;
+    if (personaId) {
+      persona = (this.personas || []).find(p => Number((p as any).id) === personaId) || null;
+    } else {
+      const doc = String((c as any).cliente_documento || '').trim();
+      if (doc) persona = (this.personas || []).find(p => String((p as any).nro_documento || '').trim() === doc) || null;
+    }
+    if (!persona) return '-';
+    const razon = String((persona as any).razon_social || '').trim();
+    if (razon) return razon;
+    const nombre = [persona.nombre, persona.apellido].filter(Boolean).join(' ').trim();
+    return nombre || '-';
+  }
 
   get filtered(): Comprobante[] {
     const term = (this.search || '').toLowerCase().trim();
@@ -99,7 +144,10 @@ export class ComprobantesFeature implements OnInit {
     this.selected = c;
     this.sunatOk = null;
     this.sunatError = null;
+    this.sunatStatus = null;
+    this.sunatStatusLoading = false;
     this.loadDetalles((c as any).id);
+    this.loadSunatStatus((c as any).id);
   }
 
   load() {
@@ -151,6 +199,8 @@ export class ComprobantesFeature implements OnInit {
       },
       error: () => { /* no-op */ }
     });
+    this.clientesSrv.getClientes().subscribe({ next: (list: Cliente[]) => { this.clientes = list || []; }, error: () => { /* no-op */ } });
+    this.personasSrv.getPersonas().subscribe({ next: (list: Persona[]) => { this.personas = list || []; }, error: () => { /* no-op */ } });
     this.load();
   }
 
@@ -163,19 +213,74 @@ export class ComprobantesFeature implements OnInit {
     const c: any = this.selected; const d: any[] = (this.detalles || []);
     if (!c) return;
     const title = `Comprobante ${c.serie||'-'}-${c.numero||'-'}`;
-    const rows = d.map(x => `<tr><td>${x.numero_item||''}</td><td>${x.cantidad||''}</td><td>${x.descripcion||''}</td><td class="right">${this.format(x.precio_unitario)}</td><td class="right">${this.format((Number(x.cantidad)||0)*(Number(x.precio_unitario)||0))}</td></tr>`).join('');
+    const isFactura = (this.tipoNombre(c.tipo_comprobante || 0).toLowerCase().includes('fact')) || Number(c.impuesto || 0) > 0;
+    const rows = d.map(x => {
+      const base = (Number(x.cantidad)||0) * (Number(x.precio_unitario)||0);
+      const igv = isFactura ? base * 0.18 : 0;
+      const total = base + igv;
+      return `<tr>
+  <td class="center">${x.numero_item||''}</td>
+  <td class="center">${x.cantidad||''}</td>
+  <td class="center">UND</td>
+  <td>${x.descripcion||''}</td>
+  <td class="right">${this.format(x.precio_unitario)}</td>
+  <td class="right">${this.format(igv)}</td>
+  <td class="right">${this.format(total)}</td>
+</tr>`;
+    }).join('');
+    const subtotal = this.subtotal;
+    const igvTotal = this.selectedIgv;
+    const totalFinal = this.selectedTotal;
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>${title}</title>
-<style> body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#0f172a;} h1{font-size:18px;margin:0 0 6px;} table{border-collapse:collapse;width:100%;font-size:12px;} th,td{border:1px solid #e2e8f0;padding:6px;text-align:left;} .meta{margin:10px 0 16px;font-size:13px;} .right{text-align:right;} .muted{color:#64748b;} </style>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#0f172a;}
+  h1{font-size:18px;margin:0 0 6px;}
+  table{border-collapse:collapse;width:100%;font-size:12px;}
+  th,td{border:1px solid #e2e8f0;padding:6px;text-align:left;vertical-align:top;}
+  .meta{margin:10px 0 16px;font-size:13px;}
+  .right{text-align:right;}
+  .center{text-align:center;}
+  .muted{color:#64748b;}
+  .box{border:1px solid #e2e8f0;padding:8px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .totals{width:240px;border:1px solid #e2e8f0;padding:8px;margin-left:auto;}
+</style>
 </head><body>
   <h1>${title}</h1>
-  <div class="meta">
-    <div><span class="muted">Fecha:</span> ${c.fecha_comprobante||''}</div>
-    <div><span class="muted">Tipo:</span> \ &nbsp; <span class="muted">Forma de pago:</span> \</div>
-    <div><span class="muted">Impuesto:</span> ${this.format(c.impuesto)}</div>
-    <div><span class="muted">Total:</span> <b>${this.format(c.precio_total)}</b></div>
+  <div class="grid meta">
+    <div class="box">
+      <div><b>Datos del cliente</b></div>
+      <div><span class="muted">Señor(es):</span> ${this.clienteNombre(c)}</div>
+      <div><span class="muted">RUC/DNI:</span> ${c.cliente_documento || '-'}</div>
+      <div><span class="muted">Dirección:</span> -</div>
+    </div>
+    <div class="box">
+      <div><b>Datos del comprobante</b></div>
+      <div><span class="muted">Fecha emisión:</span> ${c.fecha_comprobante||''}</div>
+      <div><span class="muted">Forma de pago:</span> ${this.formaNombre(c.forma_pago)}</div>
+      <div><span class="muted">Tipo:</span> ${this.tipoNombre(c.tipo_comprobante)}</div>
+      <div><span class="muted">Impuesto:</span> ${this.format(c.impuesto)}</div>
+    </div>
   </div>
-  <table><thead><tr><th>Ítem</th><th>Cantidad</th><th>Descripción</th><th class="right">P. Unitario</th><th class="right">Subtotal</th></tr></thead>
-  <tbody>${rows}</tbody></table>
+  <table>
+    <thead>
+      <tr>
+        <th class="center">Ítem</th>
+        <th class="center">Cant.</th>
+        <th class="center">Und.</th>
+        <th>Descripción</th>
+        <th class="right">V. Unit</th>
+        <th class="right">IGV</th>
+        <th class="right">Importe</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="totals meta">
+    <div class="right"><span class="muted">Op. Gravadas:</span> ${this.format(subtotal)}</div>
+    ${isFactura ? `<div class="right"><span class="muted">IGV (18%):</span> ${this.format(igvTotal)}</div>` : ''}
+    <div class="right"><b>Total: ${this.format(totalFinal)}</b></div>
+  </div>
   <script>window.addEventListener('load',()=>{window.print(); setTimeout(()=>window.close(),300)});</script>
 </body></html>`;
     const w = window.open('', '_blank'); if(!w) return; w.document.open(); w.document.write(html); w.document.close();
@@ -248,22 +353,34 @@ export class ComprobantesFeature implements OnInit {
     doc.save(filename);
   }
 
+  loadSunatStatus(id: number) {
+    if (!id) return;
+    this.sunatStatusLoading = true;
+    this.comprobantesSrv.getDatosComprobanteSunat(id).subscribe({
+      next: (res: any) => {
+        const code = String((res as any)?.sunat_cod ?? '');
+        this.sunatStatus = code === '0' ? 'accepted' : 'pending';
+        this.sunatStatusLoading = false;
+      },
+      error: () => {
+        this.sunatStatus = 'pending';
+        this.sunatStatusLoading = false;
+      }
+    });
+  }
+
   generarSunat() {
     const c: any = this.selected;
     if (!c?.id || this.sunatLoading) return;
-    const codigo = window.prompt('Codigo SUNAT', '0');
-    if (codigo === null) return;
-    const mensaje = window.prompt('Mensaje SUNAT', 'OK');
-    if (mensaje === null) return;
+    const codigo = '0';
+    const mensaje = 'aceptado';
     this.sunatLoading = true;
     this.sunatError = null;
     this.sunatOk = null;
     this.comprobantesSrv.simularSunat(Number(c.id), String(codigo), String(mensaje)).subscribe({
       next: (res: any) => {
-        const code = (res as any)?.sunat_cod ?? codigo;
-        const msg = (res as any)?.sunat_msg ?? mensaje;
         this.sunatLoading = false;
-        this.sunatOk = `SUNAT: ${code} - ${msg}`;
+        this.sunatOk = `SUNAT: ${codigo} - ${mensaje}`;
       },
       error: () => {
         this.sunatLoading = false;

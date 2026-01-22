@@ -37,4 +37,8 @@ export class Comprobantes {
   simularSunat(comprobante_id: number, codigo: string, mensaje: string):Observable<ComprobanteSunat> {
     return this.api.post(`/envios/comprobantes/${comprobante_id}/simular-sunat?codigo=${codigo}&mensaje=${mensaje}`);
   }
+
+  getDatosComprobanteSunat(comprobante_id: number): Observable<ComprobanteSunat> {
+    return this.api.get(`/envios/comprobantes/${comprobante_id}/sunat`);
+  }
 }

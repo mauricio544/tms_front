@@ -96,67 +96,98 @@
   </ng-container>
 
     <div *ngIf="selected" class="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-md">
-    <div class="mb-4 flex items-center justify-between">
-      <div>
-        <div class="text-sm text-slate-600">Detalle de comprobante</div>
-        <div class="text-lg font-semibold text-slate-800">{{ selected.serie }}-{{ selected.numero }}</div>
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-2">
+            <div class="text-sm text-slate-600">Detalle de comprobante</div>
+            <span *ngIf="sunatStatus === 'accepted'" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Aceptado</span>
+            <span *ngIf="sunatStatus === 'pending'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Pendiente</span>
+            <span *ngIf="sunatStatusLoading" class="text-xs text-slate-500">SUNAT...</span>
+          </div>
+          <div class="text-lg font-semibold text-slate-800">{{ selected.serie }}-{{ selected.numero }}</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button (click)="printSelected()" class="rounded-md bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900">Imprimir</button>
+          <button (click)="exportSelectedCSV()" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50">Exportar CSV</button>
+          <button (click)="exportSelectedPDF()" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50">Exportar PDF</button>
+          <button (click)="generarSunat()" [disabled]="sunatLoading || sunatStatus === 'accepted'" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Generar SUNAT</button>
+          <button class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" (click)="selected=null">Cerrar</button>
+        </div>
       </div>
-      <div class="flex items-center gap-2">
-        <button (click)="printSelected()" class="rounded-md bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900">Imprimir</button>
-        <button (click)="exportSelectedCSV()" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50">Exportar CSV</button>
-        <button (click)="exportSelectedPDF()" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50">Exportar PDF</button>
-        <button (click)="generarSunat()" [disabled]="sunatLoading" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Generar SUNAT</button>
-        <button class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" (click)="selected=null">Cerrar</button>
+      <div class="mb-3 text-xs">
+        <span class="text-emerald-700" *ngIf="sunatOk">{{ sunatOk }}</span>
+        <span class="text-red-600" *ngIf="sunatError">{{ sunatError }}</span>
       </div>
-    </div>
-    <div class="mb-3 text-xs">
-      <span class="text-emerald-700" *ngIf="sunatOk">{{ sunatOk }}</span>
-      <span class="text-red-600" *ngIf="sunatError">{{ sunatError }}</span>
-    </div>
 
-<div class="rounded-md border border-slate-200 bg-slate-50 p-3">
-    <div class="grid grid-cols-2 gap-3 text-sm">
-      <div>Fecha: <span class="font-medium">{{ selected.fecha_comprobante | ymd }}</span></div>
-      <div>Tipo: <span class="font-medium">{{ tipoNombre(selected.tipo_comprobante) }}</span></div>
-      <div>Forma de pago: <span class="font-medium">{{ formaNombre(selected.forma_pago) }}</span></div>
-      <div>Impuesto: <span class="font-medium">{{ selected.impuesto | number:'1.2-2' }}</span></div>
-      <div>Total: <span class="font-semibold">{{ selected.precio_total | number:'1.2-2' }}</span></div>
-    </div>
-</div>
-
-    <div class="mt-4">
-      <div class="overflow-x-auto rounded-md border border-slate-200 shadow-sm">
-        <table class="min-w-full text-sm">
-          <thead class="bg-slate-50 text-left text-slate-700">
-            <tr>
-              <th class="px-2 py-1">Ítem</th>
-              <th class="px-2 py-1">Cantidad</th>
-              <th class="px-2 py-1">Descripción</th>
-              <th class="px-2 py-1 text-right">P. Unitario</th>
-              <th class="px-2 py-1 text-right">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let it of detalles; index as i" class="border-t border-slate-200 odd:bg-slate-50">
-              <td class="px-2 py-1">{{ it.numero_item }}</td>
-              <td class="px-2 py-1">{{ it.cantidad }}</td>
-              <td class="px-2 py-1">{{ it.descripcion }}</td>
-              <td class="px-2 py-1 text-right">{{ it.precio_unitario | number: '1.2-2' }}</td>
-              <td class="px-2 py-1 text-right">{{ (it.cantidad || 0) * (it.precio_unitario || 0) | number: '1.2-2' }}</td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr>
-              <td class="px-2 py-2" colspan="4"><div class="text-right font-medium text-slate-700">Subtotal</div></td>
-              <td class="px-2 py-2 text-right font-medium text-slate-700">{{ subtotal | number:'1.2-2' }}</td>
-            </tr>
-            <tr class="border-t border-slate-300 bg-slate-100">
-              <td class="px-2 py-2" colspan="4"><div class="text-right font-semibold text-slate-800">Total</div></td>
-              <td class="px-2 py-2 text-right font-semibold text-slate-800">{{ selected.precio_total | number:'1.2-2' }}</td>
-            </tr>
-          </tfoot>
-        </table>
+      <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div class="border border-slate-200 bg-white p-3">
+            <div class="font-semibold mb-2">Datos del cliente</div>
+            <div class="space-y-1">
+              <div class="flex gap-2"><span class="w-28 text-slate-600">Señor(es):</span><span class="flex-1">{{ clienteNombre(selected) }}</span></div>
+              <div class="flex gap-2"><span class="w-28 text-slate-600">RUC/DNI:</span><span class="flex-1">{{ selected.cliente_documento || '-' }}</span></div>
+              <div class="flex gap-2"><span class="w-28 text-slate-600">Dirección:</span><span class="flex-1">-</span></div>
+            </div>
+          </div>
+          <div class="border border-slate-200 bg-white p-3">
+            <div class="font-semibold mb-2">Datos del comprobante</div>
+            <div class="space-y-1">
+              <div class="flex gap-2"><span class="w-32 text-slate-600">Fecha emisión:</span><span class="flex-1">{{ selected.fecha_comprobante | ymd }}</span></div>
+              <div class="flex gap-2"><span class="w-32 text-slate-600">Forma de pago:</span><span class="flex-1">{{ formaNombre(selected.forma_pago) }}</span></div>
+              <div class="flex gap-2"><span class="w-32 text-slate-600">Tipo:</span><span class="flex-1">{{ tipoNombre(selected.tipo_comprobante) }}</span></div>
+              <div class="flex gap-2"><span class="w-32 text-slate-600">Impuesto:</span><span class="flex-1">{{ selected.impuesto | number:'1.2-2' }}</span></div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div class="mt-4">
+        <div class="overflow-x-auto rounded-md border border-slate-200 shadow-sm">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-left text-slate-700">
+              <tr>
+                <th class="px-2 py-1 text-center">Ítem</th>
+                <th class="px-2 py-1 text-center">Cant.</th>
+                <th class="px-2 py-1 text-center">Und.</th>
+                <th class="px-2 py-1">Descripción</th>
+                <th class="px-2 py-1 text-right">V. Unit</th>
+                <th class="px-2 py-1 text-right">IGV</th>
+                <th class="px-2 py-1 text-right">Importe</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let it of detalles; index as i" class="border-t border-slate-200 odd:bg-slate-50">
+                <td class="px-2 py-1 text-center">{{ it.numero_item }}</td>
+                <td class="px-2 py-1 text-center">{{ it.cantidad }}</td>
+                <td class="px-2 py-1 text-center">UND</td>
+                <td class="px-2 py-1">
+                  {{ it.descripcion }}
+                  <div class="text-[11px] text-slate-500" *ngIf="selectedIsFactura">Afecto al IGV</div>
+                </td>
+                <td class="px-2 py-1 text-right">{{ it.precio_unitario | number: '1.2-2' }}</td>
+                <td class="px-2 py-1 text-right">{{ selectedIsFactura ? ((it.cantidad || 0) * (it.precio_unitario || 0) * 0.18 | number: '1.2-2') : (0 | number: '1.2-2') }}</td>
+                <td class="px-2 py-1 text-right">{{ ((it.cantidad || 0) * (it.precio_unitario || 0) + (selectedIsFactura ? ((it.cantidad || 0) * (it.precio_unitario || 0) * 0.18) : 0)) | number: '1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-4 flex justify-end">
+          <div class="w-80 border border-slate-200 bg-white p-3 text-sm">
+            <div class="flex justify-between py-0.5">
+              <span class="text-slate-600">Op. Gravadas</span>
+              <span>{{ subtotal | number:'1.2-2' }}</span>
+            </div>
+            <div class="flex justify-between py-0.5" *ngIf="selectedIsFactura">
+              <span class="text-slate-600">IGV (18%)</span>
+              <span>{{ selectedIgv | number:'1.2-2' }}</span>
+            </div>
+            <div class="border-t border-slate-200 my-2"></div>
+            <div class="flex justify-between py-0.5 text-base font-bold">
+              <span>Total</span>
+              <span>{{ selectedTotal | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 </section>
