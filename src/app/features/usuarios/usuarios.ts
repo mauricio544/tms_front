@@ -7,9 +7,11 @@ import { Users } from '../../../../core/services/users';
 import { Personas } from '../../../../core/services/personas';
 import { Puntos } from '../../../../core/services/puntos';
 import { UserSede } from '../../../../core/services/user-sede';
-import { Usuario, Persona, Puntos as Points } from '../../../../core/mapped';
+import { Roles } from '../../../../core/services/roles';
+import { Usuario, Persona, Puntos as Points, Rol, RolPermiso } from '../../../../core/mapped';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroUserCircle } from '@ng-icons/heroicons/outline';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'feature-usuarios',
@@ -29,10 +31,16 @@ export class UsuariosFeature implements OnInit {
   private readonly personasSvc = inject(Personas);
   private readonly puntosSvc = inject(Puntos);
   private readonly userSedeSvc = inject(UserSede);
+  private readonly rolesSvc = inject(Roles);
 
   lista_usuarios: Usuario[] = [];
   personas: Persona[] = [];
   puntos: Points[] = [];
+  roles: Array<{ info: Rol; permisos: RolPermiso[]; selected: boolean }> = [];
+  rolesLoading = false;
+  rolesError: string | null = null;
+  pendingRoleIds: number[] = [];
+  originalRoleCodes: string[] = [];
   loading = false;
   error: string | null = null;
 
@@ -56,7 +64,7 @@ export class UsuariosFeature implements OnInit {
   notifType: 'success' | 'error' = 'success';
   editing = false;
   editingId: number | null = null;
-  newUser = { email: '', is_active: true, person_id: null, punto_id: null, password: '', username: '', acceso: 'Lectura' } as { email: string; is_active: boolean; person_id: number | null; punto_id: number | null; password: string, username: string; acceso: 'Lectura' | 'Escritura' };
+  newUser = { email: '', is_active: true, person_id: null, punto_id: null, password: '', username: '' } as { email: string; is_active: boolean; person_id: number | null; punto_id: number | null; password: string; username: string };
 
   get isValidUser(): boolean {
     const username = !!(this.newUser.username|| '').trim();
@@ -93,7 +101,10 @@ export class UsuariosFeature implements OnInit {
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newUser = { email: '', is_active: true, person_id: null, punto_id: null, password: '' , username: '', acceso: 'Lectura' } as any;
+    this.newUser = { email: '', is_active: true, person_id: null, punto_id: null, password: '' , username: '' } as any;
+    this.pendingRoleIds = [];
+    this.originalRoleCodes = [];
+    this.resetRolesSelection();
     this.saveError = null;
     this.showModal = true;
   }
@@ -103,9 +114,12 @@ export class UsuariosFeature implements OnInit {
     console.log(item);
     this.editing = true;
     this.editingId = (item as any).id ?? null;
-    const tipoAcceso = String((item as any).tipo_acceso || (item as any).acceso || '').toLowerCase();
-    const acceso = tipoAcceso === 'user_write' || tipoAcceso === 'escritura' ? 'Escritura' : 'Lectura';
-    this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, punto_id: null, password: '', username: (item as any).username, acceso } as any;
+    const sedes = ((item as any).sedes || []) as any[];
+    const puntoId = sedes.length ? Number((sedes[0] as any)?.id || 0) : null;
+    this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, punto_id: puntoId || null, password: '', username: (item as any).username } as any;
+    this.pendingRoleIds = ((item as any).roles || []).map((r: any) => r);
+    this.originalRoleCodes = (this.pendingRoleIds || []).map((r: any) => String(r));
+    this.applyRoleSelection();
     this.saveError = null;
     this.showModal = true;
   }
@@ -148,7 +162,7 @@ export class UsuariosFeature implements OnInit {
   submitNewUser() {
     if (!this.isValidUser) return;
     const ciaId = Number(localStorage.getItem('cia_id') || 0);
-    const tipoAcceso = this.newUser.acceso === 'Escritura' ? 'user_write' : 'user_read';
+    const tipoAcceso = this.hasSelectedRoles() ? 'user_write' : 'user_read';
     const payload: any = {
       email: null,
       username: this.newUser.username,
@@ -175,14 +189,54 @@ export class UsuariosFeature implements OnInit {
         this.editing = false;
         this.editingId = null;
         this.onFilterChange();
-        this.closeModal();
-        this.showNotif(wasEditing ? 'Usuario actualizado' : 'Usuario creado');
+        const finish = () => {
+          this.closeModal();
+          this.showNotif(wasEditing ? 'Usuario actualizado' : 'Usuario creado');
+        };
+        const selectedCodes = this.getSelectedRoleCodes();
+        const companyId = Number(localStorage.getItem('cia_id') || 0);
+        const syncRoles = () => {
+          if (!createdId || !companyId) { finish(); return; }
+          const toAssign = selectedCodes.filter(c => !this.originalRoleCodes.includes(c));
+          const toRemove = this.originalRoleCodes.filter(c => !selectedCodes.includes(c));
+          const calls = [
+            ...toAssign.map(code => this.user.assignRoles(createdId, companyId, code as any)),
+            ...toRemove.map(code => this.user.deleteRoles(createdId, companyId, code as any)),
+          ];
+          if (!calls.length) { finish(); return; }
+          forkJoin(calls).subscribe({
+            next: () => finish(),
+            error: () => { this.showNotif('Usuario actualizado, pero no se pudieron sincronizar roles', 'error'); finish(); },
+          });
+        };
+        const assignRolesForCreate = () => {
+          if (!createdId || !companyId || !selectedCodes.length) { finish(); return; }
+          forkJoin(selectedCodes.map(code => this.user.assignRoles(createdId, companyId, code as any))).subscribe({
+            next: () => finish(),
+            error: () => { this.showNotif('Usuario creado, pero no se pudieron asignar roles', 'error'); finish(); },
+          });
+        };
+        if (wasEditing) {
+          if (createdId && this.newUser.punto_id) {
+            this.userSedeSvc.updateUsuarioSede({ usuario_id: createdId, punto_id: this.newUser.punto_id }).subscribe({
+              next: () => syncRoles(),
+              error: () => { this.showNotif('Usuario actualizado, pero no se pudo actualizar la sede', 'error'); syncRoles(); },
+            });
+          } else {
+            syncRoles();
+          }
+          return;
+        }
         if (!wasEditing && createdId && this.newUser.punto_id) {
           this.userSedeSvc.createUsuarioSede({ usuario_id: createdId, punto_id: this.newUser.punto_id }).subscribe({
+            next: () => assignRolesForCreate(),
             error: () => {
               this.showNotif('Usuario creado, pero no se pudo asignar el punto', 'error');
+              assignRolesForCreate();
             },
           });
+        } else {
+          assignRolesForCreate();
         }
       },
       error: () => {
@@ -212,6 +266,7 @@ export class UsuariosFeature implements OnInit {
     this.loadUsuarios();
     this.loadPersonas();
     this.loadPuntos();
+    this.loadRoles();
   }
 
   loadPersonas() {
@@ -226,6 +281,58 @@ export class UsuariosFeature implements OnInit {
       next: (res) => { this.puntos = res || []; },
       error: () => { this.puntos = []; },
     });
+  }
+
+  loadRoles() {
+    this.rolesLoading = true;
+    this.rolesError = null;
+    this.rolesSvc.getRoles().subscribe({
+      next: (roles) => {
+        const list = roles || [];
+        if (!list.length) { this.roles = []; this.rolesLoading = false; return; }
+        forkJoin(list.map(r => this.rolesSvc.getRolesPermisos(r.id))).subscribe({
+          next: (permisosList) => {
+            this.roles = list.map((r, idx) => ({
+              info: r,
+              permisos: (permisosList[idx] || []),
+              selected: false,
+            }));
+            this.applyRoleSelection();
+            this.rolesLoading = false;
+          },
+          error: () => { this.rolesLoading = false; this.rolesError = 'No se pudieron cargar los permisos'; },
+        });
+      },
+      error: () => { this.rolesLoading = false; this.rolesError = 'No se pudieron cargar los roles'; },
+    });
+  }
+
+  resetRolesSelection() {
+    this.roles = (this.roles || []).map(r => ({
+      ...r,
+      selected: false,
+    }));
+  }
+
+  getSelectedRoleCodes(): string[] {
+    return (this.roles || [])
+      .filter(r => r.selected)
+      .map(r => String(r.info.code || r.info.id));
+  }
+
+  applyRoleSelection() {
+    if (!this.pendingRoleIds.length || !this.roles.length) return;
+    const selected = new Set(this.pendingRoleIds.map((r: any) => String(r)));
+    this.roles = (this.roles || []).map(r => ({ ...r, selected: selected.has(String(r.info.code || r.info.id)) }));
+  }
+
+  toggleRole(role: { info: Rol; permisos: RolPermiso[]; selected: boolean }, ev: Event) {
+    const checked = (ev.target as HTMLInputElement).checked;
+    role.selected = checked;
+  }
+
+  hasSelectedRoles(): boolean {
+    return (this.roles || []).some(r => r.selected);
   }
 }
 

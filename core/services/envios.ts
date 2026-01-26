@@ -18,6 +18,10 @@ export class Envios {
     return this.api.get('/envios');
   }
 
+  getEnvio(id: number): Observable<Envio> {
+    return this.api.get(`/envios/${id}`);
+  }
+
   getEnviosManifiesto(id: number): Observable<Envio[]> {
     return this.api.get(`/envios/lista/${id}/envios`);
   }

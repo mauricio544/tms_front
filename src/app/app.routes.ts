@@ -20,9 +20,11 @@ import { GastosFeature } from './features/gastos/gastos';
 import { ComprobantesFeature } from './features/comprobantes/comprobantes-feature';
 import { SedesFeature } from './features/sedes/sedes';
 import { ReportesFeature } from './features/reportes/reportes';
+import { EnvioPublicComponent } from './public/envio-public/envio-public';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: LoginComponent },
+  { path: 'tracking/:id', component: EnvioPublicComponent },
   {
     path: '',
     component: LayoutComponent,

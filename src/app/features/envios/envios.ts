@@ -104,6 +104,76 @@ export class EnviosFeature implements OnInit {
     return (f as any)?.nombre ?? String(id);
   }
   private format2(n: any): string { try { return (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); } catch { return String(n); } }
+  trackingUrl(id: number | null | undefined): string {
+    const eid = Number(id || 0);
+    if (!eid) return '';
+    try { return `${window.location.origin}/tracking/${eid}`; } catch { return `/tracking/${eid}`; }
+  }
+
+  private printEtiquetasFor(envio: any, detalles: any[]) {
+    const e: any = envio;
+    const dets: any[] = detalles || [];
+    if (!e || !dets.length) return;
+    const origen = this.getPuntoNombre(e.punto_origen_id);
+    const destino = this.getPuntoNombre(e.punto_destino_id);
+    const tracking = this.trackingUrl(e.id);
+    const qr = tracking ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(tracking)}` : '';
+    const rows = dets.map((d, i) => {
+      const desc = String(d.descripcion || '');
+      const qty = Math.max(1, Number(d.cantidad || 0));
+      const perUnit = Array.from({ length: qty }).map((_, unitIdx) => `<div class="label">
+  <div class="head">
+    <div class="title">ETIQUETA ENVIO</div>
+    <div class="id">Envio #${e.id || '-'} · ${i + 1}.${unitIdx + 1}</div>
+  </div>
+  <div class="body">
+    <div class="row"><span class="k">Item</span><span class="v">${i + 1}</span></div>
+    <div class="row"><span class="k">Descripcion</span><span class="v">${desc}</span></div>
+    <div class="row"><span class="k">Cantidad</span><span class="v">1</span></div>
+    <div class="row"><span class="k">Origen</span><span class="v">${origen}</span></div>
+    <div class="row"><span class="k">Destino</span><span class="v">${destino}</span></div>
+  </div>
+  <div class="qr">${qr ? `<img src="${qr}" alt="QR" />` : ''}</div>
+</div>`).join('');
+      return perUnit;
+    }).join('');
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Etiquetas Envio ${e.id || ''}</title>
+<style>
+  @page { margin: 8mm; }
+  body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;margin:0;}
+  .sheet{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .label{border:1px solid #e2e8f0;border-radius:8px;padding:8px;break-inside:avoid;min-height:120px;}
+  .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .title{font-size:12px;font-weight:700;}
+  .id{font-size:11px;color:#64748b;}
+  .row{display:flex;gap:6px;font-size:11px;margin:2px 0;}
+  .k{color:#64748b;min-width:64px;}
+  .v{font-weight:600;word-break:break-word;}
+  .qr{display:flex;justify-content:flex-end;margin-top:6px;}
+  .qr img{width:72px;height:72px;border:1px solid #e2e8f0;padding:3px;}
+  @media print { .sheet{grid-template-columns:1fr 1fr;} }
+</style>
+</head><body>
+  <div class="sheet">${rows}</div>
+  <script>window.addEventListener('load',()=>{window.print(); setTimeout(()=>window.close(),300)});</script>
+</body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.open(); w.document.write(html); w.document.close();
+  }
+
+  printEtiquetas() {
+    this.printEtiquetasFor(this.ticketEnvio, this.ticketDetalles);
+  }
+
+  openEtiquetas(item: Envio) {
+    const envioId = Number((item as any)?.id || 0);
+    if (!envioId) return;
+    this.detalleSrv.getDetallesEnvio(envioId).subscribe({
+      next: (list: any[]) => { this.printEtiquetasFor(item, list || []); },
+      error: () => { this.showNotif('No se pudo cargar el detalle para etiquetas', 'error'); }
+    });
+  }
   private resolveClientePersonaId(): number {
     const current = Number(this.compClienteId || 0);
     if (current) return current;
@@ -420,6 +490,24 @@ export class EnviosFeature implements OnInit {
     });
   }
 
+  private getUserSedeId(): number {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return 0;
+      const me = JSON.parse(raw) as any;
+      const sede = Array.isArray(me?.sedes) ? me.sedes[0] : null;
+      return Number(sede?.id || 0);
+    } catch {
+      return 0;
+    }
+  }
+  private applyDefaultOrigen() {
+    if (this.editing) return;
+    if (Number((this.newEnvio as any)?.punto_origen_id || 0)) return;
+    const sedeId = this.getUserSedeId();
+    if (sedeId) { (this.newEnvio as any).punto_origen_id = sedeId; }
+  }
+
   private syncDestinatarioCelular() {
     const destId = Number((this.newEnvio as any)?.destinatario || 0);
     if (!destId || (this.destinatarioCelular || '').trim()) return;
@@ -514,6 +602,7 @@ export class EnviosFeature implements OnInit {
     this.remitenteDocNumber = ''; this.destinatarioDocNumber = '';
     // Reset WhatsApp helpers
     this.sendWhatsapp = false; this.whatsappPhone = '';
+    this.applyDefaultOrigen();
   }
   closeCreate() { this.showCreate = false; this.editing = false;}
 
@@ -803,7 +892,13 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
     });
   }
   loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; this.syncDestinatarioCelular(); }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }
-  loadPuntos() { this.puntosLoading = true; this.puntosError = null; this.puntosSrv.getPuntos().subscribe({ next: (res) => { this.puntos = res || []; this.puntosLoading = false; }, error: () => { this.puntosLoading = false; this.puntosError = 'No se pudieron cargar los puntos'; }, }); }
+  loadPuntos() {
+    this.puntosLoading = true; this.puntosError = null;
+    this.puntosSrv.getPuntos().subscribe({
+      next: (res) => { this.puntos = res || []; this.puntosLoading = false; this.applyDefaultOrigen(); },
+      error: () => { this.puntosLoading = false; this.puntosError = 'No se pudieron cargar los puntos'; },
+    });
+  }
 
   ngOnInit(): void {
     this.loadCatalogos();

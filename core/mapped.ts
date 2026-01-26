@@ -26,6 +26,7 @@ export interface Usuario {
   person_id: number | null;
   company_id: number | null;
   permission_type: string;
+  roles: Rol[];
   permissions: string[];
   sedes: Puntos[];
 }
@@ -413,4 +414,25 @@ export interface ClienteCreate {
   persona_id: number;
   cliente_compania_id: number;
   rol: string;
+}
+
+export interface Rol {
+  id: number;
+  code: string;
+  nombre: string;
+}
+
+export interface RolPermiso {
+  id: number;
+  code: string;
+  description: string;
+}
+
+export interface SerieComprobante {
+  id: number;
+  emisor_id: number;
+  sede_id: number;
+  tipo_comprobante_sunat: string;
+  serie: string;
+  correlativo: number
 }

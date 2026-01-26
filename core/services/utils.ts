@@ -5,7 +5,7 @@ import { Pipe, PipeTransform } from '@angular/core';
   name: "ymd"
 })
 export class Utils implements PipeTransform{
-  transform(value: string | Date): string {
+  transform(value?: string | Date): string {
     if (!value) return '';
 
     const d = new Date(value);

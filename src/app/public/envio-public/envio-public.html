@@ -1,0 +1,98 @@
+<div class="min-h-screen bg-gradient-to-b from-slate-50 via-slate-100 to-white">
+  <div class="mx-auto max-w-md px-4 pb-10 pt-6">
+    <div class="mb-5">
+      <div class="text-xs uppercase tracking-wide text-slate-500">Seguimiento de envío</div>
+      <div class="mt-1 text-2xl font-semibold text-slate-800">Envío #{{ envio?.id || '-' }}</div>
+    </div>
+
+    <div *ngIf="loading" class="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">Cargando envío...</div>
+    <div *ngIf="error" class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ error }}</div>
+
+    <div *ngIf="!loading && !error && envio" class="space-y-4">
+      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-slate-600">Estado</div>
+          <div class="flex items-center gap-2">
+            <span class="rounded-full px-2.5 py-0.5 text-xs font-medium" [class.bg-emerald-100]="envio?.estado_pago" [class.text-emerald-700]="envio?.estado_pago" [class.bg-amber-100]="!envio?.estado_pago" [class.text-amber-700]="!envio?.estado_pago">
+              {{ envio?.estado_pago ? 'Pagado' : 'Pendiente de pago' }}
+            </span>
+            <span class="rounded-full px-2.5 py-0.5 text-xs font-medium" [class.bg-emerald-100]="envio?.estado_entrega" [class.text-emerald-700]="envio?.estado_entrega" [class.bg-amber-100]="!envio?.estado_entrega" [class.text-amber-700]="!envio?.estado_entrega">
+              {{ envio?.estado_entrega ? 'Entregado' : 'En tránsito' }}
+            </span>
+          </div>
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-700">
+          <div>Fecha envío: <span class="font-medium">{{ envio?.fecha_envio | ymd }}</span></div>
+          <div>Fecha entrega: <span class="font-medium">{{ (envio?.fecha_recepcion || '-') | ymd }}</span></div>
+          <div>Peso: <span class="font-medium">{{ envio?.peso || 0 }} kg</span></div>
+          <div>Entrega: <span class="font-medium">{{ envio?.entrega_domicilio ? 'Domicilio' : 'Sucursal' }}</span></div>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="text-sm font-semibold text-slate-800">Ruta</div>
+        <div class="mt-2 flex items-center justify-between text-sm text-slate-700">
+          <div>
+            <div class="text-xs text-slate-500">Origen</div>
+            <div class="font-medium">{{ puntoNombre(envio?.punto_origen_id) }}</div>
+          </div>
+          <div class="h-0.5 w-10 rounded-full bg-slate-200"></div>
+          <div class="text-right">
+            <div class="text-xs text-slate-500">Destino</div>
+            <div class="font-medium">{{ puntoNombre(envio?.punto_destino_id) }}</div>
+          </div>
+        </div>
+        <div class="mt-3 text-xs text-slate-600" *ngIf="envio?.entrega_domicilio">
+          Dirección: {{ envio?.direccion_envio || '-' }}
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="text-sm font-semibold text-slate-800">Personas</div>
+        <div class="mt-2 grid grid-cols-1 gap-3 text-sm text-slate-700">
+          <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+            <div class="text-xs text-slate-500">Remitente</div>
+            <div class="font-medium">{{ personaNombre(envio?.remitente) }}</div>
+            <div class="text-xs text-slate-500">Doc: {{ personaDocumento(envio?.remitente) }}</div>
+          </div>
+          <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+            <div class="text-xs text-slate-500">Destinatario</div>
+            <div class="font-medium">{{ personaNombre(envio?.destinatario) }}</div>
+            <div class="text-xs text-slate-500">Doc: {{ personaDocumento(envio?.destinatario) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-semibold text-slate-800">Comprobante</div>
+          <span class="text-xs text-slate-500" *ngIf="comprobanteLoading">Cargando...</span>
+        </div>
+        <div class="mt-2 text-sm text-slate-700" *ngIf="comprobante">
+          <div>Número: <span class="font-medium">{{ comprobante.serie }}-{{ comprobante.numero }}</span></div>
+          <div>Tipo: <span class="font-medium">{{ comprobante.tipo_comprobante }}</span></div>
+          <div>Total: <span class="font-medium">{{ comprobante.precio_total | number:'1.2-2' }}</span></div>
+        </div>
+        <div class="mt-2 text-sm text-slate-500" *ngIf="!comprobante && !comprobanteLoading">No registra comprobante.</div>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-semibold text-slate-800">Detalle</div>
+          <span class="text-xs text-slate-500" *ngIf="detallesLoading">Cargando...</span>
+        </div>
+        <div *ngIf="!detallesLoading && detalles?.length" class="mt-3 space-y-2">
+          <div *ngFor="let d of detalles; index as i" class="rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700">
+            <div class="flex items-start justify-between">
+              <div class="font-medium">Ítem {{ i + 1 }}</div>
+              <div class="text-xs text-slate-500">Cant: {{ d.cantidad }}</div>
+            </div>
+            <div class="mt-1">{{ d.descripcion }}</div>
+            <div class="mt-1 text-xs text-slate-500">P. Unit: {{ d.precio_unitario | number:'1.2-2' }}</div>
+          </div>
+        </div>
+        <div class="mt-2 text-sm text-slate-500" *ngIf="!detallesLoading && !detalles?.length">Sin detalle.</div>
+      </div>
+    </div>
+  </div>
+</div>

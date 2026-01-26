@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import { Usuario } from '../mapped';
+import { Usuario, Rol } from '../mapped';
 
 @Injectable({ providedIn: 'root' })
 export class Users {
@@ -24,5 +24,13 @@ export class Users {
 
   deleteUser(id: number): Observable<any> {
     return this.api.delete(`/users/${id}/`);
+  }
+
+  assignRoles(user_id: number, company_id: number, role_code: string): Observable<Rol> {
+    return this.api.post(`/admin/users/${user_id}/companies/${company_id}/roles/${role_code}`);
+  }
+
+  deleteRoles (user_id: number, company_id: number, role_code: string): Observable<any> {
+    return this.api.delete(`/admin/users/${user_id}/companies/${company_id}/roles/${role_code}`);
   }
 }
