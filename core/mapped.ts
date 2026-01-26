@@ -146,6 +146,7 @@ export interface Envio {
   estado_entrega: boolean;
   entrega_domicilio: boolean;
   direccion_envio: string;
+  ticket_numero: string;
 }
 
 export interface EnvioCreate {
@@ -163,6 +164,7 @@ export interface EnvioCreate {
   punto_destino_id: number;
   entrega_domicilio: boolean;
   direccion_envio: string;
+  ticket_numero: string;
 }
 
 export interface Comprobante {

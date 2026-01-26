@@ -20,9 +20,10 @@ import { DetallesComprobante } from '../../../../core/services/detalles-comproba
 import { Movimientos } from '../../../../core/services/movimientos';
 import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
 import { Clientes } from '../../../../core/services/clientes';
-import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General, MessageCreate } from '../../../../core/mapped';
+import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General, MessageCreate, SerieComprobante as SerieComprobanteModel } from '../../../../core/mapped';
 import { Utilitarios } from '../../../../core/services/utilitarios';
 import { forkJoin } from 'rxjs';
+import { SerieComprobante as SerieComprobanteService } from '../../../../core/services/serie-comprobante';
 
 @Component({
   selector: 'feature-envios',
@@ -49,6 +50,7 @@ export class EnviosFeature implements OnInit {
   private readonly clientesSrv = inject(Clientes);
   private readonly messageSrv = inject(Message);
   private readonly utilSrv = inject(Utilitarios);
+  private readonly serieSrv = inject(SerieComprobanteService);
   // Estado principal
   lista_envios: Envio[] = [];
   loading = false;
@@ -100,8 +102,12 @@ export class EnviosFeature implements OnInit {
 
   private tipoNombreById(id: number | null | undefined): string {
     if (id == null) return '';
-    const f = (this.compTipos || []).find((g: any) => Number((g as any).id) === Number(id) || Number((g as any).codigo_principal) === Number(id));
-    return (f as any)?.nombre ?? String(id);
+    const n = Number(id || 0);
+    const f = (this.compTipos || []).find((s: any) => Number(this.normalizeTipoComprobante((s as any).tipo_comprobante_sunat)) === n);
+    const tipo = f ? this.normalizeTipoComprobante((f as any).tipo_comprobante_sunat) : this.normalizeTipoComprobante(id);
+    if (tipo === '01') return 'Factura';
+    if (tipo === '03') return 'Boleta';
+    return String(id);
   }
   private format2(n: any): string { try { return (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); } catch { return String(n); } }
   trackingUrl(id: number | null | undefined): string {
@@ -365,9 +371,9 @@ export class EnviosFeature implements OnInit {
   destLookupLoading = false; destLookupError: string | null = null;
 
   // Comprobante (creaciÃ³n cuando pagado)
-  compTipos: General[] = [];
+  compTipos: SerieComprobanteModel[] = [];
   payTipos: General[] = [];
-  compTipoSel: General | null = null;
+  compTipoSel: SerieComprobanteModel | null = null;
   compTipoId: number | null = null;
   compSerie: string = '';
   compCorrelativo: number = 0;
@@ -382,25 +388,61 @@ export class EnviosFeature implements OnInit {
   get compImpuesto(): number { const total = this.stagedSubtotal || 0; return this.compTipoNombre().toLowerCase().includes('fact') ? +(total * 0.18).toFixed(2) : 0; }
   get compTotal(): number { return this.stagedSubtotal || 0; }
   get compTotalConImpuesto(): number { return this.compTipoNombre().toLowerCase().includes('fact') ? (this.compTotal + this.compImpuesto) : this.compTotal; }
-  compTipoNombre(): string { const t = this.compTipoSel || this.compTipos.find(x => (x as any).codigo_principal === this.compTipoId) || null as any; return (t?.nombre || '').toString(); }
+  compTipoNombre(): string {
+    const t = this.compTipoSel || this.compTipos.find(x => Number(this.normalizeTipoComprobante((x as any).tipo_comprobante_sunat)) === Number(this.compTipoId)) || null;
+    const tipo = t ? this.normalizeTipoComprobante((t as any).tipo_comprobante_sunat) : '';
+    if (tipo === '01') return 'Factura';
+    if (tipo === '03') return 'Boleta';
+    return '';
+  }
   private pad6(n: number): string { const s = String(n || 0); return s.padStart(6, '0'); }
+  private normalizeTipoComprobante(value: any): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    return raw.length === 1 ? `0${raw}` : raw;
+  }
+  private isFacturaTipo(value: any): boolean {
+    return this.normalizeTipoComprobante(value) === '01';
+  }
+  compTipoLabel(t: SerieComprobanteModel): string {
+    const tipo = this.normalizeTipoComprobante((t as any).tipo_comprobante_sunat);
+    const nombre = tipo === '01' ? 'Factura' : (tipo === '03' ? 'Boleta' : 'Comprobante');
+    return `${nombre} - ${t.serie}`;
+  }
+  private bumpComprobanteSerie() {
+    const current = this.compTipoSel || this.compTipos.find(x => Number(this.normalizeTipoComprobante((x as any).tipo_comprobante_sunat)) === Number(this.compTipoId)) || null;
+    if (!current) return;
+    const nextCorr = (Number(current.correlativo || 0) || 0) + 1;
+    const body: SerieComprobanteModel = { ...current, correlativo: nextCorr };
+    this.serieSrv.updateSeries(Number(current.id), body).subscribe({
+      next: () => {
+        current.correlativo = nextCorr;
+        if (this.compTipoSel && Number(this.compTipoSel.id) === Number(current.id)) {
+          this.compCorrelativo = nextCorr;
+          this.compNumero = this.pad6(this.compCorrelativo);
+          this.compNumeroComprobante = this.compSerie ? `${this.compSerie}-${this.compNumero}` : '';
+        }
+      },
+      error: () => { this.showNotif('Comprobante generado, pero no se pudo actualizar la serie', 'error'); }
+    });
+  }
   onCompTipoChange(selected?: any) {
     if (selected && typeof selected === 'object') {
-      this.compTipoSel = selected as General;
-      this.compTipoId = Number((this.compTipoSel as any).id || 0);
+      this.compTipoSel = selected as SerieComprobanteModel;
     } else if (selected != null) {
       this.compTipoId = Number(selected);
-      this.compTipoSel = this.compTipos.find(x => Number((x as any).id) === this.compTipoId) || null as any;
+      this.compTipoSel = this.compTipos.find(x => Number(this.normalizeTipoComprobante((x as any).tipo_comprobante_sunat)) === this.compTipoId) || null;
     } else if (!this.compTipoSel && this.compTipoId != null) {
-      this.compTipoSel = this.compTipos.find(x => Number((x as any).id) === Number(this.compTipoId)) || null as any;
+      this.compTipoSel = this.compTipos.find(x => Number(this.normalizeTipoComprobante((x as any).tipo_comprobante_sunat)) === Number(this.compTipoId)) || null;
     }
     const t: any = this.compTipoSel;
+    const tipo = t ? this.normalizeTipoComprobante((t as any).tipo_comprobante_sunat) : '';
+    this.compTipoId = Number(tipo || 0);
     this.compSerie = (t?.serie || '').toString();
     this.compCorrelativo = Number(t?.correlativo || 0);
     this.compNumero = this.pad6(this.compCorrelativo);
-    this.compNumeroComprobante = `${this.compSerie}-${this.compNumero}`;
-    const nombre = (t?.nombre || '').toString().toLowerCase();
-    this.compDocType = nombre.includes('fact') ? 'RUC' : 'DNI';
+    this.compNumeroComprobante = this.compSerie ? `${this.compSerie}-${this.compNumero}` : '';
+    this.compDocType = this.isFacturaTipo(tipo) ? 'RUC' : 'DNI';
     this.compDocNumber = '';
     this.compClienteId = null;
   }
@@ -506,6 +548,20 @@ export class EnviosFeature implements OnInit {
     if (Number((this.newEnvio as any)?.punto_origen_id || 0)) return;
     const sedeId = this.getUserSedeId();
     if (sedeId) { (this.newEnvio as any).punto_origen_id = sedeId; }
+  }
+  private pickTicketSerie(series: SerieComprobanteModel[]): SerieComprobanteModel | null {
+    const sedeId = this.getUserSedeId();
+    if (!sedeId) return null;
+    return (series || []).find(s => {
+      const sameSede = Number(s.sede_id) === sedeId;
+      const tipo = (s as any).tipo_comprobante_sunat;
+      const isTicketSerie = tipo == null || String(tipo).trim() === '';
+      return sameSede && isTicketSerie;
+    }) || null;
+  }
+  private buildTicketNumero(serie: SerieComprobanteModel): string {
+    const correlativo = Number(serie.correlativo || 0);
+    return `${serie.serie}-${correlativo}`;
   }
 
   private syncDestinatarioCelular() {
@@ -625,6 +681,7 @@ export class EnviosFeature implements OnInit {
       valida_restricciones: (item as any).valida_restricciones,
       punto_origen_id: (item as any).punto_origen_id,
       punto_destino_id: (item as any).punto_destino_id,
+      ticket_numero: (item as any).ticket_numero,
     } as any;
     this.saveError = null; this.remitenteQuery = this.personaLabelById((item as any).remitente) || ''; this.destinatarioQuery = this.personaLabelById((item as any).destinatario) || ''; this.showEdit = true;
     this.destinatarioCelular = this.personaCelularById((item as any).destinatario) || '';
@@ -708,15 +765,16 @@ export class EnviosFeature implements OnInit {
   submitEnvio() {
     if (!this.isValidEnvio) return;
     const e: any = this.newEnvio;
-    const doSubmit = () => {
+    const doSubmit = (ticketSerie: SerieComprobanteModel | null) => {
+    const ticketNumero = ticketSerie ? this.buildTicketNumero(ticketSerie) : (String(e.ticket_numero || '').trim() || null);
     const payload: any = {
-      remitente: Number(e.remitente), destinatario: Number(e.destinatario), entrega_domicilio: !!e.entrega_domicilio, direccion_envio: String(e.direccion_envio || '').toUpperCase().trim(), estado_pago: !!e.estado_pago, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id)
+      remitente: Number(e.remitente), destinatario: Number(e.destinatario), entrega_domicilio: !!e.entrega_domicilio, direccion_envio: String(e.direccion_envio || '').toUpperCase().trim(), estado_pago: !!e.estado_pago, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id), ticket_numero: ticketNumero
     };
     this.saving = true; this.saveError = null;
     if (this.editing && this.editingId) {
       this.enviosSrv.updateEnvios(this.editingId, payload).subscribe({
         next: (res: any) => {
-          const updated: Envio = { id: res?.id ?? this.editingId!, remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio } as Envio;
+          const updated: Envio = { id: res?.id ?? this.editingId!, remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio, ticket_numero: res?.ticket_numero ?? payload.ticket_numero } as Envio;
           this.lista_envios = this.lista_envios.map(v => (v as any).id === this.editingId ? updated : v);
           this.saving = false; this.editing = false; this.editingId = null; this.onFilterChange();
 this.closeEdit(); this.showNotif('Env\u00edo actualizado');
@@ -728,12 +786,12 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
     this.enviosSrv.createEnvios(payload).subscribe({
       next: (res: any) => {
         const newId = Number(res?.id);
-        const updated: Envio = { id: newId || (Math.max(0, ...(this.lista_envios.map((x: any) => x.id).filter(Number))) + 1), remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio } as Envio;
+        const updated: Envio = { id: newId || (Math.max(0, ...(this.lista_envios.map((x: any) => x.id).filter(Number))) + 1), remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio, ticket_numero: res?.ticket_numero ?? payload.ticket_numero } as Envio;
         const detalles = (this.stagedDetalles || []).map((d, i) => ({ id: 0, numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: (d.descripcion as any), precio_unitario: Number(d.precio_unitario) || 0, envio_id: newId })) as DetalleEnvioCreate[];
         if (newId && detalles.length) {
-          forkJoin(detalles.map(d => this.detalleSrv.createDetalleEnvio(d))).subscribe({ next: () => this.afterCreate(updated, newId, payload), error: () => { this.saving = false; this.saveError = 'No se pudo crear el detalle del env\u00edo'; this.showNotif(this.saveError as string, 'error'); } });
+          forkJoin(detalles.map(d => this.detalleSrv.createDetalleEnvio(d))).subscribe({ next: () => this.afterCreate(updated, newId, payload, ticketSerie), error: () => { this.saving = false; this.saveError = 'No se pudo crear el detalle del env\u00edo'; this.showNotif(this.saveError as string, 'error'); } });
         } else {
-          this.afterCreate(updated, newId, payload);
+          this.afterCreate(updated, newId, payload, ticketSerie);
         }
       },
       error: () => { this.saving = false; this.saveError = 'No se pudo crear el env\u00edo'; this.showNotif(this.saveError as string, 'error'); },
@@ -742,12 +800,38 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
     };
     const destId = Number(e.destinatario || 0);
     const celular = String(this.destinatarioCelular || '').trim();
-    this.updateDestinatarioCelular(destId, celular, doSubmit);
+    this.updateDestinatarioCelular(destId, celular, () => {
+      if (this.editing) {
+        doSubmit(null);
+        return;
+      }
+      this.serieSrv.getSeries().subscribe({
+        next: (series: SerieComprobanteModel[]) => {
+          const ticketSerie = this.pickTicketSerie(series || []);
+          if (!ticketSerie) {
+            this.showNotif('No se encontro serie de ticket para la sede', 'error');
+            return;
+          }
+          doSubmit(ticketSerie);
+        },
+        error: () => {
+          this.showNotif('No se pudo obtener la serie del ticket', 'error');
+        }
+      });
+    });
   }
 
-  private afterCreate(updated: Envio, newId: number, payload: any) {
+  private afterCreate(updated: Envio, newId: number, payload: any, ticketSerie: SerieComprobanteModel | null) {
     this.lista_envios = [updated, ...this.lista_envios];
     this.saving = false; this.editing = false; this.editingId = null; this.onFilterChange();
+    if (ticketSerie) {
+      const nextCorr = (Number(ticketSerie.correlativo || 0) || 0) + 1;
+      const body: SerieComprobanteModel = { ...ticketSerie, correlativo: nextCorr };
+      this.serieSrv.updateSeries(Number(ticketSerie.id), body).subscribe({
+        next: () => {},
+        error: () => { this.showNotif('Env\u00edo creado, pero no se pudo actualizar la serie del ticket', 'error'); }
+      });
+    }
     if (!payload.estado_pago) {
       if (newId) {
         this.detalleSrv.getDetallesEnvio(newId).subscribe({
@@ -802,12 +886,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
     if (compId && detsBodies.length) {
       forkJoin(detsBodies.map(x => this.detCompSrv.createDetalles(x))).subscribe({ next: () => afterDetalles(), error: () => afterDetalles() });
     } else { afterDetalles(); }
-    try {
-      const t: any = this.compTipoSel || (this.compTipos || []).find((g: any) => Number((g as any).codigo_principal) === Number(this.compTipoId));
-      const genId = Number((t as any)?.id || 0);
-      const nextCorr = (Number((t as any)?.correlativo || 0) || Number(this.compCorrelativo||0)) + 1;
-      if (genId) { this.generalesSrv.updateGenerales(genId, { correlativo: nextCorr } as any).subscribe({ next:()=>{}, error:()=>{} }); }
-    } catch {}
+    this.bumpComprobanteSerie();
   },
   error: () => { this.closeCreate(); }
 });
@@ -879,8 +958,29 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
   // Carga inicial
   loadCatalogos() {
     this.generalesSrv.getGenerales().subscribe({
-      next: (list: General[]) => { const arr = list || []; this.compTipos = arr.filter((g: any) => (g.codigo_grupo || '') === 'REC'); this.payTipos = arr.filter((g: any) => (g.codigo_grupo || '') === 'PAY'); if (this.compTipos.length && !this.compTipoId) { const def: any = this.compTipos[0]; this.compTipoSel = def; this.compTipoId = def.codigo_principal; this.onCompTipoChange(def); } },
+      next: (list: General[]) => { const arr = list || []; this.payTipos = arr.filter((g: any) => (g.codigo_grupo || '') === 'PAY'); },
       error: () => { this.detallesLoading = false; },
+    });
+    this.loadComprobanteSeries();
+  }
+  private loadComprobanteSeries() {
+    const sedeId = this.getUserSedeId();
+    if (!sedeId) return;
+    this.serieSrv.getSeries().subscribe({
+      next: (list: SerieComprobanteModel[]) => {
+        const filtered = (list || []).filter(s => {
+          const sameSede = Number(s.sede_id) === sedeId;
+          const tipo = this.normalizeTipoComprobante((s as any).tipo_comprobante_sunat);
+          return sameSede && (tipo === '01' || tipo === '03');
+        });
+        this.compTipos = filtered;
+        if (this.compTipos.length && !this.compTipoId) {
+          const def = this.compTipos[0];
+          this.compTipoSel = def;
+          this.onCompTipoChange(def);
+        }
+      },
+      error: () => { this.showNotif('No se pudieron cargar las series de comprobante', 'error'); }
     });
   }
 
@@ -949,24 +1049,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
         if (compId && detsBodies.length) {
           forkJoin(detsBodies.map(x => this.detCompSrv.createDetalles(x))).subscribe({ next: () => afterDetalles(), error: () => afterDetalles() });
         } else { afterDetalles(); }
-     try {
-       const t: any = this.compTipoSel || (this.compTipos || []).find((g: any) => Number((g as any).codigo_principal) === Number(this.compTipoId));
-       const genId = Number((t as any)?.id || 0);
-       const nextCorr = (Number((t as any)?.correlativo || 0) || Number(this.compCorrelativo||0)) + 1;
-       if (genId) { this.generalesSrv.updateGenerales(genId, { correlativo: nextCorr } as any).subscribe({ next:()=>{}, error:()=>{} }); }
-     } catch {}
-      try {
-        const t: any = this.compTipoSel || (this.compTipos || []).find((g: any) => Number((g as any).codigo_principal) === Number(this.compTipoId));
-        const genId = Number((t as any)?.id || 0);
-        const nextCorr = (Number((t as any)?.correlativo || 0) || Number(this.compCorrelativo||0)) + 1;
-        if (genId) { this.generalesSrv.updateGenerales(genId, { correlativo: nextCorr } as any).subscribe({ next:()=>{}, error:()=>{} }); }
-      } catch {}
-        try {
-          const t: any = this.compTipoSel || (this.compTipos || []).find((g: any) => Number((g as any).codigo_principal) === Number(this.compTipoId));
-          const genId = Number((t as any)?.id || 0);
-          const nextCorr = (Number((t as any)?.correlativo || 0) || Number(this.compCorrelativo||0)) + 1;
-          if (genId) { this.generalesSrv.updateGenerales(genId, { correlativo: nextCorr } as any).subscribe({ next:()=>{}, error:()=>{} }); }
-        } catch {}
+     this.bumpComprobanteSerie();
       },
       error: () => { this.showNotif('No se pudo generar el comprobante', 'error'); }
     });
@@ -994,12 +1077,7 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
         if (compId && detsBodies.length) {
           forkJoin(detsBodies.map(x => this.detCompSrv.createDetalles(x))).subscribe({ next: () => afterDetalles(), error: () => afterDetalles() });
         } else { afterDetalles(); }
-        try {
-          const t: any = this.compTipoSel || (this.compTipos || []).find((g: any) => Number((g as any).codigo_principal) === Number(this.compTipoId));
-          const genId = Number((t as any)?.id || 0);
-          const nextCorr = (Number((t as any)?.correlativo || 0) || Number(this.compCorrelativo||0)) + 1;
-          if (genId) { this.generalesSrv.updateGenerales(genId, { correlativo: nextCorr } as any).subscribe({ next:()=>{}, error:()=>{} }); }
-        } catch {}
+        this.bumpComprobanteSerie();
       },
       error: () => { this.showNotif('No se pudo generar el comprobante', 'error'); }
     });

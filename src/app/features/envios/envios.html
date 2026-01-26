@@ -296,7 +296,7 @@
             <select [(ngModel)]="compTipoSel" (ngModelChange)="onCompTipoChange($event)"
                     class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
               <option [ngValue]="null">Seleccione...</option>
-              <option *ngFor="let t of compTipos" [ngValue]="t">{{ t.nombre }}</option>
+              <option *ngFor="let t of compTipos" [ngValue]="t">{{ compTipoLabel(t) }}</option>
             </select>
           </div>
           <div>
@@ -403,7 +403,7 @@
             <select [(ngModel)]="compTipoSel" (ngModelChange)="onCompTipoChange($event)"
                     class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
               <option [ngValue]="null">Seleccione...</option>
-              <option *ngFor="let t of compTipos" [ngValue]="t">{{ t.nombre }}</option>
+              <option *ngFor="let t of compTipos" [ngValue]="t">{{ compTipoLabel(t) }}</option>
             </select>
           </div>
           <div>
@@ -852,7 +852,7 @@
             <select [(ngModel)]="compTipoSel" (ngModelChange)="onCompTipoChange($event)"
                     class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
               <option [ngValue]="null">Seleccione...</option>
-              <option *ngFor="let t of compTipos" [ngValue]="t">{{ t.nombre }}</option>
+              <option *ngFor="let t of compTipos" [ngValue]="t">{{ compTipoLabel(t) }}</option>
             </select>
           </div>
           <div>
@@ -1025,7 +1025,7 @@
         <select [(ngModel)]="compTipoSel" (ngModelChange)="onCompTipoChange($event)"
                 class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
           <option [ngValue]="null">Seleccione...</option>
-          <option *ngFor="let t of compTipos" [ngValue]="t">{{ t.nombre }}</option>
+          <option *ngFor="let t of compTipos" [ngValue]="t">{{ compTipoLabel(t) }}</option>
         </select>
       </div>
       <div>
@@ -1400,7 +1400,7 @@
     <div class="mt-2 ticket w-[80mm] max-w-[80mm] text-[12px] text-slate-800">
       <div class="text-center">
         <div class="font-semibold">ENV&Iacute;O</div>
-        <div class="text-xs text-slate-600">ID: {{ ticketEnvio?.id }}</div>
+        <div class="text-xs text-slate-600">Ticket: {{ ticketEnvio?.ticket_numero }}</div>
       </div>
       <div class="mt-2">
         <div class="mt-2">
