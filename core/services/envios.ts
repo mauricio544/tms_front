@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import {EnvioCreate, Envio} from '../mapped';
+import { EnvioCreate, Envio, Resumen, ManifiestoResumen } from '../mapped';
 import { AuthService } from './auth.service';
 
 @Injectable({
@@ -36,5 +36,13 @@ export class Envios {
 
   deleteEnvios(id: number): Observable<any> {
     return this.api.delete(`/envios/${id}`);
+  }
+
+  getResumen(): Observable<Resumen[]> {
+    return this.api.get('/envios/reporte-guias')
+  }
+
+  getResumenManifiesto(): Observable<ManifiestoResumen[]> {
+    return this.api.get('/envios/reporte-manifiestos')
   }
 }

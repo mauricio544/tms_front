@@ -57,7 +57,7 @@ export class ComprobantesFeature implements OnInit {
   clientes: Cliente[] = [];
   personas: Persona[] = [];
 
-  tipoNombre(id: number | null | undefined): string {
+  tipoNombre(id: string | null | undefined): string {
     if (id == null) return '';
     const f = (this.tiposComprobante || []).find((g: any) => Number(g.id) === Number(id));
     return (f as any)?.nombre ?? String(id);
@@ -67,10 +67,6 @@ export class ComprobantesFeature implements OnInit {
     const f = (this.formasPago || []).find((g: any) => Number(g.id) === Number(id));
     return (f as any)?.nombre ?? String(id);
   }
-
-
-
-
 
   get subtotal(): number { return (this.detalles || []).reduce((acc, it: any) => acc + (Number(it.cantidad)||0)*(Number(it.precio_unitario)||0), 0); }
   get selectedIsFactura(): boolean {
@@ -182,7 +178,7 @@ export class ComprobantesFeature implements OnInit {
   }
 
   ngOnInit(): void { try { const saved = (localStorage.getItem('comprobantes.viewMode') || '').toLowerCase(); if (saved === 'grid' || saved === 'cards') this.viewMode = saved as any; } catch {}
-    // Leer id de comprobante por query param para auto-selecci�n
+    // Leer id de comprobante por query param para auto-selección
         this.route.queryParamMap.subscribe(pm => {
       const idStr = pm.get('id');
       this.initialSelectId = idStr ? Number(idStr) : null;
@@ -190,7 +186,7 @@ export class ComprobantesFeature implements OnInit {
       this.initialEnvioId = envioStr ? Number(envioStr) : null;
       if (this.lista && this.lista.length) { this.trySelectById(); this.trySelectByEnvioId(); }
     });
-    // Cargar cat�logos para nombres legibles
+    // Cargar catálogos para nombres legibles
     this.generalesSrv.getGenerales().subscribe({
       next: (gs: any[]) => {
         this.generales = gs || [];
@@ -204,7 +200,7 @@ export class ComprobantesFeature implements OnInit {
     this.load();
   }
 
-  // Utilidad para formato e impresi�n/exportaci�n
+  // Utilidad para formato e impresión/exportación
   private format(n: number): string {
     try { return (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); } catch { return String(n); }
   }
@@ -381,6 +377,7 @@ export class ComprobantesFeature implements OnInit {
       next: (res: any) => {
         this.sunatLoading = false;
         this.sunatOk = `SUNAT: ${codigo} - ${mensaje}`;
+        this.loadSunatStatus(Number(c.id));
       },
       error: () => {
         this.sunatLoading = false;
@@ -389,7 +386,6 @@ export class ComprobantesFeature implements OnInit {
     });
   }
 }
-
 
 
 

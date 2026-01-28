@@ -70,7 +70,7 @@
         </div>
         <div class="mt-2 text-sm text-slate-700" *ngIf="comprobante">
           <div>Número: <span class="font-medium">{{ comprobante.serie }}-{{ comprobante.numero }}</span></div>
-          <div>Tipo: <span class="font-medium">{{ comprobante.tipo_comprobante }}</span></div>
+          <div>Tipo: <span class="font-medium">{{ comprobante.tipo_comprobante_sunat }}</span></div>
           <div>Total: <span class="font-medium">{{ comprobante.precio_total | number:'1.2-2' }}</span></div>
         </div>
         <div class="mt-2 text-sm text-slate-500" *ngIf="!comprobante && !comprobanteLoading">No registra comprobante.</div>

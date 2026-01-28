@@ -11,7 +11,7 @@
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm text-slate-700">Tipo comprobante</label>
-          <select [(ngModel)]="cabecera.tipo_comprobante" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
+          <select [(ngModel)]="cabecera.tipo_comprobante_sunat" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
             <option [ngValue]="undefined">Seleccione...</option>
             <option *ngFor="let t of tiposComprobante" [ngValue]="t.id">{{ t.nombre }}</option>
           </select>

@@ -8,12 +8,14 @@ import { Personas } from '../../../../core/services/personas';
 import { Puntos } from '../../../../core/services/puntos';
 import { Manifiestos } from '../../../../core/services/manifiestos';
 import { Guias } from '../../../../core/services/guias';
-import { Envio, DetalleFull as Detalle, Persona, Puntos as Punto, Manifiesto, DespachoRead } from '../../../../core/mapped';
+import { ComprobanteDetraccionRead, Envio, DetalleFull as Detalle, Persona, Puntos as Punto, Manifiesto, DespachoRead, Resumen, ManifiestoResumen } from '../../../../core/mapped';
+import { ComprobanteDetraccion } from '../../../../core/services/comprobante-detraccion';
+import {Utils} from '../../../../core/services/utils';
 
 @Component({
   selector: 'feature-reportes',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, Utils],
   templateUrl: './reportes.html',
   styleUrl: './reportes.css',
 })
@@ -26,9 +28,11 @@ export class ReportesFeature implements OnInit {
   private readonly puntosSrv = inject(Puntos);
   private readonly manifiestosSrv = inject(Manifiestos);
   private readonly guiasSrv = inject(Guias);
+  private readonly detraccionesSrv = inject(ComprobanteDetraccion);
 
   loading = false;
   error: string | null = null;
+  activeTab: 'kpis' | 'resumen' | 'manifiestos' | 'detracciones' = 'kpis';
 
   envios: Envio[] = [];
   movimientos: Detalle[] = [];
@@ -36,6 +40,9 @@ export class ReportesFeature implements OnInit {
   puntos: Punto[] = [];
   manifiestos: Manifiesto[] = [];
   despachos: DespachoRead[] = [];
+  resumen: Resumen[] = [];
+  resumenManifiestos: ManifiestoResumen[] = [];
+  detracciones: ComprobanteDetraccionRead[] = [];
 
   // Leaflet map state
   private leafletPromise: Promise<void> | null = null;
@@ -52,9 +59,9 @@ export class ReportesFeature implements OnInit {
   load() {
     this.loading = true;
     this.error = null;
-    let enviosLoaded = false, movsLoaded = false, personasLoaded = false, puntosLoaded = false, manifiestosLoaded = false, despachosLoaded = false;
+    let enviosLoaded = false, movsLoaded = false, personasLoaded = false, puntosLoaded = false, manifiestosLoaded = false, despachosLoaded = false, resumenLoaded = false, resumenManifiestoLoaded = false, detraccionesLoaded = false;
     const done = () => {
-      if (enviosLoaded && movsLoaded && personasLoaded && puntosLoaded && manifiestosLoaded && despachosLoaded) {
+      if (enviosLoaded && movsLoaded && personasLoaded && puntosLoaded && manifiestosLoaded && despachosLoaded && resumenLoaded && resumenManifiestoLoaded && detraccionesLoaded) {
         this.loading = false;
         this.setupMapIfReady();
       }
@@ -87,6 +94,18 @@ export class ReportesFeature implements OnInit {
       },
       error: () => { this.despachos = []; despachosLoaded = true; done(); }
     });
+    this.enviosSrv.getResumen().subscribe({
+      next: (res) => { this.resumen = res || []; resumenLoaded = true; done(); },
+      error: () => { this.resumen = []; resumenLoaded = true; done(); }
+    });
+    this.enviosSrv.getResumenManifiesto().subscribe({
+      next: (res) => { this.resumenManifiestos = res || []; resumenManifiestoLoaded = true; done(); },
+      error: () => { this.resumenManifiestos = []; resumenManifiestoLoaded = true; done(); }
+    });
+    this.detraccionesSrv.getDetracciones().subscribe({
+      next: (res) => { this.detracciones = res || []; detraccionesLoaded = true; done(); },
+      error: () => { this.detracciones = []; detraccionesLoaded = true; done(); }
+    });
   }
 
   // Helpers de etiquetas
@@ -107,6 +126,10 @@ export class ReportesFeature implements OnInit {
     if (!value) return null;
     const d = new Date(value);
     return isNaN(d.getTime()) ? null : d;
+  }
+
+  private resumenFecha(it: any): string {
+    return String(it?.['fecha_envio'] ?? it?.fecha_envio ?? it?.fecha_envio ?? '');
   }
 
   personaLabelById(id: number | null | undefined): string {
@@ -134,7 +157,7 @@ export class ReportesFeature implements OnInit {
     return null;
   }
 
-  // KPIs env�os
+  // KPIs envíos
   get filteredEnvios(): Envio[] {
     const { fd, td } = this.getDateRange();
     return (this.envios || []).filter((e: any) => {
@@ -148,6 +171,20 @@ export class ReportesFeature implements OnInit {
   get kpiNoEntregados(): number { return this.filteredEnvios.filter((e:any) => !(e?.fecha_recepcion || e?.estado_entrega)).length; }
   get kpiPagados(): number { return this.filteredEnvios.filter((e:any) => !!e?.estado_pago).length; }
   get kpiNoPagados(): number { return this.filteredEnvios.filter((e:any) => !e?.estado_pago).length; }
+
+  // Resumen envíos vs pagos
+  get filteredResumen(): Resumen[] {
+    const { fd, td } = this.getDateRange();
+    return (this.resumen || []).filter((it: any) => {
+      if (!fd && !td) return true;
+      const raw = this.resumenFecha(it);
+      const d = this.parseDate(raw);
+      if (!d) return false;
+      if (fd && d < fd) return false;
+      if (td && d > td) return false;
+      return true;
+    });
+  }
 
   // KPIs movimientos
   get filteredMovimientos(): Detalle[] {
@@ -218,7 +255,7 @@ export class ReportesFeature implements OnInit {
     return c || '-';
   }
 
-  // Datos para gr�ficas simples
+  // Datos para gráficas simples
   get totalEnvios(): number { return this.filteredEnvios.length; }
   get piePagadosDeg(): number {
     const total = Math.max(1, this.totalEnvios);

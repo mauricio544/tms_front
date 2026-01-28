@@ -83,7 +83,7 @@ export class GastosFeature implements OnInit {
     });
   }
 
-  // Exportaci�n CSV (todos los registros filtrados)
+  // Exportación CSV (todos los registros filtrados)
   exportCSV() {
     const rows = this.filtered;
     const headers = ['ID','Tipo Comprobante','N° Comprobante','Descripción','Tipo Gasto','Monto','Cabecera ID'];

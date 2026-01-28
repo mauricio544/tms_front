@@ -47,7 +47,7 @@
           </div>
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Tipo: {{ tipoNombre(c.tipo_comprobante) }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Tipo: {{ tipoNombre(c.tipo_comprobante_sunat) }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Forma: {{ formaNombre(c.forma_pago) }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Total: {{ c.precio_total | number:'1.2-2' }}</span>
         </div>
@@ -72,7 +72,7 @@
           <tr *ngFor="let c of pageItems" class="border-t border-slate-100">
             <td class="px-3 py-2">{{ c.serie || "-" }}-{{ c.numero || "-" }}</td>
             <td class="px-3 py-2">{{ c.fecha_comprobante | ymd }}</td>
-            <td class="px-3 py-2">{{ tipoNombre(c.tipo_comprobante) }}</td>
+            <td class="px-3 py-2">{{ tipoNombre(c.tipo_comprobante_sunat) }}</td>
             <td class="px-3 py-2">{{ formaNombre(c.forma_pago) }}</td>
             <td class="px-3 py-2">{{ c.precio_total | number:"1.2-2" }}</td>
             <td class="px-3 py-2">
@@ -134,7 +134,7 @@
             <div class="space-y-1">
               <div class="flex gap-2"><span class="w-32 text-slate-600">Fecha emisión:</span><span class="flex-1">{{ selected.fecha_comprobante | ymd }}</span></div>
               <div class="flex gap-2"><span class="w-32 text-slate-600">Forma de pago:</span><span class="flex-1">{{ formaNombre(selected.forma_pago) }}</span></div>
-              <div class="flex gap-2"><span class="w-32 text-slate-600">Tipo:</span><span class="flex-1">{{ tipoNombre(selected.tipo_comprobante) }}</span></div>
+              <div class="flex gap-2"><span class="w-32 text-slate-600">Tipo:</span><span class="flex-1">{{ tipoNombre(selected.tipo_comprobante_sunat) }}</span></div>
               <div class="flex gap-2"><span class="w-32 text-slate-600">Impuesto:</span><span class="flex-1">{{ selected.impuesto | number:'1.2-2' }}</span></div>
             </div>
           </div>

@@ -47,7 +47,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
   errorCabecera: string | null = null;
   errorDetalle: string | null = null;
 
-  // Generales cat�logos
+  // Generales catálogos
   generales: General[] = [];
   tiposComprobante: General[] = [];
   formasPago: General[] = [];
@@ -244,7 +244,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
       });
     };
 
-        // Actualiza total y, seg�n estado, crea (o no) movimiento
+        // Actualiza total y, según estado, crea (o no) movimiento
     const doAfterUpdate = () => {
       if (this.estado === 'P') {
         afterUpdatePago();

@@ -286,7 +286,7 @@
         </label>
       </div>
 
-      <!-- Comprobante inline (mostrar solo si pagado) -->
+      <!-- Comprobante inline (mostrar solo si pagado) Nuevo -->
       <div *ngIf="newEnvio.estado_pago"
            class="mt-4 rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]">
         <div class="text-sm font-semibold text-[#0A1A2F] mb-2">Comprobante Nuevo</div>
@@ -843,9 +843,9 @@
 
       </div>
       <!-- Comprobante inline (editar: mostrar si pagado) -->
-      <div *ngIf="!newEnvio.estado_pago && editing"
+      <div *ngIf="editing && newEnvio.estado_pago && !hasComprobante"
            class="mt-4 rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]">
-        <div class="text-sm font-semibold text-[#0A1A2F] mb-2">Comprobante</div>
+        <div class="text-sm font-semibold text-[#0A1A2F] mb-2">Comprobante Editar</div>
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
             <label class="block text-sm text-slate-700">Tipo</label>
@@ -920,7 +920,7 @@
         </div>
       </div>
       <div class="mt-6">
-        <div *ngIf="editing && newEnvio.estado_pago" class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <div *ngIf="editing && newEnvio.estado_pago && hasComprobante" class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           El envío ya tiene comprobante generado.
         </div>
         <h4 class="text-sm font-medium text-slate-800">Detalle del env&iacute;o</h4>
@@ -1627,12 +1627,12 @@
 
 
 
-<!-- Comprobante Modal -->
+<!-- Comprobante Modal  1 -->
 <div *ngIf="showComprobante" class="fixed inset-0 z-50 flex items-center justify-center">
   <div class="absolute inset-0 bg-black/30" (click)="closeComprobante()"></div>
   <div class="relative z-10 w-[800px] max-w-[95vw] rounded-md bg-white p-4 shadow-xl">
     <div class="flex items-center justify-between">
-      <h3 class="text-sm font-semibold text-slate-800">Comprobante</h3>
+      <h3 class="text-sm font-semibold text-slate-800">Comprobante Edición</h3>
       <div class="flex gap-2">
         <button (click)="printComprobante()"
                 class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Imprimir</button>
@@ -1664,7 +1664,7 @@
           <div class="border border-gray-300 p-3">
             <div class="font-semibold mb-2">Datos del cliente</div>
             <div class="space-y-1">
-              <div class="flex gap-2"><span class="w-28 text-gray-700">Señor(es):</span><span class="flex-1">-</span></div>
+              <div class="flex gap-2"><span class="w-28 text-gray-700">Señor(es):</span><span class="flex-1">{{ compView.clienteNombre || '-' }}</span></div>
               <div class="flex gap-2"><span class="w-28 text-gray-700">RUC/DNI:</span><span class="flex-1">{{ compView.clienteDocumento }}</span></div>
               <div class="flex gap-2"><span class="w-28 text-gray-700">Dirección:</span><span class="flex-1">-</span></div>
             </div>

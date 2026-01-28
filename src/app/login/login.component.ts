@@ -56,7 +56,7 @@ export class LoginComponent {
 
             }
           });
-          // Ajusta la ruta de destino seg�n tu app
+          // Ajusta la ruta de destino según tu app
           this.router.navigateByUrl('dashboard');
         },
         error: (err) => {

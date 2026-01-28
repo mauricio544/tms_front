@@ -30,8 +30,16 @@
     </div>
   </div>
 
+  <!-- Tabs -->
+  <div *ngIf="!loading && !error" class="mt-4 inline-flex overflow-hidden rounded-md border border-slate-200 bg-white text-sm">
+    <button (click)="activeTab='kpis'" [class.bg-slate-100]="activeTab==='kpis'" class="px-3 py-2 text-slate-700">KPIs</button>
+    <button (click)="activeTab='resumen'" [class.bg-slate-100]="activeTab==='resumen'" class="border-l border-slate-200 px-3 py-2 text-slate-700">Envíos vs Pagos</button>
+    <button (click)="activeTab='manifiestos'" [class.bg-slate-100]="activeTab==='manifiestos'" class="border-l border-slate-200 px-3 py-2 text-slate-700">Manifiestos</button>
+    <button (click)="activeTab='detracciones'" [class.bg-slate-100]="activeTab==='detracciones'" class="border-l border-slate-200 px-3 py-2 text-slate-700">Detracciones</button>
+  </div>
+
   <!-- KPIs envíos -->
-  <div *ngIf="!loading && !error" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+  <div *ngIf="!loading && !error && activeTab==='kpis'" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
     <div class="rounded-lg border border-slate-200 bg-white p-4">
       <div class="text-xs text-slate-600">Envíos entregados</div>
       <div class="mt-1 text-2xl font-semibold text-slate-800">{{ kpiEntregados | number }}</div>
@@ -51,7 +59,7 @@
   </div>
 
   <!-- KPIs manifiestos -->
-  <div *ngIf="!loading && !error" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+  <div *ngIf="!loading && !error && activeTab==='kpis'" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
     <div class="rounded-lg border border-slate-200 bg-white p-4">
       <div class="text-xs text-slate-600">Manifiestos (total)</div>
       <div class="mt-1 text-2xl font-semibold text-slate-800">{{ totalManifiestos | number }}</div>
@@ -76,7 +84,7 @@
   </div>
 
   <!-- Resumen movimientos -->
-  <div *ngIf="!loading && !error" class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+  <div *ngIf="!loading && !error && activeTab==='kpis'" class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
     <div class="rounded-lg border border-slate-200 bg-white p-4">
       <div class="text-xs text-slate-600">Ingresos</div>
       <div class="mt-1 text-2xl font-semibold text-emerald-700">{{ totalIngresos | number:'1.2-2' }}</div>
@@ -92,7 +100,7 @@
   </div>
 
   <!-- Gráficas simples -->
-  <div *ngIf="!loading && !error" class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+  <div *ngIf="!loading && !error && activeTab==='kpis'" class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
     <!-- Pie pagados/no pagados -->
     <div class="rounded-lg border border-slate-200 bg-white p-4">
       <div class="mb-3 text-sm font-medium text-slate-800">Distribución: Pagados / No pagados</div>
@@ -157,7 +165,7 @@
   </div>
 </div>
 <!-- Mapa: Orígenes y Destinos (Top 5) -->
-<div *ngIf="!loading && !error" class="mt-6">
+<div *ngIf="!loading && !error && activeTab==='kpis'" class="mt-6">
   <div class="rounded-lg border border-slate-200 bg-white p-4">
     <div class="mb-2 flex items-center justify-between">
       <div class="text-sm font-medium text-slate-800">Mapa de orígenes y destinos (Top 5)</div>
@@ -167,6 +175,128 @@
     <div class="relative">
       <div id="reportesMap" class="h-80 w-full rounded border border-slate-200"></div>
       <div class="pointer-events-none absolute bottom-2 right-2 rounded bg-white/70 px-1.5 py-0.5 text-[10px] text-slate-600">Origen (verde) | Destino (Índigo)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Reporte Envíos vs Pagos -->
+<div *ngIf="!loading && !error && activeTab==='resumen'" class="px-6 pb-6">
+  <div class="mt-2">
+    <div class="mb-2 text-sm font-medium text-slate-800">Envíos vs Pagos</div>
+    <div class="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <table class="min-w-full text-sm text-slate-700">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-3 py-2 text-left">Comprobante</th>
+            <th class="px-3 py-2 text-left">Remitente</th>
+            <th class="px-3 py-2 text-left">Destinatario</th>
+            <th class="px-3 py-2 text-left">Fecha envío</th>
+            <th class="px-3 py-2 text-left">Fecha entrega</th>
+            <th class="px-3 py-2 text-left">Pagado</th>
+            <th class="px-3 py-2 text-left">Días desde entrega</th>
+            <th class="px-3 py-2 text-right">Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of filteredResumen" class="border-t border-slate-100">
+            <td class="px-3 py-2">{{ row.comprobante }}</td>
+            <td class="px-3 py-2">{{ row.remitente }}</td>
+            <td class="px-3 py-2">{{ row.destinatario }}</td>
+            <td class="px-3 py-2">{{ row.fecha_envio | ymd }}</td>
+            <td class="px-3 py-2">{{ row.fecha_entrega | ymd }}</td>
+            <td class="px-3 py-2">{{ row.pagado ? 'Sí' : 'No' }}</td>
+            <td class="px-3 py-2">{{ row.dias_desde_entrega }}</td>
+            <td class="px-3 py-2 text-right">{{ row.monto | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!filteredResumen.length">
+            <td colspan="8" class="px-3 py-4 text-center text-slate-500">Sin resultados</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Reporte Manifiestos -->
+<div *ngIf="!loading && !error && activeTab==='manifiestos'" class="px-6 pb-6">
+  <div class="mt-2">
+    <div class="mb-2 text-sm font-medium text-slate-800">Manifiestos</div>
+    <div class="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <table class="min-w-full text-sm text-slate-700">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-3 py-2 text-left">Manifiesto</th>
+            <th class="px-3 py-2 text-left">Conductor</th>
+            <th class="px-3 py-2 text-right">N° envíos</th>
+            <th class="px-3 py-2 text-right">Peso total</th>
+            <th class="px-3 py-2 text-right">Ingresos generados</th>
+            <th class="px-3 py-2 text-right">Ingresos promedio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of resumenManifiestos" class="border-t border-slate-100">
+            <td class="px-3 py-2">{{ row.manifiesto }}</td>
+            <td class="px-3 py-2">{{ row.conductor }}</td>
+            <td class="px-3 py-2 text-right">{{ row.numero_envios }}</td>
+            <td class="px-3 py-2 text-right">{{ row.peso_total | number:'1.2-2' }}</td>
+            <td class="px-3 py-2 text-right">{{ row.ingresos_generados | number:'1.2-2' }}</td>
+            <td class="px-3 py-2 text-right">{{ row.ingreso_promedio | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!resumenManifiestos.length">
+            <td colspan="6" class="px-3 py-4 text-center text-slate-500">Sin resultados</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Reporte Detracciones -->
+<div *ngIf="!loading && !error && activeTab==='detracciones'" class="px-6 pb-6">
+  <div class="mt-2">
+    <div class="mb-2 text-sm font-medium text-slate-800">Detracciones</div>
+    <div class="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <table class="min-w-full text-sm text-slate-700">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-3 py-2 text-left">Fecha emisión</th>
+            <th class="px-3 py-2 text-left">Serie - Número</th>
+            <th class="px-3 py-2 text-left">Cliente</th>
+            <th class="px-3 py-2 text-left">Envío</th>
+            <th class="px-3 py-2 text-right">Subtotal</th>
+            <th class="px-3 py-2 text-right">IGV</th>
+            <th class="px-3 py-2 text-right">Total</th>
+            <th class="px-3 py-2 text-left">Código SPOT</th>
+            <th class="px-3 py-2 text-right">% Det.</th>
+            <th class="px-3 py-2 text-right">Base Det.</th>
+            <th class="px-3 py-2 text-right">Monto Det.</th>
+            <th class="px-3 py-2 text-left">Estado</th>
+            <th class="px-3 py-2 text-left">Fecha Depósito</th>
+            <th class="px-3 py-2 text-left">N° Constancia</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of detracciones" class="border-t border-slate-100">
+            <td class="px-3 py-2">{{ row.fecha_emision | ymd }}</td>
+            <td class="px-3 py-2">{{ row.serie_numero }}</td>
+            <td class="px-3 py-2">{{ row.cliente }}</td>
+            <td class="px-3 py-2">{{ row.envio }}</td>
+            <td class="px-3 py-2 text-right">{{ row.subtotal | number:'1.2-2' }}</td>
+            <td class="px-3 py-2 text-right">{{ row.igv | number:'1.2-2' }}</td>
+            <td class="px-3 py-2 text-right">{{ row.total | number:'1.2-2' }}</td>
+            <td class="px-3 py-2">{{ row.codigo_spot }}</td>
+            <td class="px-3 py-2 text-right">{{ row.porcentaje_det | number:'1.2-2' }}</td>
+            <td class="px-3 py-2 text-right">{{ row.base_det | number:'1.2-2' }}</td>
+            <td class="px-3 py-2 text-right">{{ row.monto_det | number:'1.2-2' }}</td>
+            <td class="px-3 py-2">{{ row.estado_det }}</td>
+            <td class="px-3 py-2">{{ row.fecha_deposito_det | ymd }}</td>
+            <td class="px-3 py-2">{{ row.nro_constancia_det }}</td>
+          </tr>
+          <tr *ngIf="!detracciones.length">
+            <td colspan="14" class="px-3 py-4 text-center text-slate-500">Sin resultados</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

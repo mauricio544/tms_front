@@ -169,7 +169,6 @@ export interface EnvioCreate {
 
 export interface Comprobante {
   id: number;
-  tipo_comprobante: number;
   numero_comprobante: string;
   forma_pago: number;
   precio_total?: number;
@@ -184,10 +183,30 @@ export interface Comprobante {
   emisor_ruc: string;
   cliente_documento: string;
   envio_id: number;
+  estado_cpe: string;
+  tipo_comprobante_sunat: string;
+  tipo_operacion: string;
+  tipo_moneda: string;
+  fecha_emision?: string;
+  total_gravadas?: number;
+  total_exoneradas?: number;
+  total_inafectas?: number;
+  total_igv?: number
+  total_icbper?: number;
+  total_descuentos?: number;
+  total_otros_cargos?: number;
+  afecto_detraccion: boolean;
+  codigo_spot: string;
+  porcentaje_det?: number;
+  base_det?: number;
+  monto_det?: number;
+  estado_det: string;
+  fecha_deposito_det: string;
+  nro_contancia_det: string;
+  periodo_det: string;
 }
 
 export interface ComprobanteCreate {
-  tipo_comprobante: number;
   numero_comprobante: string;
   forma_pago: number;
   precio_total: number;
@@ -202,6 +221,35 @@ export interface ComprobanteCreate {
   emisor_ruc: string;
   cliente_documento: string;
   envio_id: number;
+  estado_cpe: string;
+  tipo_comprobante_sunat: string;
+  tipo_operacion: string;
+  tipo_moneda: string;
+  fecha_emision?: string;
+  total_gravadas?: number;
+  total_exoneradas?: number;
+  total_inafectas?: number;
+  total_igv?: number
+  total_icbper?: number;
+  total_descuentos?: number;
+  total_otros_cargos?: number;
+}
+
+export interface ComprobanteDetraccionRead {
+  fecha_emision: string;
+  serie_numero: string;
+  cliente: string;
+  envio: number;
+  subtotal?: number;
+  igv?: number;
+  total?: number;
+  codigo_spot: string;
+  porcentaje_det?: number;
+  base_det?: number;
+  monto_det?: number;
+  estado_det: string;
+  fecha_deposito_det: string;
+  nro_constancia_det: string;
 }
 
 export interface DetalleComprobante {
@@ -284,7 +332,7 @@ export interface CabeceraCreate {
 
 export interface Detalle {
   id: number;
-  tipo_comprobante: number;
+  tipo_comprobante_sunat: string;
   numero_comprobante: string;
   descripcion: string;
   tipo_gasto: number;
@@ -294,7 +342,7 @@ export interface Detalle {
 
 export interface DetalleFull {
   id: number;
-  tipo_comprobante: number;
+  tipo_comprobante_sunat: string;
   numero_comprobante: string;
   descripcion: string;
   tipo_gasto: number;
@@ -304,7 +352,7 @@ export interface DetalleFull {
 }
 
 export interface DetalleCreate {
-  tipo_comprobante: number;
+  tipo_comprobante_sunat: string;
   numero_comprobante: string;
   descripcion: string;
   tipo_gasto?: number;
@@ -437,4 +485,24 @@ export interface SerieComprobante {
   tipo_comprobante_sunat: string;
   serie: string;
   correlativo: number
+}
+
+export interface Resumen {
+  comprobante: string;
+  remitente: string;
+  destinatario: string;
+  fecha_envio: string;
+  fecha_entrega: string;
+  pagado: boolean;
+  dias_desde_entrega: number;
+  monto: number;
+}
+
+export interface ManifiestoResumen {
+  manifiesto: string;
+  conductor: string;
+  numero_envios: number;
+  peso_total: number;
+  ingresos_generados: number;
+  ingreso_promedio: number;
 }
