@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import { Manifiesto } from '../mapped';
+import { Manifiesto, PublicLinkRequest, PublicLinkResponse, ManifiestoArrivedUpdate } from '../mapped';
 
 @Injectable({
   providedIn: 'root',
@@ -26,5 +26,14 @@ export class Manifiestos {
 
   deleteManifiestos(id: number): Observable<any> {
     return this.api.delete(`/envios/manifiestos/${id}`);
+  }
+
+  getPublicLink(payload: PublicLinkRequest): Observable<PublicLinkResponse> {
+    return this.api.post(`/envios/manifiestos/en-transito/public-link`, payload);
+  }
+
+  // sólo si está autenticado
+  updateManifiestosEstado(id: number, body: ManifiestoArrivedUpdate): Observable<Manifiesto> {
+    return this.api.patch(`/envios/manifiestos/${id}/estado`, body);
   }
 }

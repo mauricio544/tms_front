@@ -2,19 +2,22 @@
 import jsPDF from 'jspdf';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroMapPin, heroTruck } from '@ng-icons/heroicons/outline';
 import { UiAlertComponent } from '../../shared/ui/alert/alert';
 import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
 import { Manifiestos } from '../../../../core/services/manifiestos';
 import { Envios } from '../../../../core/services/envios';
 import { Puntos } from '../../../../core/services/puntos';
 import { Conductores as ConductoresService } from '../../../../core/services/conductores';
-import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate, Vehiculo, SerieComprobante as SerieComprobanteModel } from '../../../../core/mapped';
+import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate, Vehiculo, SerieComprobante as SerieComprobanteModel, PublicLinkRequest } from '../../../../core/mapped';
 import { Conductor } from '../../../../core/mapped';
 import { Personas } from '../../../../core/services/personas';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
 import { DetalleEnvio } from '../../../../core/services/detalle-envio';
 import { forkJoin, of } from 'rxjs';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Utilitarios } from '../../../../core/services/utilitarios';
 import { Guias } from '../../../../core/services/guias';
 import { SerieComprobante as SerieComprobanteService } from '../../../../core/services/serie-comprobante';
@@ -27,7 +30,8 @@ export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen:
 @Component({
   selector: 'feature-manifiestos',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, RouterLink, Utils],
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, RouterLink, Utils, NgIconComponent],
+  providers: [provideIcons({ heroMapPin, heroTruck })],
   templateUrl: './manifiestos.html',
   styleUrl: './manifiestos.css',
 })
@@ -43,7 +47,9 @@ export class ManifiestosFeature implements OnInit {
   private readonly guiasSrv = inject(Guias);
   private readonly serieSrv = inject(SerieComprobanteService);
   private readonly authSrv = inject(AuthService);
+  private readonly router = inject(Router);
   private readonly vehiculosSrv = inject(Vehiculos);
+  private readonly sanitizer = inject(DomSanitizer);
 
   // Datos
   lista_manifiestos: Manifiesto[] = [];
@@ -81,6 +87,14 @@ export class ManifiestosFeature implements OnInit {
   // Notificaciones
   notif: string | null = null;
   notifType: 'success' | 'error' = 'success';
+
+  // Geo modal
+  showGeoModal = false;
+  geoLat: number | null = null;
+  geoLng: number | null = null;
+  geoAccuracy: number | null = null;
+  geoManifiestoLabel = '';
+  geoMapUrl: SafeResourceUrl | null = null;
 
   // Puntos y conductores
   puntos: Points[] = [];
@@ -185,6 +199,45 @@ export class ManifiestosFeature implements OnInit {
     this.showModal = true;
   }
   closeModal() { this.showModal = false; }
+
+  estadoLabel(item: Manifiesto): string {
+    const raw = String((item as any)?.estado || '').trim().toUpperCase();
+    if (raw === 'LLEGADA') return 'LLEGADA';
+    return 'EN-TRANSITO';
+  }
+
+  hasGeo(item: Manifiesto): boolean {
+    const lat = Number((item as any)?.arrived_lat);
+    const lng = Number((item as any)?.arrived_lng);
+    return Number.isFinite(lat) && Number.isFinite(lng);
+  }
+
+  openGeo(item: Manifiesto) {
+    if (!this.hasGeo(item)) return;
+    this.geoLat = Number((item as any)?.arrived_lat);
+    this.geoLng = Number((item as any)?.arrived_lng);
+    this.geoAccuracy = Number((item as any)?.arrived_accuracy_m ?? null);
+    this.geoManifiestoLabel = `${(item as any)?.serie || ''}-${(item as any)?.numero || ''}`.trim();
+    const lat = this.geoLat as number;
+    const lng = this.geoLng as number;
+    const delta = 0.01;
+    const left = lng - delta;
+    const right = lng + delta;
+    const top = lat + delta;
+    const bottom = lat - delta;
+    const url = `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${lat}%2C${lng}`;
+    this.geoMapUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    this.showGeoModal = true;
+  }
+
+  closeGeo() {
+    this.showGeoModal = false;
+    this.geoLat = null;
+    this.geoLng = null;
+    this.geoAccuracy = null;
+    this.geoManifiestoLabel = '';
+    this.geoMapUrl = null;
+  }
 
   get isValidManifiesto(): boolean {
     const m = this.newManifiesto;
@@ -465,6 +518,8 @@ ngOnInit(): void {
   guiaEstadoUpdating = false;
   guiaGenIsSunat = false;
   guiaGenTitle = '';
+  publicLinkLoading: Record<number, boolean> = {};
+  publicLinkError: Record<number, string | null> = {};
 
   generarManifiesto(item: Manifiesto) { this.showEnviosModal = false; this.showAddEnviosModal = false;
     const id = (item as any)?.id;
@@ -619,6 +674,43 @@ ngOnInit(): void {
       error: () => {
         this.guiaGenLoading = false;
         this.guiaGenError = 'No se pudieron cargar las series Sunat.';
+      }
+    });
+  }
+
+  generarPublicLink(item: Manifiesto) {
+    const manifiestoId = Number((item as any)?.id || 0);
+    const conductorId = Number((item as any)?.conductor_id || 0);
+    if (!manifiestoId || !conductorId) {
+      this.showNotif('No se pudo generar enlace: manifiesto sin conductor', 'error');
+      return;
+    }
+    this.publicLinkLoading[manifiestoId] = true;
+    this.publicLinkError[manifiestoId] = null;
+    const payload: PublicLinkRequest = { conductor_id: conductorId, expires_minutes: 60 };
+    this.manifiestosSrv.getPublicLink(payload).subscribe({
+      next: (res) => {
+        this.publicLinkLoading[manifiestoId] = false;
+        let token = String((res as any)?.token || '').trim();
+        if (!token) {
+          try {
+            const url = String((res as any)?.url || '').trim();
+            if (url) {
+              const parsed = new URL(url);
+              token = String(parsed.searchParams.get('token') || '').trim();
+            }
+          } catch {}
+        }
+        if (!token) {
+          this.publicLinkError[manifiestoId] = 'No se pudo obtener el token del enlace público';
+          return;
+        }
+        this.router.navigate(['manifiestos/publico', token], { queryParams: { conductor_id: conductorId } });
+      },
+      error: () => {
+        this.publicLinkLoading[manifiestoId] = false;
+        this.publicLinkError[manifiestoId] = 'No se pudo generar el enlace público';
+        this.showNotif('No se pudo generar el enlace público', 'error');
       }
     });
   }

@@ -12,7 +12,7 @@ export class ComprobanteDetraccion {
   private readonly api = inject(ApiClientService);
 
   getDetracciones(): Observable<ComprobanteDetraccionRead[]> {
-    return this.api.get('/envios/comp/detracciones?')
+    return this.api.get('/envios/comp/detracciones')
   }
 }
 

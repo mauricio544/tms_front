@@ -89,6 +89,10 @@ export class VehiculosFeature implements OnInit {
   get pageEnd(): number { return Math.min(this.page * this.pageSize, this.total); }
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
   onFilterChange() { this.page = 1; }
+  onSearchChange(value: string) {
+    this.search = String(value || '').toUpperCase();
+    this.onFilterChange();
+  }
 
   // Modal helpers
   openModal() {

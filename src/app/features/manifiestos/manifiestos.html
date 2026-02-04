@@ -63,6 +63,7 @@
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Manifiesto</button>
             <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>
             <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuiaSunat(item)">Generar Gu&iacute;a Sunat</button>
+            <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[item.id]" (click)="generarPublicLink(item)">{{ publicLinkLoading[item.id] ? 'Generando...' : 'Enlace p&uacute;blico' }}</button>
             <button class="rounded-md bg-[#21D0B2] px-2.5 py-1.5 text-xs text-white hover:bg-[#21D0B2]/90" (click)="verEnvios(item)">Ver Envíos</button>
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
@@ -81,6 +82,9 @@
               <th class="px-3 py-2 text-left">Fecha Traslado</th>
               <th class="px-3 py-2 text-left">Origen</th>
               <th class="px-3 py-2 text-left">Destino</th>
+              <th class="px-3 py-2 text-left">Estado</th>
+              <th class="px-3 py-2 text-left">Llegada</th>
+              <th class="px-3 py-2 text-left">Geo</th>
               <th class="px-3 py-2 text-left">Acciones</th>
             </tr>
           </thead>
@@ -92,10 +96,26 @@
               <td class="px-3 py-2">{{ nameFrom(safeOrigen(item)) }}</td>
               <td class="px-3 py-2">{{ nameFrom(safeDestino(item)) }}</td>
               <td class="px-3 py-2">
-                <div class="flex items-center gap-2">
+                <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                  <ng-icon *ngIf="estadoLabel(item) === 'EN-TRANSITO'" name="heroTruck" size="16" class="text-amber-600"></ng-icon>
+                  <ng-icon *ngIf="estadoLabel(item) === 'LLEGADA'" name="heroMapPin" size="16" class="text-emerald-600"></ng-icon>
+                  <span>{{ estadoLabel(item) }}</span>
+                </div>
+              </td>
+              <td class="px-3 py-2">
+                <span *ngIf="item?.arrived_at; else noArrived">{{ item?.arrived_at | ymd }}</span>
+                <ng-template #noArrived><span class="text-slate-400">-</span></ng-template>
+              </td>
+              <td class="px-3 py-2">
+                <button *ngIf="hasGeo(item)" class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="openGeo(item)">Ver mapa</button>
+                <span *ngIf="!hasGeo(item)" class="text-slate-400">-</span>
+              </td>
+              <td class="px-3 py-2">
+                <div class="flex flex-wrap items-center gap-2">
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Manifiesto</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuiaSunat(item)">Generar Gu&iacute;a Sunat</button>
+                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[item.id]" (click)="generarPublicLink(item)">{{ publicLinkLoading[item.id] ? 'Generando...' : 'Enlace p&uacute;blico' }}</button>
                   <button class="rounded-md bg-[#21D0B2] px-2 py-1 text-xs text-white hover:bg-[#21D0B2]/90" (click)="verEnvios(item)">Ver Envíos</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
@@ -119,6 +139,27 @@
   <ng-template #empty>
     <div class="flex items-center justify-center rounded-md border border-dashed border-slate-300 bg-white py-16 text-slate-500">No hay manifiestos para mostrar.</div>
   </ng-template>
+
+
+<!-- Modal geolocalización -->
+<div *ngIf="showGeoModal" class="fixed inset-0 z-[1000] flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/30" (click)="closeGeo()"></div>
+  <div class="relative z-10 w-full max-w-3xl rounded-lg bg-white p-4 shadow-xl">
+    <div class="mb-3 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-slate-800">Geolocalización {{ geoManifiestoLabel }}</h3>
+      <button (click)="closeGeo()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Cerrar</button>
+    </div>
+    <div class="mb-3 text-sm text-slate-600">
+      <span>Lat: {{ geoLat }}</span>
+      <span class="mx-2">|</span>
+      <span>Lng: {{ geoLng }}</span>
+      <span *ngIf="geoAccuracy != null" class="ml-2">| Precisión: {{ geoAccuracy }} m</span>
+    </div>
+    <div class="overflow-hidden rounded-md border border-slate-200">
+      <iframe *ngIf="geoMapUrl" [src]="geoMapUrl" class="h-[420px] w-full border-0" loading="lazy"></iframe>
+    </div>
+  </div>
+</div>
 
 
 
@@ -201,7 +242,7 @@
           <option *ngFor="let v of vehiculos" [ngValue]="v.id">{{ (v.placa ?? '').toUpperCase() }}</option>
         </select>
       </div>
-      <div class="md:col-span-2">
+      <div class="md:col-span-2" style="display: none;">
         <label class="block text-sm text-slate-700">Placa</label>
         <input type="text" [(ngModel)]="newManifiesto.placa" name="placa" readonly class="mt-1 w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       </div>

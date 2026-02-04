@@ -1,18 +1,19 @@
 ﻿<div class="p-6">
-  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <h1 class="text-xl font-semibold text-slate-800">Vehículos</h1>
         <p class="mt-1 text-slate-600">Flota y documentos.</p>
       </div>
-  <ui-alert [show]="!!notif" [message]="notif || ''" [type]="notifType" [autoHideMs]="3000" (closed)="notif=null"></ui-alert>
-  </div>
-
-    <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-col items-end gap-2">
+        <ui-alert [show]="!!notif" [message]="notif || ''" [type]="notifType" [autoHideMs]="3000" (closed)="notif=null"></ui-alert>
+        <div class="flex flex-wrap items-center justify-end gap-2">
       <input
         type="text"
         [(ngModel)]="search"
-        (ngModelChange)="onFilterChange()"
-        placeholder="Buscar vehículo" class="h-10 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" /><input type="text" [(ngModel)]="filterPlaca" (ngModelChange)="onFilterChange()" class="h-10 w-40 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" /><input type="number" [(ngModel)]="filterAnio" (ngModelChange)="onFilterChange()" class="h-10 w-32 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
+        (ngModelChange)="onSearchChange($event)"
+        placeholder="Buscar vehículo" class="h-10 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />
+      <!--<input type="text" [(ngModel)]="filterPlaca" (ngModelChange)="onFilterChange()" class="h-10 w-40 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary" />-->
+      <input type="number" [(ngModel)]="filterAnio" (ngModelChange)="onFilterChange()" class="h-10 w-32 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary placeholder-slate-400" placeholder="Año Fab."/>
 
       <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)"
               class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary">
@@ -25,6 +26,7 @@
               class="inline-flex items-center rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 focus:outline-none focus:ring-2 focus:ring-primary">
         Nuevo
       </button>
+        </div>
     </div>
   </div>
 

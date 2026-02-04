@@ -54,9 +54,9 @@ export class UsuariosFeature implements OnInit {
   showModal = false;
   saving = false;
   saveError: string | null = null;
-  // ConfirmaciÃ³n eliminaciÃ³n
+  // Confirmación eliminaciÃ³n
   confirmOpen = false;
-  confirmTitle = 'Confirmar eliminaciÃ³n';
+  confirmTitle = 'Confirmar eliminación';
   confirmMessage = '';
   pendingDeleteId: number | null = null;
   pendingDeleteLabel: string = '';
@@ -179,7 +179,22 @@ export class UsuariosFeature implements OnInit {
       next: (created: any) => {
         const wasEditing = this.editing;
         const createdId = (created?.id ?? (wasEditing ? this.editingId : null)) as number;
-        const added = { id: createdId, email: created?.email ?? payload.email, is_active: created?.is_active ?? true, person_id: created?.person_id ?? payload.person_id, username: created?.username ?? payload?.username } as any as Usuario;
+        const current = wasEditing && this.editingId
+          ? (this.lista_usuarios || []).find(u => (u as any).id === this.editingId)
+          : null;
+        const currentSedes = (current as any)?.sedes || [];
+        const puntoId = this.newUser.punto_id ?? null;
+        const sedes = ((created as any)?.sedes && (created as any).sedes.length)
+          ? (created as any).sedes
+          : (puntoId ? [{ id: puntoId }] : currentSedes);
+        const added = {
+          id: createdId,
+          email: created?.email ?? payload.email,
+          is_active: created?.is_active ?? true,
+          person_id: created?.person_id ?? payload.person_id,
+          username: created?.username ?? payload?.username,
+          sedes,
+        } as any as Usuario;
         if (wasEditing && this.editingId) {
           this.lista_usuarios = this.lista_usuarios.map(u => (u as any).id === this.editingId ? added : u);
         } else {
@@ -335,7 +350,6 @@ export class UsuariosFeature implements OnInit {
     return (this.roles || []).some(r => r.selected);
   }
 }
-
 
 
 

@@ -19,11 +19,11 @@ export class Users {
   }
 
   updateUser(id: number, body: { email?: string; password?: string | null; person_id?: number | null; is_active?: boolean }): Observable<Usuario> {
-    return this.api.patch(`/users/${id}/`, body);
+    return this.api.patch(`/users/${id}`, body);
   }
 
   deleteUser(id: number): Observable<any> {
-    return this.api.delete(`/users/${id}/`);
+    return this.api.delete(`/users/${id}`);
   }
 
   assignRoles(user_id: number, company_id: number, role_code: string): Observable<Rol> {

@@ -5,7 +5,8 @@ import { DetalleMovimientos } from '../../../../core/services/detalle-movimiento
 import { Movimientos } from '../../../../core/services/movimientos';
 import { Personas } from '../../../../core/services/personas';
 import { Generales } from '../../../../core/services/generales';
-import { DetalleFull as Detalle, CabeceraCreate, DetalleCreate, Persona, General } from '../../../../core/mapped';
+import { SerieComprobante as SerieComprobanteService } from '../../../../core/services/serie-comprobante';
+import { DetalleFull as Detalle, CabeceraCreate, DetalleCreate, Persona, General, SerieComprobante as SerieComprobanteModel } from '../../../../core/mapped';
 
 @Component({
   selector: 'feature-gastos',
@@ -19,6 +20,7 @@ export class GastosFeature implements OnInit {
   private readonly movimientosSrv = inject(Movimientos);
   private readonly personasSrv = inject(Personas);
   private readonly generalesSrv = inject(Generales);
+  private readonly serieSrv = inject(SerieComprobanteService);
 
   loading = false;
   error: string | null = null;
@@ -46,6 +48,7 @@ export class GastosFeature implements OnInit {
     this.load();
     this.loadPersonas();
     this.loadGenerales();
+    this.loadSeries();
   }
 
   get filtered(): Detalle[] {
@@ -53,7 +56,7 @@ export class GastosFeature implements OnInit {
     const list = (this.detalles || []).slice().sort((a: any, b: any) => (b?.id ?? 0) - (a?.id ?? 0));
     if (!term) return list;
     return list.filter((d: any) => {
-      const txt = [d?.id, d?.tipo_comprobante, d?.numero_comprobante, d?.descripcion, d?.tipo_gasto, d?.cabecera_id, d?.monto]
+      const txt = [d?.id, d?.tipo_comprobante_sunat, d?.numero_comprobante, d?.descripcion, d?.tipo_gasto, d?.cabecera_id, d?.monto]
         .map(x => String(x ?? '')).join(' ').toLowerCase();
       return txt.includes(term);
     });
@@ -94,7 +97,7 @@ export class GastosFeature implements OnInit {
     };
     const lines = [headers.join(';')].concat(rows.map((it: any) => [
       it?.id,
-      it?.tipo_comprobante,
+      it?.tipo_comprobante_sunat,
       it?.numero_comprobante,
       it?.descripcion ?? '',
       it?.tipo_gasto ?? '',
@@ -118,17 +121,17 @@ export class GastosFeature implements OnInit {
   savingAdd = false;
   addError: string | null = null;
   cabeceraForm: Partial<CabeceraCreate> = { tipo_movimiento: 'I', monto: undefined as any } as any;
-  detalleForm: Partial<DetalleCreate> = { tipo_comprobante: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
+  detalleForm: Partial<DetalleCreate> = { tipo_comprobante_sunat: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
 
   get isValidAdd(): boolean {
     const c: any = this.cabeceraForm;
     const d: any = this.detalleForm;
     const okTM = String(c.tipo_movimiento || '').trim().length > 0;
     const okMonto = Number(c.monto) > 0;
-    const okTipoC = Number(d.tipo_comprobante) >= 0;
+    const okTipoC = Number(d.tipo_comprobante_sunat) >= 0;
     const okNumC = String(d.numero_comprobante || '').trim().length > 0;
     const okMontoDet = Number(d.monto ?? c.monto) > 0;
-    return okTM && okMonto && okTipoC && okNumC && okMontoDet;
+    return okTM && okMonto && okTipoC && okNumC;
   }
 
   openAddMovimiento() {
@@ -136,7 +139,9 @@ export class GastosFeature implements OnInit {
     this.savingAdd = false;
     this.addError = null;
     this.cabeceraForm = { tipo_movimiento: 'I', monto: undefined as any } as any;
-    this.detalleForm = { tipo_comprobante: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
+    this.detalleForm = { tipo_comprobante_sunat: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
+    this.selectedSerieId = this.seriesFiltered.length ? Number(this.seriesFiltered[0].id) : null;
+    if (this.selectedSerieId) { this.onSerieChange(this.selectedSerieId); }
     this.personaQuery = '';
     this.showPersonaOptions = false;
   }
@@ -162,7 +167,7 @@ export class GastosFeature implements OnInit {
         const cabId = (cab as any)?.id;
         if (!cabId) { this.savingAdd = false; this.addError = 'No se obtuvo ID de cabecera'; return; }
         const detBody: any = {
-          tipo_comprobante: Number(d.tipo_comprobante),
+          tipo_comprobante_sunat: Number(d.tipo_comprobante_sunat),
           numero_comprobante: String(d.numero_comprobante || '').trim(),
           descripcion: (String(d.descripcion || '').trim() || null) as any,
           tipo_gasto: d.tipo_gasto != null ? Number(d.tipo_gasto) : null,
@@ -245,6 +250,57 @@ export class GastosFeature implements OnInit {
       },
       error: () => { /* no-op */ }
     });
+  }
+
+  // Series comprobante
+  series: SerieComprobanteModel[] = [];
+  seriesFiltered: SerieComprobanteModel[] = [];
+  seriesLoading = false;
+  seriesError: string | null = null;
+  selectedSerieId: number | null = null;
+
+  private getUserSedeId(): number {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return 0;
+      const me = JSON.parse(raw) as any;
+      if (Array.isArray(me)) {
+        return Number(me[0]?.id || 0);
+      }
+      const sede = Array.isArray(me?.sedes) ? me.sedes[0] : null;
+      return Number(sede?.id || 0);
+    } catch {
+      return 0;
+    }
+  }
+
+  loadSeries() {
+    this.seriesLoading = true;
+    this.seriesError = null;
+    this.serieSrv.getSeries().subscribe({
+      next: (series: SerieComprobanteModel[]) => {
+        const sedeId = this.getUserSedeId();
+        this.series = series || [];
+        this.seriesFiltered = sedeId
+          ? (this.series || []).filter(s => Number(s.sede_id) === sedeId)
+          : (this.series || []);
+        this.seriesLoading = false;
+      },
+      error: () => {
+        this.seriesLoading = false;
+        this.seriesError = 'No se pudieron cargar las series de comprobante';
+      }
+    });
+  }
+
+  onSerieChange(serieId: number | null) {
+    this.selectedSerieId = serieId != null ? Number(serieId) : null;
+    const serie = (this.seriesFiltered || []).find(s => Number(s.id) === Number(this.selectedSerieId));
+    if (!serie) return;
+    if (!String(this.detalleForm.numero_comprobante || '').trim()) {
+      const correlativo = Number((serie as any).correlativo || 0);
+      this.detalleForm.numero_comprobante = `${serie.serie}-${correlativo}`.toUpperCase();
+    }
   }
 }
 

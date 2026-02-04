@@ -21,11 +21,11 @@ export class Vehiculos {
   }
 
   updateVehiculo(id: number, body: Partial<Vehiculo>): Observable<Vehiculo> {
-    return this.api.patch(`/vehiculos/${id}/`, body);
+    return this.api.patch(`/vehiculos/${id}`, body);
   }
 
   deleteVehiculo(id: number): Observable<any> {
-    return this.api.delete(`/vehiculos/${id}/`);
+    return this.api.delete(`/vehiculos/${id}`);
   }
 
   formatFecha(fecha: string | Date): string {

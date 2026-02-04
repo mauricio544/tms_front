@@ -107,6 +107,10 @@ export interface Manifiesto {
   numero: string;
   turno: string;
   fecha_traslado: string;
+  estado: string;
+  arrived_at: string;
+  arrived_lat?: number;
+  arrived_lng?: number;
 }
 
 export interface ManifiestoCreate {
@@ -505,4 +509,40 @@ export interface ManifiestoResumen {
   peso_total: number;
   ingresos_generados: number;
   ingreso_promedio: number;
+}
+
+export interface PublicLinkRequest {
+  conductor_id: number;
+  expires_minutes: number;
+}
+
+export interface PublicLinkResponse {
+  url: string;
+  token: string;
+  expres_at: string;
+}
+
+export interface EnvioWithDetalleRead extends Partial<Envio> {
+  detalles: DetalleEnvio[];
+  origen_nombre: string
+  destino_nombre: string
+}
+
+export interface ManifiestoWithEnviosRead {
+  id: number;
+  estado: string;
+  piloto_nombre: string;
+  copiloto_nombre: string;
+  origen_nombre: string;
+  destino_nombre: string;
+  envios: EnvioWithDetalleRead[];
+}
+
+export interface ManifiestoArrivedUpdate {
+  estado: string;
+  arrived_at: string;
+  arrived_lat: number;
+  arrived_lng: number;
+  arrived_accuracy_m?: number;
+  arrived_note: string;
 }

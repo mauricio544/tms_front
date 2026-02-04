@@ -147,6 +147,13 @@
             </select>
           </div>
           <div>
+            <label class="block text-sm text-slate-700">Serie</label>
+            <select [(ngModel)]="selectedSerieId" (ngModelChange)="onSerieChange($event)" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option [ngValue]="null">Seleccione…</option>
+              <option *ngFor="let s of seriesFiltered" [ngValue]="s.id">{{ s.serie }}</option>
+            </select>
+          </div>
+          <div>
             <label class="block text-sm text-slate-700">N° comprobante</label>
             <input type="text" [(ngModel)]="detalleForm.numero_comprobante" (ngModelChange)="detalleForm.numero_comprobante = $event.toUpperCase()" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           </div>

@@ -80,7 +80,7 @@ export class LayoutComponent {
     { label: 'Vehículos', route: '/vehiculos', icon: 'heroTruck' },
     { label: 'Usuarios', route: '/usuarios', icon: 'heroUserCircle' },
     { label: 'Personas', route: '/personas', icon: 'heroIdentification' },
-    { label: 'Roles', route: '/roles', icon: 'heroShieldCheck' },
+    /*{ label: 'Roles', route: '/roles', icon: 'heroShieldCheck' },*/ //TODO: ocualtar por el momwnto
     { label: 'Sedes', route: '/puntos', icon: 'heroMap' },
     /*{ label: 'Sedes', route: '/sedes', icon: 'heroBuildingOffice' },*/
     { label: 'Conductores', route: '/conductores', icon: 'heroUserCircle' },

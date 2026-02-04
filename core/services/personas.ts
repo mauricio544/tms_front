@@ -22,11 +22,11 @@ export class Personas {
   }
 
   updatePersona(id: number, body: Partial<Persona>): Observable<Persona> {
-    return this.api.patch(`/personas/${id}/`, body);
+    return this.api.patch(`/personas/${id}`, body);
   }
 
   deletePersona(id: number): Observable<any> {
-    return this.api.delete(`/personas/${id}/`);
+    return this.api.delete(`/personas/${id}`);
   }
 
   getDatosRUC(tipoDocumento: string, nroDocumento: string): Observable<DatosRUC> {

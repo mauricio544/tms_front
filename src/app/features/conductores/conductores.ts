@@ -83,7 +83,7 @@ export class Conductores implements OnInit {
   }
 
   getNombre(p: any): string {
-    return `${p.nombre ?? ''} ${p.apellido ?? ''}`.trim() || p.razon_social;
+    return `${(p.nombre).toUpperCase() ?? ''} ${(p.apellido).toUpperCase() ?? ''}`.trim() || (p.razon_social ?? '').toUpperCase();
   }
 
   get totalPages(): number {

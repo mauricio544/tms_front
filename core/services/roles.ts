@@ -11,7 +11,7 @@ export class Roles {
   private readonly api = inject(ApiClientService);
 
   getRoles(): Observable<Rol[]> {
-    return this.api.get('/admin/roles');
+    return this.api.get('/admin/roles/');
   }
 
   getRolesPermisos(rol_id: number): Observable<RolPermiso[]> {

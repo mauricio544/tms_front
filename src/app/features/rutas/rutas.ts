@@ -33,6 +33,7 @@ export class RutasFeature implements OnInit {
   showModal = false;
   saving = false;
   saveError: string | null = null;
+  showErrors = false;
 
   confirmOpen = false;
   confirmTitle = 'Confirmar eliminación';
@@ -68,6 +69,7 @@ export class RutasFeature implements OnInit {
     this.editingId = null;
     this.newPunto = { nombre: '', direccion: '' };
     this.saveError = null;
+    this.showErrors = false;
     this.showModal = true;
   }
   openEdit(item: Points) {
@@ -75,6 +77,7 @@ export class RutasFeature implements OnInit {
     this.editingId = (item as any).id ?? null;
     this.newPunto = { nombre: item.nombre, direccion: item.direccion };
     this.saveError = null;
+    this.showErrors = false;
     this.showModal = true;
   }
   closeModal() { this.showModal = false; }
@@ -85,6 +88,7 @@ export class RutasFeature implements OnInit {
   }
 
   submitPunto() {
+    this.showErrors = true;
     if (!this.isValidPunto) return;
     const payload = { nombre: String((this.newPunto as any).nombre || '').trim(), direccion: String((this.newPunto as any).direccion || '').trim() };
     this.saving = true;

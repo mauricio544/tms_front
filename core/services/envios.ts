@@ -15,7 +15,7 @@ export class Envios {
   private readonly auth = inject(AuthService);
 
   getEnvios(): Observable<Envio[]> {
-    return this.api.get('/envios');
+    return this.api.get('/envios/');
   }
 
   getEnvio(id: number): Observable<Envio> {
@@ -27,7 +27,7 @@ export class Envios {
   }
 
   createEnvios(body: Partial<EnvioCreate>): Observable<Envio> {
-    return this.api.post('/envios', body);
+    return this.api.post('/envios/', body);
   }
 
   updateEnvios(id:number, body: Partial<Envio>): Observable<Envio> {

@@ -21,10 +21,12 @@ import { ComprobantesFeature } from './features/comprobantes/comprobantes-featur
 import { SedesFeature } from './features/sedes/sedes';
 import { ReportesFeature } from './features/reportes/reportes';
 import { EnvioPublicComponent } from './public/envio-public/envio-public';
+import { ManifiestosPublicoComponent } from './public/manifiestos-publico/manifiestos-publico';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: LoginComponent },
   { path: 'tracking/:id', component: EnvioPublicComponent },
+  { path: 'manifiestos/publico/:token', component: ManifiestosPublicoComponent },
   {
     path: '',
     component: LayoutComponent,

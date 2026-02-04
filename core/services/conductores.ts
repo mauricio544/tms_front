@@ -21,7 +21,7 @@ export class Conductores {
 
   createConductores(body: {licencia: string; tipo_licencia: string; persona_id: number; compania_id: number}): Observable<Conductor> {
     body.compania_id = <number>this.auth.getCompaniaId();
-    return this.api.post('/conductores', body);
+    return this.api.post('/conductores/', body);
   }
 
   updateConductores(id: number, body: {licencia: string; tipo_licencia: string; persona_id: number; compania_id: number}): Observable<Conductor> {
