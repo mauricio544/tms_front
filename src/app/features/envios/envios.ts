@@ -691,11 +691,14 @@ export class EnviosFeature implements OnInit {
   // Modal helpers
   openCreate() {
     this.editing = false; this.editingId = null;
-    //console.log(new Date().toISOString().slice(0,10));
+    this.cleanEnvio();
     try { (this.newEnvio as any).fecha_envio = this.currentDateTMS(); } catch {}
     this.saveError = null; this.showCreate = true; this.remitenteQuery = ''; this.destinatarioQuery = ''; this.showRemitenteOptions = false; this.showDestinatarioOptions = false; this.stagedDetalles = []; this.newDet = { cantidad: null, descripcion: '', precio_unitario: null };
     this.confirmClaveRecojo = '';
     this.destinatarioCelular = '';
+    this.compTipoId = null;
+    this.compTipoSel = null;
+    this.setDefaultComprobanteTipo();
     // Defaults for unified DNI/RUC lookup control
     this.remitenteDocType = 'DNI'; this.destinatarioDocType = 'DNI';
     this.remitenteDocNumber = ''; this.destinatarioDocNumber = '';
@@ -1018,13 +1021,17 @@ this.closeEdit(); this.showNotif('Env\u00edo actualizado');
         });
         this.compTipos = filtered;
         if (this.compTipos.length && !this.compTipoId) {
-          const def = this.compTipos[0];
-          this.compTipoSel = def;
-          this.onCompTipoChange(def);
+          this.setDefaultComprobanteTipo();
         }
       },
       error: () => { this.showNotif('No se pudieron cargar las series de comprobante', 'error'); }
     });
+  }
+  private setDefaultComprobanteTipo() {
+    if (!this.compTipos.length) { this.compTipoSel = null; this.compTipoId = null; return; }
+    const boleta = this.compTipos.find(t => this.normalizeTipoComprobante((t as any).tipo_comprobante_sunat) === '03') || this.compTipos[0];
+    this.compTipoSel = boleta;
+    this.onCompTipoChange(boleta);
   }
 
   loadEnvios() {

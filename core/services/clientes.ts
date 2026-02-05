@@ -13,11 +13,11 @@ export class Clientes {
   private readonly api = inject(ApiClientService);
 
   getClientes(): Observable<Cliente[]> {
-    return this.api.get('/clientes');
+    return this.api.get('/clientes/');
   }
 
   createCliente(body: Partial<ClienteCreate>): Observable<Cliente> {
-    return this.api.post('/clientes', body);
+    return this.api.post('/clientes/', body);
   }
 
   updateCliente(id: number, body: Partial<Cliente>): Observable<Cliente> {

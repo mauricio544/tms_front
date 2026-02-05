@@ -62,7 +62,7 @@
     <div class="mt-4 space-y-4">
       <div class="grid grid-cols-2 gap-3">
         <!--control remitente-->
-        <div class="relative rounded-md bg-emerald-50/60 p-2" (click)="$event.stopPropagation()">
+        <div class="relative rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]" (click)="$event.stopPropagation()">
           <label class="block text-sm text-slate-700">Remitente</label>
           <div class="mt-2 grid grid-cols-[auto,1fr,auto,auto] items-center gap-2">
             <select [(ngModel)]="remitenteDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
@@ -101,7 +101,7 @@
         </div>
 
         <!--control destinatario-->
-        <div class="relative rounded-md bg-sky-50/60 p-2" (click)="$event.stopPropagation()">
+        <div class="relative rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]" (click)="$event.stopPropagation()">
           <label class="block text-sm text-slate-700">Destinatario</label>
           <div class="mt-2 grid grid-cols-[auto,1fr,auto] items-center gap-2">
             <select [(ngModel)]="destinatarioDocType"
@@ -158,16 +158,20 @@
       </div>
       <div class="grid grid-cols-3 gap-3">
         <div>
+          <label class="block text-sm text-slate-700">Destino</label>
+          <select [(ngModel)]="newEnvio.punto_destino_id"
+                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onDestinoChange($event)">
+            <option [ngValue]="null">Seleccione...</option>
+            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_origen_id">{{ p.nombre.toUpperCase() }}</option>
+          </select>
+        </div>
+        <div>
           <label class="block text-sm text-slate-700">Peso (kg)</label>
           <input type="number" min="0" step="0.01" [(ngModel)]="newEnvio.peso" placeholder="0.00"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
         </div>
         <div>
-
-
           <label class="block text-sm text-slate-700">Fecha envío</label>
-
-
           <input type="date" [(ngModel)]="newEnvio.fecha_envio"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
         </div>
@@ -177,26 +181,8 @@
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
         </div>-->
       </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm text-slate-700">Origen</label>
-          <select [(ngModel)]="newEnvio.punto_origen_id" [disabled]="true"
-                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onOrigenChange($event)">
-            <option [ngValue]="null">Seleccione...</option>
-            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_destino_id">{{ p.nombre.toUpperCase() }}</option>
-          </select>
-          <div class="text-xs text-slate-500 mt-1" *ngIf="puntosLoading">Cargando puntos...</div>
-          <div class="text-xs text-red-600 mt-1" *ngIf="puntosError">{{ puntosError }}</div>
-        </div>
-        <div>
-          <label class="block text-sm text-slate-700">Destino</label>
-          <select [(ngModel)]="newEnvio.punto_destino_id"
-                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onDestinoChange($event)">
-            <option [ngValue]="null">Seleccione...</option>
-            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_origen_id">{{ p.nombre.toUpperCase() }}</option>
-          </select>
-        </div>
-      </div>
+      <div class="text-xs text-slate-500 mt-1" *ngIf="puntosLoading">Cargando puntos...</div>
+      <div class="text-xs text-red-600 mt-1" *ngIf="puntosError">{{ puntosError }}</div>
 
       <div class="grid grid-cols-2 gap-3">
         <div>
@@ -512,7 +498,7 @@
       <div class="grid grid-cols-2 gap-3">
 
 
-        <div class="relative rounded-md bg-emerald-50/60 p-2" (click)="$event.stopPropagation()">
+        <div class="relative rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]" (click)="$event.stopPropagation()">
 
 
           <label class="block text-sm text-slate-700">Remitente</label>
@@ -596,7 +582,7 @@
         </div>
 
 
-        <div class="relative rounded-md bg-sky-50/60 p-2" (click)="$event.stopPropagation()">
+        <div class="relative rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]" (click)="$event.stopPropagation()">
 
 
           <label class="block text-sm text-slate-700">Destinatario</label>
@@ -702,6 +688,14 @@
 
 
       <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="block text-sm text-slate-700">Destino</label>
+          <select [(ngModel)]="newEnvio.punto_destino_id"
+                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onDestinoChange($event)">
+            <option [ngValue]="null">Seleccione...</option>
+            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_origen_id">{{ p.nombre.toUpperCase() }}</option>
+          </select>
+        </div>
 
 
         <div>
@@ -740,61 +734,8 @@
       </div>
 
 
-      <div class="grid grid-cols-2 gap-3">
-
-
-        <div>
-
-
-          <label class="block text-sm text-slate-700">Origen</label>
-
-
-          <select [(ngModel)]="newEnvio.punto_origen_id" [disabled]="true"
-                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onOrigenChange($event)">
-
-
-            <option [ngValue]="null">Seleccione...</option>
-
-
-            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_destino_id">{{ p.nombre }}</option>
-
-
-          </select>
-
-
-          <div class="text-xs text-slate-500 mt-1" *ngIf="puntosLoading">Cargando puntos...</div>
-
-
-          <div class="text-xs text-red-600 mt-1" *ngIf="puntosError">{{ puntosError }}</div>
-
-
-        </div>
-
-
-        <div>
-
-
-          <label class="block text-sm text-slate-700">Destino</label>
-
-
-          <select [(ngModel)]="newEnvio.punto_destino_id"
-                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" (ngModelChange)="onDestinoChange($event)">
-
-
-            <option [ngValue]="null">Seleccione...</option>
-
-
-            <option *ngFor="let p of puntos" [ngValue]="p.id" [disabled]="p.id === newEnvio.punto_origen_id">{{ p.nombre }}</option>
-
-
-          </select>
-
-
-        </div>
-
-
-
-      </div>
+      <div class="text-xs text-slate-500 mt-1" *ngIf="puntosLoading">Cargando puntos...</div>
+      <div class="text-xs text-red-600 mt-1" *ngIf="puntosError">{{ puntosError }}</div>
 
       <div class="grid grid-cols-2 gap-3">
         <div>
