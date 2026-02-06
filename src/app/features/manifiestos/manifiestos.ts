@@ -11,7 +11,7 @@ import { Manifiestos } from '../../../../core/services/manifiestos';
 import { Envios } from '../../../../core/services/envios';
 import { Puntos } from '../../../../core/services/puntos';
 import { Conductores as ConductoresService } from '../../../../core/services/conductores';
-import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate, Vehiculo, SerieComprobante as SerieComprobanteModel, PublicLinkRequest } from '../../../../core/mapped';
+import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate, Vehiculo, SerieComprobante as SerieComprobanteModel, PublicLinkRequest, GuiaTramaFinal } from '../../../../core/mapped';
 import { Conductor } from '../../../../core/mapped';
 import { Personas } from '../../../../core/services/personas';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
@@ -168,11 +168,26 @@ export class ManifiestosFeature implements OnInit {
 
   newManifiesto: FormManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: '', vehiculo_id: null };
 
+  private localDateInput(value?: string | Date | null): string {
+    if (!value) {
+      const d = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+    if (value instanceof Date) {
+      const d = value;
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+    const s = String(value);
+    return s.includes('T') ? s.slice(0, 10) : s;
+  }
+
   // Modal helpers
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: this.utilSrv.formatFecha(new Date() || ""), vehiculo_id: null };
+    this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: this.localDateInput(), vehiculo_id: null };
     this.saveError = null;
     this.showModal = true;
   }
@@ -184,7 +199,7 @@ export class ManifiestosFeature implements OnInit {
       copiloto_id: (item as any)?.copiloto_id ?? null,
       turno: (item as any)?.turno ?? '',
       placa: (item as any)?.placa ?? '',
-      fecha_traslado: this.utilSrv.formatFecha((item as any)?.fecha_traslado) ?? '',
+      fecha_traslado: this.localDateInput((item as any)?.fecha_traslado),
       vehiculo_id: (item as any)?.vehiculo_id ?? null,
       codigo_punto_origen: (item as any).codigo_punto_origen ?? null,
       codigo_punto_destino: (item as any).codigo_punto_destino ?? null,
@@ -260,7 +275,7 @@ export class ManifiestosFeature implements OnInit {
       copiloto_id: Number(m.copiloto_id),
       turno: String(m.turno),
       placa: String(m.placa),
-      fecha_traslado: String(this.utilSrv.formatFecha(m.fecha_traslado || "")),
+      fecha_traslado: String(this.localDateInput(m.fecha_traslado)),
       vehiculo_id: m.vehiculo_id != null ? Number(m.vehiculo_id) : null,
       codigo_punto_origen: Number(m.codigo_punto_origen),
       codigo_punto_destino: Number(m.codigo_punto_destino),
@@ -281,7 +296,7 @@ export class ManifiestosFeature implements OnInit {
           turno: res?.turno ?? payload.turno,
           placa: res?.placa ?? payload.placa,
           vehiculo_id: (res as any)?.vehiculo_id ?? payload.vehiculo_id,
-          fecha_traslado: this.utilSrv.formatFecha(new Date() || ""),
+          fecha_traslado: res?.fecha_traslado ?? payload.fecha_traslado,
           codigo_punto_origen: res?.codigo_punto_origen ?? payload.codigo_punto_origen,
           codigo_punto_destino: res?.codigo_punto_destino ?? payload.codigo_punto_destino,
           serie: res?.serie ?? payload.serie,
@@ -518,6 +533,9 @@ ngOnInit(): void {
   guiaEstadoUpdating = false;
   guiaGenIsSunat = false;
   guiaGenTitle = '';
+
+  sunatGenState: Record<number, { total: number; done: number; errors: number; running: boolean; guias: Array<{ envioId: number; guiaId: number; numero: string }> }> = {};
+  sunatGuiasOpenId: number | null = null;
   publicLinkLoading: Record<number, boolean> = {};
   publicLinkError: Record<number, string | null> = {};
 
@@ -626,6 +644,7 @@ ngOnInit(): void {
     this.showGuiaModal = false;
     this.showEnviosModal = false;
     this.showAddEnviosModal = false;
+    this.showGuiaGeneradaModal = false;
     const id = (item as any)?.id;
     if (!id) return;
     this.guiaGenManifiestoId = Number(id);
@@ -641,7 +660,6 @@ ngOnInit(): void {
     this.guiaDocNow = new Date();
     this.guiaGenError = null;
     this.guiaGenLoading = true;
-    this.showGuiaGeneradaModal = true;
 
     this.serieSrv.getSeries().subscribe({
       next: (series: SerieComprobanteModel[]) => {
@@ -663,7 +681,7 @@ ngOnInit(): void {
               this.guiaGenError = 'No hay envios asociados; no se puede generar la guia.';
               return;
             }
-            this.ensureSunatGuia(item, envios, sunatSerie);
+            this.generateSunatGuiaForEnvios(item, envios, sunatSerie);
           },
           error: () => {
             this.guiaGenLoading = false;
@@ -716,6 +734,40 @@ ngOnInit(): void {
   }
 
   closeGuiaGenerada() { this.showGuiaGeneradaModal = false; }
+
+  downloadGuiaPdf() {
+    if (!this.guiaDoc) return;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const marginX = 36;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 40;
+    const line = 14;
+    const add = (text: string, bold = false) => {
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(10);
+      doc.text(text || '', marginX, y, { maxWidth: pageWidth - marginX * 2 });
+      y += line;
+    };
+    add(`Guía: ${this.guiaDoc.fullNumber || '-'}`, true);
+    add(`Emitida: ${this.guiaDoc.issuedAt || '-'}`);
+    add(`Inicio traslado: ${this.guiaDoc.startDatetime || '-'}`);
+    add(`Empresa: ${this.guiaDoc.companyName || '-'}`);
+    add(`RUC: ${this.guiaDoc.companyRuc || '-'}`);
+    add(`Origen: ${this.guiaDoc.originAddress || '-'}`);
+    add(`Destino: ${this.guiaDoc.destAddress || '-'}`);
+    add(`Conductor: ${this.guiaDoc.driverName || '-'}`);
+    add(`Licencia: ${this.guiaDoc.driverLicense || '-'}`);
+    y += 6;
+    add('Items', true);
+    (this.guiaDoc.items || []).forEach((it: any, idx: number) => {
+      add(`${idx + 1}. ${it.description || '-'}  |  Cant: ${it.qty || 0}  |  Peso: ${it.weightKg || 0}`);
+    });
+    y += 6;
+    add(`Total cantidad: ${this.guiaDoc.totalQty || 0}`, true);
+    add(`Total peso: ${this.guiaDoc.totalWeightKg || 0}`, true);
+    const fname = `guia_${(this.guiaDoc.fullNumber || 'sunat').replace(/\\s+/g, '_')}.pdf`;
+    doc.save(fname);
+  }
 
   exportGuiaPDF() {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -1097,27 +1149,45 @@ ngOnInit(): void {
     });
   }
 
-  private ensureSunatGuia(item: Manifiesto, envios: Envio[], sunatSerie: SerieComprobanteModel) {
-    const manifiestoId = Number((item as any)?.id);
-    this.guiasSrv.getDespachoManifiesto(manifiestoId).subscribe({
-      next: (res: any[]) => {
-        const despacho = (Array.isArray(res) ? res[0] : res) as DespachoRead | undefined;
-        if (despacho && (despacho as any).id) {
-          this.guiaGenDespacho = despacho;
-          this.createSunatGuiaAndItems(item, envios, despacho, sunatSerie);
-          return;
-        }
-        this.createDespacho(item, envios, sunatSerie);
-      },
-      error: (err) => {
-        if (err?.status === 404) {
-          this.createDespacho(item, envios, sunatSerie);
-          return;
-        }
+  private generateSunatGuiaForEnvios(item: Manifiesto, envios: Envio[], sunatSerie: SerieComprobanteModel) {
+    let index = 0;
+    let correlativo = Number((sunatSerie as any).correlativo || 0);
+    const total = envios.length;
+    const mid = Number((item as any)?.id || 0);
+    this.sunatGenState[mid] = { total, done: 0, errors: 0, running: true, guias: [] };
+    const runNext = () => {
+      if (index >= total) {
         this.guiaGenLoading = false;
-        this.guiaGenError = 'No se pudo validar el despacho.';
+        if (this.sunatGenState[mid]) {
+          this.sunatGenState[mid].running = false;
+        }
+        this.showNotif('Guía Sunat generada');
+        return;
       }
-    });
+      const envio = envios[index++];
+      const numeroRaw = String(correlativo || '');
+      this.guiaGenTitle = `Guia Sunat ${this.guiaGenSerie}-${numeroRaw} (${index}/${total})`.trim();
+      this.createDespachoForEnvio(item, envio, (despacho) => {
+        this.createSunatGuiaAndItemsForEnvio(item, envio, despacho, sunatSerie, numeroRaw, (guiaRes) => {
+          if (this.sunatGenState[mid]) {
+            this.sunatGenState[mid].done += 1;
+            if (guiaRes) {
+              const numero = String((guiaRes as any)?.numero_completo || `${(guiaRes as any)?.series || ''}-${(guiaRes as any)?.numero || ''}`).trim();
+              this.sunatGenState[mid].guias.push({ envioId: Number((envio as any)?.id || 0), guiaId: Number((guiaRes as any)?.id || 0), numero });
+            }
+          }
+          correlativo += 1;
+          runNext();
+        }, () => {
+          if (this.sunatGenState[mid]) {
+            this.sunatGenState[mid].done += 1;
+            this.sunatGenState[mid].errors += 1;
+          }
+          runNext();
+        });
+      });
+    };
+    runNext();
   }
 
   private createDespacho(item: Manifiesto, envios: Envio[], sunatSerie?: SerieComprobanteModel) {
@@ -1130,6 +1200,20 @@ ngOnInit(): void {
         } else {
           this.ensureGuiaItemsForDespacho(item, envios, despacho);
         }
+      },
+      error: () => {
+        this.guiaGenLoading = false;
+        this.guiaGenError = 'No se pudo crear el despacho.';
+      }
+    });
+  }
+
+  private createDespachoForEnvio(item: Manifiesto, envio: Envio, done: (despacho: DespachoRead) => void) {
+    const payload = this.buildDespachoPayload(item, envio);
+    this.guiasSrv.createDespacho(payload).subscribe({
+      next: (despacho) => {
+        this.guiaGenDespacho = despacho;
+        done(despacho);
       },
       error: () => {
         this.guiaGenLoading = false;
@@ -1224,6 +1308,143 @@ ngOnInit(): void {
     });
   }
 
+  private createSunatGuiaAndItemsForEnvio(
+    item: Manifiesto,
+    envio: Envio,
+    despacho: DespachoRead,
+    sunatSerie: SerieComprobanteModel,
+    numeroRaw: string,
+    done: (guia: Guia | null) => void,
+    onError: () => void
+  ) {
+    this.guiasSrv.getItemsDespacho(despacho.id).subscribe({
+      next: (items: ItemGuia[]) => {
+        const existingItems = (items || []) as ItemGuia[];
+        const series = String((sunatSerie as any).serie || '');
+        const payload = this.buildGuiaPayload(item, despacho.id, {
+          series,
+          numeroRaw,
+          docType: 'GRT',
+        });
+        this.guiasSrv.createGuia(payload).subscribe({
+          next: (guiaRes) => {
+            this.guiaGenGuia = guiaRes as Guia;
+            this.guiaGenEstado = String((despacho as any)?.estado || 'B');
+            if (existingItems.length) {
+              this.guiaGenItems = existingItems;
+              this.guiaDoc = this.buildGuiaDoc(item, despacho, guiaRes as Guia, existingItems);
+              done(guiaRes as Guia);
+              return;
+            }
+            this.createItemsForDespacho(item, despacho, [envio], () => done(guiaRes as Guia));
+          },
+          error: () => {
+            this.guiaGenLoading = false;
+            this.guiaGenError = 'No se pudo crear la guia Sunat.';
+            onError();
+          }
+        });
+      },
+      error: () => {
+        this.guiaGenLoading = false;
+        this.guiaGenError = 'No se pudieron cargar los items del despacho.';
+        onError();
+      }
+    });
+  }
+
+  sunatProgress(mid: number): number {
+    const st = this.sunatGenState[mid];
+    if (!st || !st.total) return 0;
+    return Math.round((st.done / st.total) * 100);
+  }
+
+  toggleSunatGuias(mid: number) {
+    this.sunatGuiasOpenId = this.sunatGuiasOpenId === mid ? null : mid;
+  }
+
+  private buildGuiaDocFromTrama(trama: GuiaTramaFinal) {
+    const guia = (trama as any)?.guia || {};
+    const despacho = (trama as any)?.despacho || {};
+    const envio = (trama as any)?.envio || {};
+    const conductor = (trama as any)?.conductor || null;
+    const vehiculo = (trama as any)?.vehiculo || null;
+    const companyName = String(localStorage.getItem('razon_social') || this.authSrv.getCompania() || '').trim();
+    const companyRuc = String(localStorage.getItem('ruc') || '').trim();
+    const items = (trama as any)?.items || [];
+    const mappedItems = (items || []).map((it: any) => ({
+      sku: `ENV-${envio?.id ?? ''}-${it?.numero_item ?? ''}`.trim(),
+      description: String(it?.descripcion ?? ''),
+      uom: 'UND',
+      qty: Number(it?.cantidad) || 0,
+      lot: '',
+      weightKg: Number(envio?.peso) || 0,
+    }));
+    const totalQty = mappedItems.reduce((acc: number, it: any) => acc + (Number(it.qty) || 0), 0);
+    const totalWeightKg = mappedItems.reduce((acc: number, it: any) => acc + (Number(it.weightKg) || 0), 0);
+    const fullNumber = String(guia?.numero_completo || `${guia?.series || ''}-${guia?.numero || ''}`).trim();
+    const hashSha = String(guia?.hash_sha || '');
+    const persona = (conductor as any)?.persona || {};
+    return {
+      fullNumber,
+      issuedAt: guia?.emitido_en || null,
+      startDatetime: despacho?.inicio || null,
+      qrDataUrl: this.qrSrc(guia?.qr),
+      verifyUrl: '',
+      companyName: companyName || '-',
+      companyRuc: companyRuc || '-',
+      transferReason: despacho?.razon_transferencia || '',
+      notes: despacho?.notas || '',
+      originUbigeo: despacho?.origen_ubigeo || '',
+      originAddress: despacho?.origen_direccion || '',
+      destUbigeo: despacho?.destino_ubigeo || '',
+      destAddress: despacho?.destino_direccion || '',
+      vehiclePlate: vehiculo?.placa || '',
+      trailerPlate: '',
+      driverName: [persona?.nombre, persona?.apellido].filter(Boolean).join(' ').trim() || persona?.razon_social || '-',
+      driverDocType: persona?.tipo_documento || '',
+      driverDocNumber: persona?.nro_documento || '',
+      driverLicense: (conductor as any)?.licencia || '',
+      hashShort: hashSha ? hashSha.slice(0, 12) + '...' : '',
+      issuedBy: this.authSrv.getUserLabel() || '',
+      items: mappedItems,
+      totalQty,
+      totalWeightKg,
+      hashSha256: hashSha,
+    };
+  }
+
+  qrSrc(raw?: string): string {
+    const value = String(raw || '').trim();
+    if (!value) return '';
+    if (value.startsWith('data:image')) return value;
+    if (value.startsWith('http://') || value.startsWith('https://')) return value;
+    return `data:image/png;base64,${value}`;
+  }
+
+  verGuiaTrama(envioId: number) {
+    this.guiaGenLoading = true;
+    this.guiaGenError = null;
+    this.guiaDoc = null;
+    this.guiaGenIsSunat = true;
+    this.guiaGenTitle = 'Guía Sunat';
+    this.showGuiaGeneradaModal = true;
+    this.guiasSrv.getTramaGuia(envioId).subscribe({
+      next: (trama: GuiaTramaFinal) => {
+        this.guiaGenLoading = false;
+        this.guiaGenDespacho = (trama as any)?.despacho || null;
+        this.guiaGenEstado = String((trama as any)?.despacho?.estado || 'B');
+        const numero = String((trama as any)?.guia?.numero_completo || '').trim();
+        if (numero) this.guiaGenTitle = `Guía Sunat ${numero}`;
+        this.guiaDoc = this.buildGuiaDocFromTrama(trama);
+      },
+      error: () => {
+        this.guiaGenLoading = false;
+        this.guiaGenError = 'No se pudo cargar la guía';
+      }
+    });
+  }
+
   private createItemsForDespacho(item: Manifiesto, despacho: DespachoRead, envios: Envio[], afterCreated?: () => void) {
     const calls = (envios || []).map((e: any) => (e?.id ? this.detEnvSrv.getDetallesEnvio(Number(e.id)) : of([])));
     forkJoin(calls).subscribe({
@@ -1258,23 +1479,24 @@ ngOnInit(): void {
     });
   }
 
-  private buildDespachoPayload(item: Manifiesto): any {
-    const origenId = this.safeOrigen(item as any);
-    const destinoId = this.safeDestino(item as any);
+  private buildDespachoPayload(item: Manifiesto, envio?: Envio): any {
+    const origenId = envio?.punto_origen_id ?? this.safeOrigen(item as any);
+    const destinoId = envio?.punto_destino_id ?? this.safeDestino(item as any);
     const serie = String((item as any)?.serie || '');
     const numero = String((item as any)?.numero || '');
     const me: any = localStorage.getItem('me');
 
     console.log(me.id);
     return {
-      manifiesto_id: Number((item as any)?.id),
+      manifiesto_id: envio ? null : Number((item as any)?.id),
+      envio_id: envio ? Number((envio as any)?.id) : null,
       estado: 'B',
       compania_id: Number(this.authSrv.getCompaniaId() || 0),
       origen_ubigeo: String(origenId ?? ''),
       origen_direccion: this.nameFrom(origenId),
       destino_ubigeo: String(destinoId ?? ''),
       destino_direccion: this.nameFrom(destinoId),
-      razon_transferencia: `Manifiesto ${serie}-${numero}`.trim(),
+      razon_transferencia: envio ? `Envio ${envio?.id ?? ''}`.trim() : `Manifiesto ${serie}-${numero}`.trim(),
       inicio: this.utilSrv.formatFecha(new Date()),
       aprobado_by: Number(me.id),
       notas: '',
@@ -1458,9 +1680,3 @@ ngOnInit(): void {
     };
   }
 }
-
-
-
-
-
-

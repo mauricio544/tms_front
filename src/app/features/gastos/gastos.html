@@ -44,32 +44,34 @@
           <th class="px-3 py-2">Tipo Comprobante</th>
           <th class="px-3 py-2">N° Comprobante</th>
           <th class="px-3 py-2">Descripción</th>
-          <th class="px-3 py-2">Tipo Gasto</th>
           <th class="px-3 py-2">Tipo</th>
           <th class="px-3 py-2 text-right">Monto</th>
-          <th class="px-3 py-2">Cabecera ID</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let it of pageItems" class="border-t border-slate-200">
           <td class="px-3 py-2">{{ it.id }}</td>
-          <td class="px-3 py-2">{{ it.tipo_comprobante_sunat }}</td>
-          <td class="px-3 py-2">{{ it.numero_comprobante.toUpperCase() }}</td>
-          <td class="px-3 py-2">{{ it.descripcion.toUpperCase() || '-' }}</td>
-          <td class="px-3 py-2">{{ it.tipo_gasto || '-' }}</td>
-          <td class="px-3 py-2"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" [ngClass]="{ 'bg-emerald-100 text-emerald-700': (it.cabecera.tipo_movimiento||'') === 'I', 'bg-red-100 text-red-700': (it.cabecera.tipo_movimiento||'') === 'E' }">{{ (it.cabecera.tipo_movimiento||'') === 'I' ? 'Ingreso' : 'Egreso' }}</span></td>
-          <td class="px-3 py-2 text-right font-medium" [ngClass]="{ 'text-emerald-700': (it.cabecera.tipo_movimiento||'') === 'I', 'text-red-700': (it.cabecera.tipo_movimiento||'') === 'E' }">{{ (((it.cabecera.tipo_movimiento||'') === 'E' ? -1 : 1) * (it.monto || 0)) | number:'1.2-2' }}</td>
-          <td class="px-3 py-2">{{ it.cabecera_id }}</td>
+          <td class="px-3 py-2">{{ tipoComprobanteLabel(it.tipo_comprobante_sunat) }}</td>
+          <td class="px-3 py-2">{{ (it.numero_comprobante || '').toUpperCase() }}</td>
+          <td class="px-3 py-2">{{ (it.descripcion || '-').toString().toUpperCase() }}</td>
+          <td class="px-3 py-2">
+            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                  [ngClass]="{ 'bg-emerald-100 text-emerald-700': tipoMovimientoCode(it) === 'I', 'bg-red-100 text-red-700': tipoMovimientoCode(it) === 'E' }">
+              {{ tipoMovimientoLabel(it) }}
+            </span>
+          </td>
+          <td class="px-3 py-2 text-right font-medium" [ngClass]="{ 'text-emerald-700': tipoMovimientoCode(it) === 'I', 'text-red-700': tipoMovimientoCode(it) === 'E' }">
+            {{ (((tipoMovimientoCode(it) === 'E' ? -1 : 1) * montoMovimiento(it))) | number:'1.2-2' }}
+          </td>
         </tr>
         <tr *ngIf="!filtered.length">
-          <td colspan="7" class="px-3 py-6 text-center text-slate-500">No hay movimientos para mostrar.</td>
+          <td colspan="6" class="px-3 py-6 text-center text-slate-500">No hay movimientos para mostrar.</td>
         </tr>
       </tbody>
       <tfoot>
         <tr class="border-t bg-slate-50">
-          <td class="px-3 py-2 text-right text-slate-700" colspan="6">Total</td>
+          <td class="px-3 py-2 text-right text-slate-700" colspan="5">Total</td>
           <td class="px-3 py-2 text-right font-semibold" [ngClass]="{ 'text-emerald-700': totalNeto >= 0, 'text-red-700': totalNeto < 0 }">{{ totalNeto | number:'1.2-2' }}</td>
-          <td></td>
         </tr>
       </tfoot>
     </table>

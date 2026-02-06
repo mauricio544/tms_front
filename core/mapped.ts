@@ -43,6 +43,20 @@ export interface Persona {
   tipo_documento: string;
 }
 
+export interface PersonaTrama {
+  id: number;
+  nombre: string;
+  apellido: string;
+  razon_social: string;
+  nro_documento: string;
+  tipo_documento: string;
+  direccion: string;
+  direccion_fiscal: string;
+  ubigeo: string;
+  celular: string;
+  email: string;
+}
+
 export interface DatosRUC {
   razon_social: string,
   numero_documento: string,
@@ -95,6 +109,8 @@ export interface Puntos {
   id: number;
   nombre: string;
   direccion: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Manifiesto {
@@ -382,6 +398,8 @@ export interface DespachoRead {
   inicio: string;
   aprobado_by: number;
   notas: string;
+  manifiesto_id?: number;
+  envio_id?: number;
 }
 
 export interface DespachoCreate {
@@ -395,6 +413,8 @@ export interface DespachoCreate {
   inicio: string;
   aprobado_by: number;
   notas: string;
+  manifiesto_id?: number;
+  envio_id?: number;
 }
 
 export interface Guia {
@@ -409,6 +429,19 @@ export interface Guia {
   pdf_hash: string;
   hash_sha: string;
   anulado: string;
+}
+
+export interface GuiaTrama {
+  id: number;
+  dod_type: string;
+  series: string;
+  numero: string;
+  numero_completo: string;
+  emitido_en: string;
+  qr: string;
+  pdf_hash: string;
+  hash_sha: string;
+  enviado: string;
 }
 
 export interface GuiaCreate {
@@ -545,4 +578,19 @@ export interface ManifiestoArrivedUpdate {
   arrived_lng: number;
   arrived_accuracy_m?: number;
   arrived_note: string;
+}
+
+export interface GuiaTramaFinal {
+  envio_id: number;
+  guia: GuiaTrama;
+  despacho: DespachoRead;
+  envio: Envio;
+  remitente: PersonaTrama;
+  destinatario: PersonaTrama;
+  origen: Puntos;
+  destino: Puntos;
+  manifiesto: Manifiesto;
+  conductor: Conductor;
+  vehiculo: Vehiculo;
+  items: DetalleEnvio[];
 }

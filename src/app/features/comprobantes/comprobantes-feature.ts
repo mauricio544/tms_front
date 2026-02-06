@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroPrinter, heroDocumentText, heroDocumentArrowDown } from '@ng-icons/heroicons/outline';
 import { Comprobantes } from '../../../../core/services/comprobantes';
 import { Clientes } from '../../../../core/services/clientes';
 import { Personas } from '../../../../core/services/personas';
@@ -14,8 +16,9 @@ import { Utils } from '../../../../core/services/utils';
 @Component({
   selector: 'feature-comprobantes',
   standalone: true,
-  imports: [CommonModule, FormsModule, Utils],
+  imports: [CommonModule, FormsModule, Utils, NgIconComponent],
   templateUrl: './comprobantes-feature.html',
+  providers: [provideIcons({ heroPrinter, heroDocumentText, heroDocumentArrowDown })],
 })
 export class ComprobantesFeature implements OnInit {
   private readonly comprobantesSrv = inject(Comprobantes);
@@ -49,6 +52,11 @@ export class ComprobantesFeature implements OnInit {
   sunatOk: string | null = null;
   sunatStatus: 'accepted' | 'pending' | null = null;
   sunatStatusLoading = false;
+  sunatBulkLoading = false;
+  sunatBulkOk: string | null = null;
+  sunatBulkError: string | null = null;
+  sunatBulkTotal = 0;
+  sunatBulkDone = 0;
 
   // Catálogos
   generales: any[] = [];
@@ -107,6 +115,51 @@ export class ComprobantesFeature implements OnInit {
     return nombre || '-';
   }
 
+  sunatEstadoLabel(c: Comprobante | null): string {
+    const code = String((c as any)?.estado_cpe ?? '').trim().toUpperCase();
+    if (code === 'A') return 'Aceptado';
+    if (code === '' || code === 'P') return 'Pendiente';
+    return '-';
+  }
+
+  sunatEstadoClass(c: Comprobante | null): string {
+    const code = String((c as any)?.estado_cpe ?? '').trim().toUpperCase();
+    if (code === 'A') return 'rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700';
+    if (code === '' || code === 'P') return 'rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700';
+    return 'text-xs text-slate-500';
+  }
+
+  tipoSunatLabel(c: Comprobante | null): string {
+    const code = String((c as any)?.tipo_comprobante_sunat ?? '').trim();
+    if (code === '01') return 'Factura';
+    if (code === '03') return 'Boleta';
+    return this.tipoNombre(code || (c as any)?.tipo_comprobante);
+  }
+
+  tipoSunatClass(c: Comprobante | null): string {
+    const code = String((c as any)?.tipo_comprobante_sunat ?? '').trim();
+    if (code === '01') return 'rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700';
+    if (code === '03') return 'rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700';
+    return 'text-xs text-slate-500';
+  }
+
+  isSunatAccepted(c: Comprobante | null): boolean {
+    const code = String((c as any)?.estado_cpe ?? '').trim().toUpperCase();
+    return code === 'A';
+  }
+
+  hasSunatPendientes(): boolean {
+    return (this.lista || []).some(c => {
+      const code = String((c as any)?.estado_cpe ?? '').trim().toUpperCase();
+      return code === '' || code === 'P';
+    });
+  }
+
+  sunatBulkProgress(): number {
+    if (!this.sunatBulkTotal) return 0;
+    return Math.round((this.sunatBulkDone / this.sunatBulkTotal) * 100);
+  }
+
   get filtered(): Comprobante[] {
     const term = (this.search || '').toLowerCase().trim();
     return (this.lista || []).filter((c: any) => {
@@ -144,6 +197,35 @@ export class ComprobantesFeature implements OnInit {
     this.sunatStatusLoading = false;
     this.loadDetalles((c as any).id);
     this.loadSunatStatus((c as any).id);
+  }
+
+  private selectForExport(c: Comprobante, done: () => void) {
+    this.selected = c;
+    const id = Number((c as any).id || 0);
+    if (!id) { done(); return; }
+    this.detallesLoading = true;
+    this.detallesError = null;
+    this.detallesSrv.getDetalles(id).subscribe({
+      next: (res) => { this.detalles = res || []; this.detallesLoading = false; done(); },
+      error: () => { this.detalles = []; this.detallesLoading = false; done(); }
+    });
+  }
+
+  printRow(c: Comprobante) {
+    this.selectForExport(c, () => this.printSelected());
+  }
+
+  exportCsvRow(c: Comprobante) {
+    this.selectForExport(c, () => this.exportSelectedCSV());
+  }
+
+  exportPdfRow(c: Comprobante) {
+    this.selectForExport(c, () => this.exportSelectedPDF());
+  }
+
+  generarSunatRow(c: Comprobante) {
+    this.select(c);
+    this.generarSunat();
   }
 
   load() {
@@ -385,9 +467,53 @@ export class ComprobantesFeature implements OnInit {
       }
     });
   }
+
+  generarSunatPendientes() {
+    if (this.sunatBulkLoading) return;
+    const pendientes = (this.lista || []).filter(c => {
+      const code = String((c as any)?.estado_cpe ?? '').trim().toUpperCase();
+      return code === '' || code === 'P';
+    });
+    if (!pendientes.length) {
+      this.sunatBulkOk = 'No hay comprobantes pendientes';
+      this.sunatBulkError = null;
+      this.sunatBulkTotal = 0;
+      this.sunatBulkDone = 0;
+      return;
+    }
+    this.sunatBulkLoading = true;
+    this.sunatBulkOk = null;
+    this.sunatBulkError = null;
+    this.sunatBulkTotal = pendientes.length;
+    this.sunatBulkDone = 0;
+    const codigo = '0';
+    const mensaje = 'aceptado';
+    let index = 0;
+    let errors = 0;
+    const runNext = () => {
+      if (index >= pendientes.length) {
+        this.sunatBulkLoading = false;
+        this.sunatBulkOk = `SUNAT generado para ${pendientes.length - errors} comprobante(s)`;
+        if (errors) this.sunatBulkError = `Falló en ${errors} comprobante(s)`;
+        return;
+      }
+      const c: any = pendientes[index++];
+      this.comprobantesSrv.simularSunat(Number(c.id), String(codigo), String(mensaje)).subscribe({
+        next: () => {
+          c.estado_cpe = 'A';
+          if (this.selected && Number((this.selected as any).id) === Number(c.id)) {
+            this.sunatStatus = 'accepted';
+          }
+          this.sunatBulkDone += 1;
+          runNext();
+        },
+        error: () => {
+          errors += 1;
+          this.sunatBulkDone += 1;
+          runNext();
+        }
+      });
+    };
+    runNext();
+  }
 }
-
-
-
-
-

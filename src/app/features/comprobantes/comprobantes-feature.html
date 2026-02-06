@@ -23,6 +23,30 @@
     </div>
   </div>
 
+  <div class="mt-4 flex items-center justify-between gap-2" *ngIf="viewMode === 'grid'">
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        (click)="generarSunatPendientes()"
+        [disabled]="sunatBulkLoading || !hasSunatPendientes()"
+        class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50">
+        {{ sunatBulkLoading ? 'Enviando SUNAT...' : 'Generar SUNAT (pendientes)' }}
+      </button>
+      <div class="flex items-center gap-2" *ngIf="sunatBulkLoading">
+        <div class="w-40 h-2 rounded-full bg-slate-200 overflow-hidden">
+          <div class="h-full bg-emerald-500 transition-all" [style.width.%]="sunatBulkProgress()"></div>
+        </div>
+        <div class="text-xs text-slate-600">
+          Avance: {{ sunatBulkDone }} / {{ sunatBulkTotal }} ({{ sunatBulkProgress() }}%)
+        </div>
+      </div>
+    </div>
+    <div class="text-xs">
+      <span class="text-emerald-700" *ngIf="sunatBulkOk">{{ sunatBulkOk }}</span>
+      <span class="text-red-600" *ngIf="sunatBulkError">{{ sunatBulkError }}</span>
+    </div>
+  </div>
+
 <ng-template #stateTpl>
   <div class="px-3 sm:px-4 pb-6">
     <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando.</div>
@@ -63,20 +87,54 @@
             <th class="px-3 py-2 text-left">Serie-Número</th>
             <th class="px-3 py-2 text-left">Fecha</th>
             <th class="px-3 py-2 text-left">Tipo</th>
+            <th class="px-3 py-2 text-left">Estado SUNAT</th>
             <th class="px-3 py-2 text-left">Forma</th>
             <th class="px-3 py-2 text-left">Total</th>
             <th class="px-3 py-2 text-left">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let c of pageItems" class="border-t border-slate-100">
+          <tr *ngFor="let c of pageItems" class="border-t border-slate-100 cursor-pointer hover:bg-slate-50" (click)="select(c)">
             <td class="px-3 py-2">{{ c.serie || "-" }}-{{ c.numero || "-" }}</td>
             <td class="px-3 py-2">{{ c.fecha_comprobante | ymd }}</td>
-            <td class="px-3 py-2">{{ tipoNombre(c.tipo_comprobante_sunat) }}</td>
+            <td class="px-3 py-2">
+              <span [class]="tipoSunatClass(c)">{{ tipoSunatLabel(c) }}</span>
+            </td>
+            <td class="px-3 py-2">
+              <span [class]="sunatEstadoClass(c)">{{ sunatEstadoLabel(c) }}</span>
+            </td>
             <td class="px-3 py-2">{{ formaNombre(c.forma_pago) }}</td>
             <td class="px-3 py-2">{{ c.precio_total | number:"1.2-2" }}</td>
             <td class="px-3 py-2">
-              <button (click)="select(c)" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver</button>
+              <div class="flex items-center gap-2">
+                <button
+                  title="Imprimir"
+                  aria-label="Imprimir"
+                  (click)="$event.stopPropagation(); printRow(c)"
+                  class="rounded-md border border-slate-200 bg-white p-1.5 hover:bg-slate-50">
+                  <ng-icon name="heroPrinter" size="16"></ng-icon>
+                </button>
+                <button
+                  title="Exportar CSV"
+                  aria-label="Exportar CSV"
+                  (click)="$event.stopPropagation(); exportCsvRow(c)"
+                  class="rounded-md border border-slate-200 bg-white p-1.5 hover:bg-slate-50">
+                  <ng-icon name="heroDocumentText" size="16"></ng-icon>
+                </button>
+                <button
+                  title="Exportar PDF"
+                  aria-label="Exportar PDF"
+                  (click)="$event.stopPropagation(); exportPdfRow(c)"
+                  class="rounded-md border border-slate-200 bg-white p-1.5 hover:bg-slate-50">
+                  <ng-icon name="heroDocumentArrowDown" size="16"></ng-icon>
+                </button>
+                <button
+                  (click)="$event.stopPropagation(); generarSunatRow(c)"
+                  [disabled]="sunatLoading || isSunatAccepted(c)"
+                  class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50">
+                  Generar SUNAT
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -197,11 +255,3 @@
     No hay comprobantes para mostrar.
   </div>
 </ng-template>
-
-
-
-
-
-
-
-

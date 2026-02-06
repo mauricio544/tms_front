@@ -58,6 +58,12 @@ export class ManifiestosPublicoComponent implements OnInit {
     return id || '-';
   }
 
+  private nowLocalIso(): string {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
   async marcarLlegada(man: ManifiestoWithEnviosRead) {
     const mid = Number((man as any)?.id || 0);
     if (!mid) {
@@ -68,7 +74,7 @@ export class ManifiestosPublicoComponent implements OnInit {
     this.estadoError[mid] = null;
     try {
       const pos = await this.getGeo();
-      const now = new Date().toISOString();
+      const now = this.nowLocalIso();
       const note = String(this.arrivedNote[mid] || '').trim();
       this.publicSrv.updateManiestoEstado(this.conductorId, mid, this.token, {
         estado: 'LLEGADA',

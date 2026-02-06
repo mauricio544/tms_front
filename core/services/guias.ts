@@ -1,6 +1,6 @@
 import {inject, Injectable} from '@angular/core';
 import { ApiClientService } from './api-client.service';
-import { DespachoRead, DespachoCreate, Guia, GuiaCreate, ItemGuia, ItemGuiaCreate } from '../mapped';
+import { DespachoRead, DespachoCreate, Guia, GuiaCreate, ItemGuia, ItemGuiaCreate, GuiaTramaFinal } from '../mapped';
 import {Observable} from 'rxjs';
 
 @Injectable({
@@ -51,5 +51,9 @@ export class Guias {
 
   updateItemDespacho(id: number, body: Partial<ItemGuiaCreate>): Observable<ItemGuia> {
     return this.api.patch(`/guias/items/${id}`, body);
+  }
+
+  getTramaGuia(envio_id: number): Observable<GuiaTramaFinal> {
+    return this.api.get(`/guias/remision/${envio_id}/trama`);
   }
 }

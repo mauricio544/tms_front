@@ -4,9 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
 import { Movimientos } from '../../../../core/services/movimientos';
 import { Personas } from '../../../../core/services/personas';
-import { Generales } from '../../../../core/services/generales';
 import { SerieComprobante as SerieComprobanteService } from '../../../../core/services/serie-comprobante';
-import { DetalleFull as Detalle, CabeceraCreate, DetalleCreate, Persona, General, SerieComprobante as SerieComprobanteModel } from '../../../../core/mapped';
+import { DetalleFull as Detalle, CabeceraCreate, DetalleCreate, Persona, SerieComprobante as SerieComprobanteModel } from '../../../../core/mapped';
 
 @Component({
   selector: 'feature-gastos',
@@ -19,7 +18,6 @@ export class GastosFeature implements OnInit {
   private readonly detalleSrv = inject(DetalleMovimientos);
   private readonly movimientosSrv = inject(Movimientos);
   private readonly personasSrv = inject(Personas);
-  private readonly generalesSrv = inject(Generales);
   private readonly serieSrv = inject(SerieComprobanteService);
 
   loading = false;
@@ -44,10 +42,18 @@ export class GastosFeature implements OnInit {
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
   onFilterChange() { this.page = 1; }
 
+  private todayIso(): string {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
   ngOnInit(): void {
-    this.load();
+    if (!this.selectedDate) {
+      this.selectedDate = this.todayIso();
+    }
+    this.onDateChange();
     this.loadPersonas();
-    this.loadGenerales();
     this.loadSeries();
   }
 
@@ -65,15 +71,39 @@ export class GastosFeature implements OnInit {
   get totalNeto(): number {
     return (this.filtered || []).reduce((acc: number, it: any) => {
       const sign = ((it.cabecera?.tipo_movimiento || "") === "E") ? -1 : 1;
-      return acc + sign * Number(it.monto || 0);
+      return acc + sign * this.montoMovimiento(it);
     }, 0);
   }
   get totalIngresos(): number {
-    return (this.filtered || []).reduce((acc: number, it: any) => acc + (((it.cabecera?.tipo_movimiento || '') === 'I') ? Number(it.monto || 0) : 0), 0);
+    return (this.filtered || []).reduce((acc: number, it: any) => acc + (((it.cabecera?.tipo_movimiento || '') === 'I') ? this.montoMovimiento(it) : 0), 0);
   }
 
   get totalEgresos(): number {
-    return (this.filtered || []).reduce((acc: number, it: any) => acc + (((it.cabecera?.tipo_movimiento || '') === 'E') ? Number(it.monto || 0) : 0), 0);
+    return (this.filtered || []).reduce((acc: number, it: any) => acc + (((it.cabecera?.tipo_movimiento || '') === 'E') ? this.montoMovimiento(it) : 0), 0);
+  }
+
+  tipoComprobanteLabel(code: any): string {
+    const c = String(code ?? '').trim();
+    if (c === '01') return 'Factura';
+    if (c === '03') return 'Boleta';
+    return c || '-';
+  }
+
+  tipoMovimientoCode(it: any): string {
+    const code = String(it?.cabecera?.tipo_movimiento ?? it?.tipo_movimiento ?? '').trim().toUpperCase();
+    return code === 'I' || code === 'E' ? code : '';
+  }
+
+  tipoMovimientoLabel(it: any): string {
+    const code = this.tipoMovimientoCode(it);
+    if (code === 'I') return 'Ingreso';
+    if (code === 'E') return 'Egreso';
+    return '-';
+  }
+
+  montoMovimiento(it: any): number {
+    const raw = it?.cabecera?.monto ?? it?.monto ?? 0;
+    return Number(raw || 0);
   }
 
 
@@ -167,7 +197,7 @@ export class GastosFeature implements OnInit {
         const cabId = (cab as any)?.id;
         if (!cabId) { this.savingAdd = false; this.addError = 'No se obtuvo ID de cabecera'; return; }
         const detBody: any = {
-          tipo_comprobante_sunat: Number(d.tipo_comprobante_sunat),
+          tipo_comprobante_sunat: String(d.tipo_comprobante_sunat || '').trim(),
           numero_comprobante: String(d.numero_comprobante || '').trim(),
           descripcion: (String(d.descripcion || '').trim() || null) as any,
           tipo_gasto: d.tipo_gasto != null ? Number(d.tipo_gasto) : null,
@@ -239,18 +269,8 @@ export class GastosFeature implements OnInit {
       this.load();
     }
 
-  // Generales
-  generales: General[] = [];
-  tiposComprobante: General[] = [];
-  loadGenerales() {
-    this.generalesSrv.getGenerales().subscribe({
-      next: (gs: General[]) => {
-        this.generales = gs || [];
-        this.tiposComprobante = (this.generales || []).filter(g => Number((g as any).codigo_principal) === 1);
-      },
-      error: () => { /* no-op */ }
-    });
-  }
+  // Tipos comprobante (derivados de series por sede)
+  tiposComprobante: Array<{ id: string; nombre: string }> = [];
 
   // Series comprobante
   series: SerieComprobanteModel[] = [];
@@ -284,6 +304,10 @@ export class GastosFeature implements OnInit {
         this.seriesFiltered = sedeId
           ? (this.series || []).filter(s => Number(s.sede_id) === sedeId)
           : (this.series || []);
+        const codes = Array.from(new Set((this.seriesFiltered || []).map(s => String((s as any).tipo_comprobante_sunat ?? '').trim())));
+        this.tiposComprobante = codes
+          .filter(c => c === '01' || c === '03')
+          .map(c => ({ id: c, nombre: c === '01' ? 'Factura' : 'Boleta' }));
         this.seriesLoading = false;
       },
       error: () => {

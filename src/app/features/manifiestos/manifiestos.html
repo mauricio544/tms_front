@@ -85,11 +85,13 @@
               <th class="px-3 py-2 text-left">Estado</th>
               <th class="px-3 py-2 text-left">Llegada</th>
               <th class="px-3 py-2 text-left">Geo</th>
+              <th class="px-3 py-2 text-left">Guía Sunat</th>
               <th class="px-3 py-2 text-left">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of pageItems" class="border-t border-slate-100">
+            <ng-container *ngFor="let item of pageItems">
+            <tr class="border-t border-slate-100">
               <td class="px-3 py-2">{{ item.serie }}-{{ item.numero }}</td>
               <td class="px-3 py-2">{{ conductorLabel(item.conductor_id) }}</td>
               <td class="px-3 py-2">{{ item.fecha_traslado | ymd }}</td>
@@ -111,6 +113,23 @@
                 <span *ngIf="!hasGeo(item)" class="text-slate-400">-</span>
               </td>
               <td class="px-3 py-2">
+                <ng-container *ngIf="sunatGenState[item.id] as st">
+                  <div class="flex items-center gap-2" *ngIf="st.running">
+                    <div class="w-24 h-2 rounded-full bg-slate-200 overflow-hidden">
+                      <div class="h-full bg-emerald-500 transition-all" [style.width.%]="sunatProgress(item.id)"></div>
+                    </div>
+                    <div class="text-xs text-slate-600">{{ st.done }} / {{ st.total }}</div>
+                  </div>
+                  <button *ngIf="!st.running && st.guias?.length"
+                          class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50"
+                          (click)="toggleSunatGuias(item.id)">
+                    Ver guías ({{ st.guias.length }})
+                  </button>
+                  <span *ngIf="!st.running && !st.guias?.length" class="text-slate-400">-</span>
+                </ng-container>
+                <span *ngIf="!sunatGenState[item.id]" class="text-slate-400">-</span>
+              </td>
+              <td class="px-3 py-2">
                 <div class="flex flex-wrap items-center gap-2">
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Manifiesto</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>
@@ -123,6 +142,28 @@
                 </div>
               </td>
             </tr>
+            <tr *ngIf="sunatGuiasOpenId === item.id" class="border-t border-slate-100 bg-slate-50/60">
+              <td class="px-3 py-3" colspan="10">
+                <div class="rounded-md border border-slate-200 bg-white p-3">
+                  <div class="text-sm font-medium text-slate-700">Guías Sunat generadas</div>
+                  <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                    <div *ngFor="let g of sunatGenState[item.id]?.guias" class="rounded-md border border-slate-200 px-3 py-2 text-sm">
+                      <div class="text-slate-600">Envío {{ g.envioId }}</div>
+                      <div class="font-medium text-slate-800">{{ g.numero || '-' }}</div>
+                      <div class="mt-2 flex items-center gap-2">
+                        <button
+                          class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50"
+                          (click)="verGuiaTrama(g.envioId)">
+                          Ver guía
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div *ngIf="!sunatGenState[item.id]?.guias?.length" class="mt-2 text-sm text-slate-500">No hay guías para mostrar.</div>
+                </div>
+              </td>
+            </tr>
+            </ng-container>
           </tbody>
         </table>
       </div>
@@ -528,6 +569,7 @@
         <button (click)="setGuiaEstado('EMITIDA')" [disabled]="guiaEstadoUpdating || !guiaGenDespacho" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">EMITIDA</button>
         <button (click)="setGuiaEstado('ANULADA')" [disabled]="guiaEstadoUpdating || !guiaGenDespacho" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">ANULADA</button>
         <button (click)="printGuia()" [disabled]="!guiaDoc" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Imprimir</button>
+        <button (click)="downloadGuiaPdf()" [disabled]="!guiaDoc" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Descargar PDF</button>
         <button (click)="closeGuiaGenerada()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
       </div>
     </div>
@@ -665,7 +707,3 @@
     </div>
   </div>
 </div>
-
-
-
-
