@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import { ManifiestoWithEnviosRead, ManifiestoArrivedUpdate, Manifiesto } from '../mapped';
+import {ManifiestoWithEnviosRead, ManifiestoArrivedUpdate, Manifiesto, Envio} from '../mapped';
 
 @Injectable({
   providedIn: 'root',
@@ -16,5 +16,9 @@ export class Public {
 
   updateManiestoEstado(conductor_id: number, manifiesto_id: number, token: string, payload: ManifiestoArrivedUpdate): Observable<Manifiesto> {
     return this.api.patch(`/public/conductores/${conductor_id}/manifiestos/${manifiesto_id}/estado?token=${token}`, payload);
+  }
+
+  getEnvioTracking(ticket_numero: string, token: string): Observable<Envio> {
+    return this.api.get(`/public/envios/tracking?${ticket_numero}&token=${token}`);
   }
 }

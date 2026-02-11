@@ -17,4 +17,8 @@ export class Message {
   sendMessage(body: MessageCreate): Observable<any> {
     return this.api.post('/utils/whatsapp/send', body);
   }
+
+  sendText(body: MessageCreate): Observable<any> {
+    return this.api.post('/utils/twilio/send', body);
+  }
 }

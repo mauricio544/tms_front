@@ -2,7 +2,14 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import { EnvioCreate, Envio, Resumen, ManifiestoResumen } from '../mapped';
+import {
+  EnvioCreate,
+  Envio,
+  Resumen,
+  ManifiestoResumen,
+  PublicLinkResponse,
+  EnvioTrackingPublicLinkRequest
+} from '../mapped';
 import { AuthService } from './auth.service';
 
 @Injectable({
@@ -44,5 +51,9 @@ export class Envios {
 
   getResumenManifiesto(): Observable<ManifiestoResumen[]> {
     return this.api.get('/envios/reporte-manifiestos')
+  }
+
+  getPublicLink(body: EnvioTrackingPublicLinkRequest): Observable<PublicLinkResponse> {
+    return this.api.post('/envios/tracking/public-link', body);
   }
 }

@@ -167,6 +167,8 @@ export interface Envio {
   entrega_domicilio: boolean;
   direccion_envio: string;
   ticket_numero: string;
+  estado_whatsapp: string;
+  estado_envio: string;
 }
 
 export interface EnvioCreate {
@@ -185,6 +187,8 @@ export interface EnvioCreate {
   entrega_domicilio: boolean;
   direccion_envio: string;
   ticket_numero: string;
+  estado_whatsapp: string;
+  estado_envio: string;
 }
 
 export interface Comprobante {
@@ -552,7 +556,13 @@ export interface PublicLinkRequest {
 export interface PublicLinkResponse {
   url: string;
   token: string;
-  expres_at: string;
+  expires_at: string;
+}
+
+export interface EnvioTrackingPublicLinkRequest {
+  envio_id?: number;
+  ticket_numero: string;
+  expires_at: number;
 }
 
 export interface EnvioWithDetalleRead extends Partial<Envio> {

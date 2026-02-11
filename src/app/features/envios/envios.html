@@ -101,7 +101,7 @@
         </div>
 
         <!--control destinatario-->
-        <div class="relative rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]" (click)="$event.stopPropagation()">
+        <div class="relative rounded-md border border-[#9EC5FF] bg-[#EAF2FF] ring-1 ring-[#9EC5FF]/35 p-4 shadow-sm border-l-4 border-l-[#9EC5FF]" (click)="$event.stopPropagation()">
           <label class="block text-sm text-slate-700">Destinatario</label>
           <div class="mt-2 grid grid-cols-[auto,1fr,auto] items-center gap-2">
             <select [(ngModel)]="destinatarioDocType"
@@ -187,12 +187,11 @@
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm text-slate-700">Clave de recojo</label>
-          <input type="password" [(ngModel)]="newEnvio.clave_recojo" placeholder="****"
-                 class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" maxlength="4"/>
+          <input type="password" [(ngModel)]="newEnvio.clave_recojo" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" maxlength="4"/>
         </div>
         <div>
           <label class="block text-sm text-slate-700">Confirmar clave</label>
-          <input type="password" [(ngModel)]="confirmClaveRecojo" placeholder="****"
+          <input type="password" [(ngModel)]="confirmClaveRecojo"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" maxlength="4"/>
           <div class="mt-1 text-xs text-red-600" *ngIf="newEnvio.clave_recojo && confirmClaveRecojo && newEnvio.clave_recojo !== confirmClaveRecojo">
             Las claves no coinciden.
@@ -498,7 +497,7 @@
       <div class="grid grid-cols-2 gap-3">
 
 
-        <div class="relative rounded-md border border-[#26A69A] bg-[#26A69A]/10 ring-1 ring-[#26A69A]/20 p-4 shadow-sm border-l-4 border-l-[#26A69A]" (click)="$event.stopPropagation()">
+        <div class="relative rounded-md border border-[#9EC5FF] bg-[#EAF2FF] ring-1 ring-[#9EC5FF]/35 p-4 shadow-sm border-l-4 border-l-[#9EC5FF]" (click)="$event.stopPropagation()">
 
 
           <label class="block text-sm text-slate-700">Remitente</label>
@@ -740,12 +739,12 @@
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm text-slate-700">Clave de recojo</label>
-          <input type="password" [(ngModel)]="newEnvio.clave_recojo" placeholder="****"
+          <input type="password" [(ngModel)]="newEnvio.clave_recojo"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
         </div>
         <div>
           <label class="block text-sm text-slate-700">Confirmar clave</label>
-          <input type="password" [(ngModel)]="confirmClaveRecojo" placeholder="****"
+          <input type="password" [(ngModel)]="confirmClaveRecojo"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
           <div class="mt-1 text-xs text-red-600" *ngIf="newEnvio.clave_recojo && confirmClaveRecojo && newEnvio.clave_recojo !== confirmClaveRecojo">
             Las claves no coinciden.
