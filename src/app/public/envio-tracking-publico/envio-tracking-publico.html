@@ -1,0 +1,108 @@
+<div class="min-h-screen bg-gradient-to-b from-slate-50 via-slate-100 to-white">
+  <div class="mx-auto max-w-md px-4 pb-10 pt-6">
+    <div class="mb-5">
+      <div class="text-xs uppercase tracking-wide text-slate-500">Seguimiento público</div>
+      <div class="mt-1 text-2xl font-semibold text-slate-800">Ticket {{ ticketNumero || '-' }}</div>
+    </div>
+
+    <div *ngIf="loading" class="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">Cargando tracking...</div>
+    <div *ngIf="error" class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ error }}</div>
+
+    <div *ngIf="!loading && !error && tracking" class="space-y-4">
+      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="mb-4">
+          <div class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <span>Recepción</span>
+            <span>En tránsito</span>
+            <span>Proceso entrega</span>
+          </div>
+          <div class="mt-3 flex items-center">
+            <ng-container *ngFor="let step of timelineSteps; let i = index; let last = last">
+              <div class="flex min-w-0 flex-col items-center">
+                <div class="flex h-10 w-10 items-center justify-center rounded-full border"
+                  [class.border-emerald-500]="isStepActive(i)"
+                  [class.bg-emerald-100]="isStepActive(i)"
+                  [class.text-emerald-700]="isStepActive(i)"
+                  [class.border-emerald-400]="isStepCompleted(i)"
+                  [class.bg-emerald-50]="isStepCompleted(i)"
+                  [class.text-emerald-600]="isStepCompleted(i)"
+                  [class.border-slate-200]="!isStepActive(i) && !isStepCompleted(i)"
+                  [class.bg-slate-50]="!isStepActive(i) && !isStepCompleted(i)"
+                  [class.text-slate-400]="!isStepActive(i) && !isStepCompleted(i)">
+                  <ng-container [ngSwitch]="step.key">
+                    <svg *ngSwitchCase="'recepcion'" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18v10H3z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M7 7V5h10v2"/>
+                    </svg>
+                    <svg *ngSwitchCase="'transito'" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h11v8H3z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 9h4l3 3v3h-7V9z"/>
+                      <circle cx="7" cy="17" r="1.5"/>
+                      <circle cx="17" cy="17" r="1.5"/>
+                    </svg>
+                    <svg *ngSwitchDefault viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 11l8-6 8 6"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 10v8h12v-8"/>
+                    </svg>
+                  </ng-container>
+                </div>
+                <!--<div class="mt-2 text-center text-[11px] font-semibold"
+                  [class.text-emerald-700]="isStepActive(i)"
+                  [class.text-emerald-600]="isStepCompleted(i)"
+                  [class.text-slate-400]="!isStepActive(i) && !isStepCompleted(i)">
+                  {{ step.label }}
+                </div>-->
+              </div>
+              <div *ngIf="!last" class="mx-2 h-0.5 flex-1 rounded-full"
+                [class.bg-emerald-400]="isStepCompleted(i)"
+                [class.bg-slate-200]="!isStepCompleted(i)"></div>
+            </ng-container>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-slate-600">Estado</div>
+          <div class="flex items-center gap-2">
+            <span *ngIf="isDelivered()" class="rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-white">
+              Entregado
+            </span>
+            <span *ngIf="!isDelivered()" class="rounded-full px-2.5 py-0.5 text-xs font-medium" [class.bg-emerald-100]="tracking?.estado_entrega" [class.text-emerald-700]="tracking?.estado_entrega" [class.bg-amber-100]="!tracking?.estado_entrega" [class.text-amber-700]="!tracking?.estado_entrega">
+              {{ tracking?.estado_envio }}
+            </span>
+          </div>
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-700">
+          <div>Estado envío: <span class="font-medium">{{ estadoEnvioLabel() }}</span></div>
+          <div>Entrega: <span class="font-medium">{{ tracking?.entrega_domicilio ? 'Domicilio' : 'Sucursal' }}</span></div>
+          <div>Fecha envío: <span class="font-medium">{{ (tracking?.fecha_envio || '-') | ymd }}</span></div>
+          <div>Fecha entrega: <span class="font-medium">{{ (tracking?.fecha_recepcion || '-') | ymd }}</span></div>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="text-sm font-semibold text-slate-800">Ruta</div>
+        <div class="mt-2 flex items-center justify-between text-sm text-slate-700">
+          <div>
+            <div class="text-xs text-slate-500">Origen</div>
+            <div class="font-medium">{{ origenLabel() }}</div>
+          </div>
+          <div class="h-0.5 w-10 rounded-full bg-slate-200"></div>
+          <div class="text-right">
+            <div class="text-xs text-slate-500">Destino</div>
+            <div class="font-medium">{{ destinoLabel() }}</div>
+          </div>
+        </div>
+        <div class="mt-3 text-xs text-slate-600" *ngIf="tracking?.entrega_domicilio">
+          Dirección: {{ tracking?.direccion_envio || '-' }}
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="text-sm font-semibold text-slate-800">Información</div>
+        <div class="mt-2 grid grid-cols-2 gap-3 text-sm text-slate-700">
+          <div>Envío ID: <span class="font-medium">{{ tracking?.envio_id || '-' }}</span></div>
+          <div>Ticket: <span class="font-medium">{{ tracking?.ticket_numero || ticketNumero || '-' }}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

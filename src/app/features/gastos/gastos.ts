@@ -323,7 +323,7 @@ export class GastosFeature implements OnInit {
     if (!serie) return;
     if (!String(this.detalleForm.numero_comprobante || '').trim()) {
       const correlativo = Number((serie as any).correlativo || 0);
-      this.detalleForm.numero_comprobante = `${serie.serie}-${correlativo}`.toUpperCase();
+      this.detalleForm.numero_comprobante = ``.toUpperCase();
     }
   }
 }

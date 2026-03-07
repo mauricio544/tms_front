@@ -36,6 +36,9 @@ export class ReportesFeature implements OnInit {
 
   envios: Envio[] = [];
   movimientos: Detalle[] = [];
+  movimientosAll: Detalle[] = [];
+  movimientosLoading = false;
+  movimientosIsRange = false;
   personas: Persona[] = [];
   puntos: Punto[] = [];
   manifiestos: Manifiesto[] = [];
@@ -71,7 +74,7 @@ export class ReportesFeature implements OnInit {
       error: () => { this.error = 'No se pudieron cargar los envíos'; enviosLoaded = true; done(); }
     });
     this.detalleSrv.getDetallesListFull().subscribe({
-      next: (res) => { this.movimientos = res || []; movsLoaded = true; done(); },
+      next: (res) => { this.movimientos = res || []; this.movimientosAll = res || []; this.movimientosIsRange = false; movsLoaded = true; done(); },
       error: () => { this.error = (this.error || ''); this.error += (this.error? ' · ' : '') + 'No se pudieron cargar los movimientos'; movsLoaded = true; done(); }
     });
     this.personasSrv.getPersonas().subscribe({
@@ -114,9 +117,19 @@ export class ReportesFeature implements OnInit {
     return res ? [res] : [];
   }
 
+  private parseInputDate(value: string): Date | null {
+    if (!value) return null;
+    const s = String(value).trim();
+    if (!s) return null;
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    return new Date(y, mo - 1, d);
+  }
+
   private getDateRange(): { fd: Date | null; td: Date | null } {
-    const fd = this.fromDate ? new Date(this.fromDate) : null;
-    const td = this.toDate ? new Date(this.toDate) : null;
+    const fd = this.fromDate ? this.parseInputDate(this.fromDate) : null;
+    const td = this.toDate ? this.parseInputDate(this.toDate) : null;
     if (fd) fd.setHours(0, 0, 0, 0);
     if (td) td.setHours(23, 59, 59, 999);
     return { fd, td };
@@ -124,7 +137,15 @@ export class ReportesFeature implements OnInit {
 
   private parseDate(value: any): Date | null {
     if (!value) return null;
-    const d = new Date(value);
+    if (value instanceof Date) return value;
+    const s = String(value).trim();
+    if (!s) return null;
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+      return new Date(y, mo - 1, d);
+    }
+    const d = new Date(s);
     return isNaN(d.getTime()) ? null : d;
   }
 
@@ -188,6 +209,7 @@ export class ReportesFeature implements OnInit {
 
   // KPIs movimientos
   get filteredMovimientos(): Detalle[] {
+    if (this.movimientosIsRange) return this.movimientos || [];
     const { fd, td } = this.getDateRange();
     return (this.movimientos || []).filter((it: any) => {
       if (!fd && !td) return true;
@@ -397,6 +419,24 @@ export class ReportesFeature implements OnInit {
 
   onDateChange() {
     this.updateLeafletMarkers();
+    this.refreshMovimientosByRange();
+  }
+
+  private refreshMovimientosByRange() {
+    const fd = (this.fromDate || '').trim();
+    const td = (this.toDate || '').trim();
+    if (fd && td) {
+      this.movimientosLoading = true;
+      this.movimientosIsRange = true;
+      this.detalleSrv.getDetallesByFechaRange(`fecha_inicio=${fd}`, `fecha_fin=${td}`).subscribe({
+        next: (res) => { this.movimientos = res || []; this.movimientosLoading = false; },
+        error: () => { this.movimientos = this.movimientosAll || []; this.movimientosLoading = false; this.movimientosIsRange = false; }
+      });
+      return;
+    }
+    this.movimientosIsRange = false;
+    this.movimientosLoading = false;
+    this.movimientos = this.movimientosAll || [];
   }
 
   // Export CSV del resumen

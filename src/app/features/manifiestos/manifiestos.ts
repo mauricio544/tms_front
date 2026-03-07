@@ -64,6 +64,8 @@ export class ManifiestosFeature implements OnInit {
   // Filtros adicionales
   filterOrigenId: number | null = null;
   filterDestinoId: number | null = null;
+  defaultOrigenId: number | null = null;
+  origenLocked = false;
 
   // Vista: 'cards' o 'grid'
   viewMode: 'cards' | 'grid' = 'cards';
@@ -188,6 +190,7 @@ export class ManifiestosFeature implements OnInit {
     this.editing = false;
     this.editingId = null;
     this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: this.localDateInput(), vehiculo_id: null };
+    this.applyDefaultOrigen();
     this.saveError = null;
     this.showModal = true;
   }
@@ -206,6 +209,7 @@ export class ManifiestosFeature implements OnInit {
       serie: (item as any).serie ?? '',
       numero: (item as any).numero ?? '',
     };
+    this.applyDefaultOrigen();
     if (this.newManifiesto.vehiculo_id) {
       this.onVehiculoChange(this.newManifiesto.vehiculo_id);
     }
@@ -333,9 +337,9 @@ export class ManifiestosFeature implements OnInit {
     this.enviosSrv.getEnvios().subscribe({
       next: (res) => {
         const all = (res || []) as any[];
-        const toAttach = all.filter((e: any) => e?.manifiesto == null && Number(e?.punto_destino_id) === destinoId);
+        const toAttach = all.filter((e: any) => e?.manifiesto == null && Number(e?.punto_destino_id) === destinoId); // filtro por el destino, todos los envíos que pueden pertenecer
         if (!toAttach.length) return;
-        const calls = toAttach.map((e: any) => this.enviosSrv.updateEnvios(Number(e.id), { manifiesto: mid } as any));
+        const calls = toAttach.map((e: any) => this.enviosSrv.updateEnvios(Number(e.id), { manifiesto: mid, estado_envio: "EN TRÁNSITO" } as any));
         forkJoin(calls).subscribe({
           next: () => {
             this.showNotif('Envios agregados al manifiesto');
@@ -407,7 +411,7 @@ export class ManifiestosFeature implements OnInit {
 
   loadPuntos() {
     this.puntosSrv.getPuntos().subscribe({
-      next: (res: Points[]) => { this.puntos = res || []; },
+      next: (res: Points[]) => { this.puntos = res || []; this.applyDefaultOrigen(); },
       error: () => { /* noop */ },
     });
   }
@@ -470,6 +474,32 @@ ngOnInit(): void {
     this.loadConductores();
     this.loadPersonas();
     this.loadVehiculos();
+  }
+
+  private resolveDefaultOrigenId(): number | null {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return null;
+      const me = JSON.parse(raw || '{}');
+      const sedeId = Number(me?.sedes?.[0]?.id || 0);
+      return sedeId > 0 ? sedeId : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private applyDefaultOrigen() {
+    const id = this.resolveDefaultOrigenId();
+    if (!id) {
+      this.defaultOrigenId = null;
+      this.origenLocked = false;
+      return;
+    }
+    this.defaultOrigenId = id;
+    this.origenLocked = true;
+    if (!this.newManifiesto?.codigo_punto_origen || Number(this.newManifiesto.codigo_punto_origen) !== Number(id)) {
+      this.newManifiesto.codigo_punto_origen = id;
+    }
   }
 
   // Acciones tarjeta
@@ -723,7 +753,11 @@ ngOnInit(): void {
           this.publicLinkError[manifiestoId] = 'No se pudo obtener el token del enlace público';
           return;
         }
-        this.router.navigate(['manifiestos/publico', token], { queryParams: { conductor_id: conductorId } });
+        const url = this.router.serializeUrl(
+          this.router.createUrlTree(['manifiestos/publico', token], { queryParams: { conductor_id: conductorId } })
+        );
+        window.open(url, '_blank', 'noopener');
+        // this.router.navigate(['manifiestos/publico', token], { queryParams: { conductor_id: conductorId } });
       },
       error: () => {
         this.publicLinkLoading[manifiestoId] = false;

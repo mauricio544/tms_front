@@ -1,5 +1,5 @@
 ﻿import {inject, Injectable} from '@angular/core';
-import { Persona, DatosRUC, DatosDNI } from '../mapped';
+import { Persona, DatosRUC, DatosDNI, PersonaListResponse } from '../mapped';
 import {ApiClientService} from './api-client.service';
 import {Router} from '@angular/router';
 import {Observable} from 'rxjs';
@@ -37,5 +37,9 @@ export class Personas {
   getDatosDNI(tipoDocumento: string, nroDocumento: string): Observable<DatosDNI> {
     this.newUrl = `https://tms-resources.vercel.app/api/datos?tipoDocumento=${tipoDocumento}&nroDocumento=${nroDocumento}`
     return this.api.getService(this.newUrl);
+  }
+
+  getPersonaComplete(query: string): Observable<PersonaListResponse> {
+    return this.api.get(`/personas/complete?${query}`);
   }
 }

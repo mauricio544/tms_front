@@ -61,7 +61,7 @@
           </div>
           <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
             <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Manifiesto</button>
-            <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>
+            <!--<button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>-->
             <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuiaSunat(item)">Generar Gu&iacute;a Sunat</button>
             <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[item.id]" (click)="generarPublicLink(item)">{{ publicLinkLoading[item.id] ? 'Generando...' : 'Enlace p&uacute;blico' }}</button>
             <button class="rounded-md bg-[#21D0B2] px-2.5 py-1.5 text-xs text-white hover:bg-[#21D0B2]/90" (click)="verEnvios(item)">Ver Envíos</button>
@@ -132,7 +132,7 @@
               <td class="px-3 py-2">
                 <div class="flex flex-wrap items-center gap-2">
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Manifiesto</button>
-                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>
+                  <!--<button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>-->
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuiaSunat(item)">Generar Gu&iacute;a Sunat</button>
                   <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[item.id]" (click)="generarPublicLink(item)">{{ publicLinkLoading[item.id] ? 'Generando...' : 'Enlace p&uacute;blico' }}</button>
                   <button class="rounded-md bg-[#21D0B2] px-2 py-1 text-xs text-white hover:bg-[#21D0B2]/90" (click)="verEnvios(item)">Ver Envíos</button>
@@ -229,7 +229,7 @@
       </div>
       <div>
         <label class="block text-sm text-slate-700">Origen</label>
-        <select [(ngModel)]="newManifiesto.codigo_punto_origen" name="origen" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
+        <select [(ngModel)]="newManifiesto.codigo_punto_origen" name="origen" [disabled]="origenLocked" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-slate-100 disabled:text-slate-500">
           <option [ngValue]="null">Seleccione origen</option>
           <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre.toUpperCase() }}</option>
         </select>

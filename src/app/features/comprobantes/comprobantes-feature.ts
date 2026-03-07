@@ -438,10 +438,21 @@ export class ComprobantesFeature implements OnInit {
       next: (res: any) => {
         const code = String((res as any)?.sunat_cod ?? '');
         this.sunatStatus = code === '0' ? 'accepted' : 'pending';
+        const estadoCpe = this.sunatStatus === 'accepted' ? 'A' : 'P';
+        const listItem = (this.lista || []).find(x => Number((x as any).id) === Number(id));
+        if (listItem) (listItem as any).estado_cpe = estadoCpe;
+        if (this.selected && Number((this.selected as any).id) === Number(id)) {
+          (this.selected as any).estado_cpe = estadoCpe;
+        }
         this.sunatStatusLoading = false;
       },
       error: () => {
         this.sunatStatus = 'pending';
+        const listItem = (this.lista || []).find(x => Number((x as any).id) === Number(id));
+        if (listItem) (listItem as any).estado_cpe = 'P';
+        if (this.selected && Number((this.selected as any).id) === Number(id)) {
+          (this.selected as any).estado_cpe = 'P';
+        }
         this.sunatStatusLoading = false;
       }
     });

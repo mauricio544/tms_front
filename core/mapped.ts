@@ -43,6 +43,30 @@ export interface Persona {
   tipo_documento: string;
 }
 
+export interface PersonaListItemResponse {
+  id: number;
+  nombre: string;
+  apellido: string;
+  direccion: string;
+  direccion_fiscal: string;
+  ubigeo: string;
+  razon_social: string;
+  celular: string;
+  email: string;
+  nro_documento: string;
+  tipo_documento: string;
+  tiene_documento: boolean;
+  limite_credito: number;
+  fecha_credito:string;
+}
+
+export interface PersonaListResponse {
+  items: PersonaListItemResponse[];
+  total:number;
+  limit: number;
+  offset: number;
+}
+
 export interface PersonaTrama {
   id: number;
   nombre: string;
@@ -169,6 +193,7 @@ export interface Envio {
   ticket_numero: string;
   estado_whatsapp: string;
   estado_envio: string;
+  id_tracking: string;
 }
 
 export interface EnvioCreate {
@@ -561,8 +586,23 @@ export interface PublicLinkResponse {
 
 export interface EnvioTrackingPublicLinkRequest {
   envio_id?: number;
-  ticket_numero: string;
-  expires_at: number;
+  ticket_numero?: string;
+  expires_minutes?: number;
+}
+
+export interface EnvioTrackingPublicRead {
+  envio_id: number;
+  ticket_numero?: string;
+  estado_envio?: string;
+  estado_entrega?: boolean;
+  fecha_envio?: string;
+  fecha_recepcion?: string | null;
+  entrega_domicilio?: boolean;
+  direccion_envio?: string;
+  punto_origen_id?: number | null;
+  punto_destino_id?: number | null;
+  origen_nombre?: string | null;
+  destino_nombre?: string | null;
 }
 
 export interface EnvioWithDetalleRead extends Partial<Envio> {

@@ -84,6 +84,14 @@
   </div>
 
   <!-- Resumen movimientos -->
+  <div *ngIf="!loading && !error && activeTab==='kpis'" class="mt-4 flex flex-wrap items-center gap-2 text-xs">
+    <span class="text-slate-500">Movimientos:</span>
+    <span *ngIf="movimientosIsRange" class="rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700">Rango aplicado</span>
+    <span *ngIf="!movimientosIsRange" class="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">Total general</span>
+  </div>
+  <div *ngIf="!loading && !error && activeTab==='kpis' && movimientosLoading" class="mt-2 text-sm text-slate-600">
+    Cargando movimientos por rango...
+  </div>
   <div *ngIf="!loading && !error && activeTab==='kpis'" class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
     <div class="rounded-lg border border-slate-200 bg-white p-4">
       <div class="text-xs text-slate-600">Ingresos</div>

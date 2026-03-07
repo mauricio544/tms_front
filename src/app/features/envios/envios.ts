@@ -20,7 +20,7 @@ import { DetallesComprobante } from '../../../../core/services/detalles-comproba
 import { Movimientos } from '../../../../core/services/movimientos';
 import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
 import { Clientes } from '../../../../core/services/clientes';
-import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General, MessageCreate, SerieComprobante as SerieComprobanteModel } from '../../../../core/mapped';
+import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General, MessageCreate, SerieComprobante as SerieComprobanteModel, EnvioTrackingPublicLinkRequest } from '../../../../core/mapped';
 import { Utilitarios } from '../../../../core/services/utilitarios';
 import { forkJoin } from 'rxjs';
 import { SerieComprobante as SerieComprobanteService } from '../../../../core/services/serie-comprobante';
@@ -116,13 +116,13 @@ export class EnviosFeature implements OnInit {
     try { return `${window.location.origin}/tracking/${eid}`; } catch { return `/tracking/${eid}`; }
   }
 
-  private printEtiquetasFor(envio: any, detalles: any[]) {
+  private printEtiquetasFor(envio: any, detalles: any[], publicUrl?: string | null) {
     const e: any = envio;
     const dets: any[] = detalles || [];
     if (!e || !dets.length) return;
     const origen = this.getPuntoNombre(e.punto_origen_id);
     const destino = this.getPuntoNombre(e.punto_destino_id);
-    const tracking = this.trackingUrl(e.id);
+    const tracking = String(publicUrl || '').trim() || this.trackingUrl(e.id);
     const qr = tracking ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(tracking)}` : '';
     const rows = dets.map((d, i) => {
       const desc = String(d.descripcion || '');
@@ -169,7 +169,7 @@ export class EnviosFeature implements OnInit {
   }
 
   printEtiquetas() {
-    this.printEtiquetasFor(this.ticketEnvio, this.ticketDetalles);
+    this.printEtiquetasFor(this.ticketEnvio, this.ticketDetalles, this.publicTrackingUrl);
   }
 
   openEtiquetas(item: Envio) {
@@ -275,12 +275,85 @@ export class EnviosFeature implements OnInit {
   ticketEnvio: Envio | null = null;
   ticketDetalles: Array<{ numero_item: number; cantidad: number; descripcion: any; precio_unitario: number }> = [];
   get ticketTotal(): number { return (this.ticketDetalles || []).reduce((s, d) => s + (Number(d.cantidad) || 0) * (Number(d.precio_unitario) || 0), 0); }
+  publicTrackingUrl: string | null = null;
+  publicTrackingQrUrl: string | null = null;
+  publicTrackingLoading = false;
+  publicTrackingError: string | null = null;
   openTicket(env: Envio, fromDetalles: Array<{ cantidad: number; descripcion: any; precio_unitario: number }> = []) {
     this.ticketEnvio = env;
     this.ticketDetalles = (fromDetalles || []).map((d, i) => ({ numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario) || 0 }));
     this.showTicket = true;
+    this.loadPublicTrackingLink(env);
   }
-  closeTicket() { this.showTicket = false; this.ticketEnvio = null; this.ticketDetalles = []; }
+  closeTicket() {
+    this.showTicket = false;
+    this.ticketEnvio = null;
+    this.ticketDetalles = [];
+    this.publicTrackingUrl = null;
+    this.publicTrackingQrUrl = null;
+    this.publicTrackingLoading = false;
+    this.publicTrackingError = null;
+  }
+  private buildPublicTrackingUrl(token: string, ticket: string): string {
+    try { return `${window.location.origin}/tracking/publico/${encodeURIComponent(token)}?ticket_numero=${encodeURIComponent(ticket)}`; } catch { return `/tracking/publico/${encodeURIComponent(token)}?ticket_numero=${encodeURIComponent(ticket)}`; }
+  }
+  private setPublicTrackingUrl(url: string) {
+    this.publicTrackingUrl = url;
+    this.publicTrackingQrUrl = url ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(url)}` : null;
+  }
+  loadPublicTrackingLink(envio: Envio | null) {
+    this.publicTrackingUrl = null;
+    this.publicTrackingQrUrl = null;
+    const ticket = String((envio as any)?.ticket_numero || '').trim();
+    if (!ticket) {
+      this.publicTrackingError = 'No se pudo generar el enlace: ticket inválido';
+      this.publicTrackingUrl = null;
+      this.publicTrackingQrUrl = null;
+      return;
+    }
+    this.publicTrackingLoading = true;
+    this.publicTrackingError = null;
+    const payload: EnvioTrackingPublicLinkRequest = { ticket_numero: ticket, expires_minutes: 60 };
+    this.enviosSrv.getPublicLink(payload).subscribe({
+      next: (res) => {
+        this.publicTrackingLoading = false;
+        let token = String((res as any)?.token || '').trim();
+        if (!token) {
+          try {
+            const url = String((res as any)?.url || '').trim();
+            if (url) {
+              const parsed = new URL(url);
+              token = String(parsed.searchParams.get('token') || '').trim();
+            }
+          } catch {}
+        }
+        if (!token) {
+          this.publicTrackingError = 'No se pudo obtener el token del enlace público';
+          this.publicTrackingUrl = null;
+          this.publicTrackingQrUrl = null;
+          return;
+        }
+        // const url = this.buildPublicTrackingUrl(token, ticket);
+        const url = "https://tms.maudev.online/tracking/publico/buscar";
+        this.setPublicTrackingUrl(url);
+      },
+      error: () => {
+        this.publicTrackingLoading = false;
+        this.publicTrackingError = 'No se pudo generar el enlace público';
+        this.publicTrackingUrl = null;
+        this.publicTrackingQrUrl = null;
+      }
+    });
+  }
+  copyPublicTrackingUrl() {
+    const url = String(this.publicTrackingUrl || '').trim();
+    if (!url) return;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => this.showNotif('Enlace copiado')).catch(() => this.showNotif('No se pudo copiar', 'error'));
+    } else {
+      this.showNotif('No se pudo copiar', 'error');
+    }
+  }
   printTicket() { try { window.print(); } catch { } }
 
   // Comprobante modal
@@ -559,6 +632,28 @@ export class EnviosFeature implements OnInit {
   personaLabel(p: Persona): string { const nombre = [p.nombre, p.apellido].filter(Boolean).join(' ').trim(); const razon = (p.razon_social || '').trim(); const base = (razon || nombre || '').trim(); const doc = (p.nro_documento || '').trim(); return [base, doc].filter(Boolean).join(' - '); }
   personaLabelById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? this.personaLabel(p) : null; }
   personaCelularById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? String((p as any).celular || '') : null; }
+  private normalizePhone(value: string): string { return String(value || '').replace(/\D/g, ''); }
+  canSendText(item: Envio): boolean {
+    const cel = this.personaCelularById((item as any)?.destinatario) || '';
+    return !!this.normalizePhone(cel);
+  }
+  sendEnvioText(item: Envio, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    const envioId = Number((item as any)?.id || 0);
+    if (!envioId) return;
+    const celRaw = this.personaCelularById((item as any)?.destinatario) || '';
+    const digits = this.normalizePhone(celRaw);
+    if (!digits) { this.showNotif('Destinatario sin celular', 'error'); return; }
+    const to = (digits.length > 9 && digits.startsWith('51')) ? `+${digits}` : `+51${digits}`;
+    const estado = String((item as any)?.estado_envio || '').trim() || '-';
+    const tracking = String((item as any)?.id_tracking || '').trim() || '-';
+    const msg = `Tienes un envío\nEstado envío: ${estado}\nCódigo de seguimiento: ${tracking}`;
+    const body: MessageCreate = { to, message: msg, envio_id: envioId };
+    this.messageSrv.sendText(body).subscribe({
+      next: () => { this.showNotif('Mensaje enviado'); },
+      error: () => { this.showNotif('No se pudo enviar el mensaje', 'error'); }
+    });
+  }
   private updateDestinatarioCelular(destinatarioId: number, celular: string, next: () => void) {
     if (!destinatarioId || !celular) { next(); return; }
     const current = this.personaCelularById(destinatarioId) || '';
@@ -821,7 +916,7 @@ export class EnviosFeature implements OnInit {
     if (this.editing && this.editingId) {
       this.enviosSrv.updateEnvios(this.editingId, payload).subscribe({
         next: (res: any) => {
-          const updated: Envio = { id: res?.id ?? this.editingId!, remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio, ticket_numero: res?.ticket_numero ?? payload.ticket_numero, estado_whatsapp: res?.estado_whatsapp, estado_envio: res?.estado_envio } as Envio;
+          const updated: Envio = { id: res?.id ?? this.editingId!, remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio, ticket_numero: res?.ticket_numero ?? payload.ticket_numero, estado_whatsapp: res?.estado_whatsapp, estado_envio: res?.estado_envio, id_tracking: res?.id_tracking } as Envio;
           this.lista_envios = this.lista_envios.map(v => (v as any).id === this.editingId ? updated : v);
           this.saving = false; this.editing = false; this.editingId = null; this.onFilterChange();
           this.closeEdit(); this.showNotif('Env\u00edo actualizado');
@@ -833,7 +928,7 @@ export class EnviosFeature implements OnInit {
     this.enviosSrv.createEnvios(payload).subscribe({
       next: (res: any) => {
         const newId = Number(res?.id);
-        const updated: Envio = { id: newId || (Math.max(0, ...(this.lista_envios.map((x: any) => x.id).filter(Number))) + 1), remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio, ticket_numero: res?.ticket_numero ?? payload.ticket_numero, estado_whatsapp: 'Pendiente', estado_envio: 'Recepción' } as Envio;
+        const updated: Envio = { id: newId || (Math.max(0, ...(this.lista_envios.map((x: any) => x.id).filter(Number))) + 1), remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio, ticket_numero: res?.ticket_numero ?? payload.ticket_numero, estado_whatsapp: 'Pendiente', estado_envio: 'Recepción', id_tracking: res?.id_tracking } as Envio;
         const detalles = (this.stagedDetalles || []).map((d, i) => ({ id: 0, numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: (d.descripcion as any), precio_unitario: Number(d.precio_unitario) || 0, envio_id: newId })) as DetalleEnvioCreate[];
         if (newId && detalles.length) {
           forkJoin(detalles.map(d => this.detalleSrv.createDetalleEnvio(d))).subscribe({ next: () => this.afterCreate(updated, newId, payload, ticketSerie), error: () => { this.saving = false; this.saveError = 'No se pudo crear el detalle del env\u00edo'; this.showNotif(this.saveError as string, 'error'); } });
@@ -879,16 +974,8 @@ export class EnviosFeature implements OnInit {
         error: () => { this.showNotif('Env\u00edo creado, pero no se pudo actualizar la serie del ticket', 'error'); }
       });
     }
-    if (!payload.estado_pago) {
-      if (newId) {
-        this.detalleSrv.getDetallesEnvio(newId).subscribe({
-          next: (list: any[]) => { const mapped = (list || []).map((d: any, i: number) => ({ numero_item: (d.numero_item ?? i + 1), cantidad: Number(d.cantidad) || 0, descripcion: (d.descripcion as any), precio_unitario: Number(d.precio_unitario) || 0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true; },
-          error: () => { const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario) || 0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true; }
-        });
-      } else {
-        const mapped = (this.stagedDetalles || []).map((d, i) => ({ numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: d.descripcion, precio_unitario: Number(d.precio_unitario) || 0 })); this.ticketEnvio = updated; this.ticketDetalles = mapped; this.closeCreate(); this.showTicket = true;
-      }
-    } else {
+    this.openTicketAfterCreate(updated, newId);
+    if (payload.estado_pago) {
       // WhatsApp: enviar si se solicitó y estás pagado
       if (this.sendWhatsapp && payload.estado_pago && newId) {
         try {
@@ -939,6 +1026,42 @@ export class EnviosFeature implements OnInit {
       });
     }
     this.showNotif('Env\u00edo creado');
+  }
+
+  private openTicketAfterCreate(updated: Envio, newId: number) {
+    const fallback = () => {
+      const mapped = (this.stagedDetalles || []).map((d, i) => ({
+        numero_item: i + 1,
+        cantidad: Number(d.cantidad) || 0,
+        descripcion: d.descripcion,
+        precio_unitario: Number(d.precio_unitario) || 0
+      }));
+      this.ticketEnvio = updated;
+      this.ticketDetalles = mapped;
+      this.closeCreate();
+      this.showTicket = true;
+      this.loadPublicTrackingLink(updated);
+    };
+    if (!newId) {
+      fallback();
+      return;
+    }
+    this.detalleSrv.getDetallesEnvio(newId).subscribe({
+      next: (list: any[]) => {
+        const mapped = (list || []).map((d: any, i: number) => ({
+          numero_item: (d.numero_item ?? i + 1),
+          cantidad: Number(d.cantidad) || 0,
+          descripcion: (d.descripcion as any),
+          precio_unitario: Number(d.precio_unitario) || 0
+        }));
+        this.ticketEnvio = updated;
+        this.ticketDetalles = mapped;
+        this.closeCreate();
+        this.showTicket = true;
+        this.loadPublicTrackingLink(updated);
+      },
+      error: () => fallback()
+    });
   }
 
   // Entrega
