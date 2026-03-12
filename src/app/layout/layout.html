@@ -1,33 +1,54 @@
-﻿<div class="min-h-screen grid grid-cols-12">
+﻿<div class="min-h-screen flex">
   <!-- Sidebar (desktop) -->
-  <aside class="hidden md:block md:col-span-3 lg:col-span-2 bg-[#2F455C] border-r border-[#2F455C]">
-    <div class="px-4 py-4 flex items-center gap-2 border-b border-white/20">
-      <ng-icon name="heroSquares2x2" size="22" class="text-white"></ng-icon>
-      <span class="font-semibold text-white">{{ cia }}</span>
+  <aside
+    class="hidden md:flex md:flex-col bg-[#2F455C] border-r border-[#2F455C] transition-all duration-300"
+    [ngClass]="isSidebarMini ? 'w-20' : 'w-72'"
+  >
+    <div class="px-4 py-4 flex items-center border-b border-white/20" [ngClass]="isSidebarMini ? 'justify-center' : 'justify-between'">
+      <div class="flex items-center gap-2" [ngClass]="isSidebarMini ? 'justify-center' : ''">
+        <div *ngIf="ciaLogo && !isSidebarMini; else desktopLogoFallback" class="rounded-lg border border-slate-200 bg-white px-2 py-1 shadow-sm">
+          <img [src]="ciaLogo" alt="Logo compañía" class="h-7 w-auto max-w-[140px] object-contain">
+        </div>
+        <ng-template #desktopLogoFallback>
+          <ng-icon name="heroSquares2x2" size="22" class="text-white"></ng-icon>
+        </ng-template>
+        <span *ngIf="!isSidebarMini && !ciaLogo" class="font-semibold text-white">{{ cia }}</span>
+      </div>
+      <button
+        (click)="toggleSidebarMini()"
+        class="inline-flex items-center justify-center rounded-md p-1.5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40"
+        [attr.aria-label]="isSidebarMini ? 'Expandir sidebar' : 'Colapsar sidebar'"
+      >
+        <ng-icon [name]="isSidebarMini ? 'heroChevronDoubleRight' : 'heroChevronDoubleLeft'" size="18" class="text-white"></ng-icon>
+      </button>
     </div>
 
-    <nav class="p-3">
-      <div class="mb-3">
-        <h3 class="px-2 text-xs font-semibold uppercase tracking-wide text-white/80">Maestros</h3>
+    <nav class="p-3 overflow-y-auto">
+      <div class="mb-3" *ngIf="maestrosVisible.length">
+        <h3 *ngIf="!isSidebarMini" class="px-2 text-xs font-semibold uppercase tracking-wide text-white/80">Maestros</h3>
         <ul class="mt-2 space-y-1">
-          <li *ngFor="let item of maestros">
+          <li *ngFor="let item of maestrosVisible">
             <a [routerLink]="item.route" routerLinkActive="!bg-white/20 !text-white"
-               class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-white hover:bg-white/10 hover:text-white">
+               [attr.title]="isSidebarMini ? item.label : null"
+               class="flex items-center rounded-md px-2 py-2 text-sm text-white hover:bg-white/10 hover:text-white"
+               [ngClass]="isSidebarMini ? 'justify-center' : 'gap-2'">
               <ng-icon [name]="item.icon" size="18" class="text-white"></ng-icon>
-              <span>{{ item.label }}</span>
+              <span *ngIf="!isSidebarMini">{{ item.label }}</span>
             </a>
           </li>
         </ul>
       </div>
 
       <div>
-        <h3 class="px-2 text-xs font-semibold uppercase tracking-wide text-white/80">Funcionalidades</h3>
+        <h3 *ngIf="!isSidebarMini" class="px-2 text-xs font-semibold uppercase tracking-wide text-white/80">Funcionalidades</h3>
         <ul class="mt-2 space-y-1">
           <li *ngFor="let item of funcionalidades">
             <a [routerLink]="item.route" routerLinkActive="!bg-white/20 !text-white"
-               class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-white hover:bg-white/10 hover:text-white">
+               [attr.title]="isSidebarMini ? item.label : null"
+               class="flex items-center rounded-md px-2 py-2 text-sm text-white hover:bg-white/10 hover:text-white"
+               [ngClass]="isSidebarMini ? 'justify-center' : 'gap-2'">
               <ng-icon [name]="item.icon" size="18" class="text-white"></ng-icon>
-              <span>{{ item.label }}</span>
+              <span *ngIf="!isSidebarMini">{{ item.label }}</span>
             </a>
           </li>
         </ul>
@@ -36,7 +57,7 @@
   </aside>
 
   <!-- Main content -->
-  <main class="col-span-12 md:col-span-9 lg:col-span-10 min-h-screen bg-slate-50">
+  <main class="flex-1 min-h-screen bg-slate-50">
     <!-- Header / Breadcrumbs + user -->
     <header class="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-primary/20">
       <div class="mx-auto px-4 py-3 flex items-center justify-between">
@@ -47,7 +68,7 @@
           </button>
 
           <nav class="flex items-center gap-2 text-sm">
-            <a routerLink="/dashboard" class="inline-flex items-center gap-1 text-primary hover:underline">
+            <a [routerLink]="homeRoute" class="inline-flex items-center gap-1 text-primary hover:underline">
               <ng-icon name="heroHome" size="18"></ng-icon>
               Inicio
             </a>
@@ -75,8 +96,13 @@
       <aside class="absolute left-0 top-0 h-full w-72 bg-[#2F455C] shadow-xl">
         <div class="px-4 py-4 flex items-center justify-between gap-2 border-b border-white/20">
           <div class="flex items-center gap-2">
-            <ng-icon name="heroSquares2x2" size="22" class="text-white"></ng-icon>
-            <span class="font-semibold text-white">{{ cia }}</span>
+            <div *ngIf="ciaLogo; else mobileLogoFallback" class="rounded-lg border border-slate-200 bg-white px-2 py-1 shadow-sm">
+              <img [src]="ciaLogo" alt="Logo compañía" class="h-7 w-auto max-w-[140px] object-contain">
+            </div>
+            <ng-template #mobileLogoFallback>
+              <ng-icon name="heroSquares2x2" size="22" class="text-white"></ng-icon>
+            </ng-template>
+            <span *ngIf="!ciaLogo" class="font-semibold text-white">{{ cia }}</span>
           </div>
           <button (click)="closeMobileMenu()"
                   class="inline-flex items-center justify-center rounded-md p-2 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40">
@@ -85,10 +111,10 @@
         </div>
 
         <nav class="p-3 overflow-y-auto h-[calc(100%-56px)]">
-          <div class="mb-3">
+          <div class="mb-3" *ngIf="maestrosVisible.length">
             <h3 class="px-2 text-xs font-semibold uppercase tracking-wide text-white/80">Maestros</h3>
             <ul class="mt-2 space-y-1">
-              <li *ngFor="let item of maestros">
+              <li *ngFor="let item of maestrosVisible">
                 <a [routerLink]="item.route" routerLinkActive="!bg-white/20 !text-white" (click)="closeMobileMenu()"
                    class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-white hover:bg-white/10 hover:text-white">
                   <ng-icon [name]="item.icon" size="18" class="text-white"></ng-icon>

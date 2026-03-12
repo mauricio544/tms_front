@@ -4,6 +4,7 @@ import { tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { ApiClientService } from './api-client.service';
 import { UsuarioMe } from '../mapped';
+import { environment } from '../../src/environments/environment.development';
 
 export interface LoginRequest {
   username: string;
@@ -58,6 +59,7 @@ export class AuthService {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('auth_user');
+    localStorage.removeItem('cia_logo');
     sessionStorage.removeItem('auth_token');
     sessionStorage.removeItem('refresh_token');
     sessionStorage.removeItem('auth_user');
@@ -84,6 +86,35 @@ export class AuthService {
   getCompania(): string | null {
     const cia = localStorage.getItem('cia');
     return cia;
+  }
+
+  getCompaniaLogo(): string | null {
+    let logo = (localStorage.getItem('cia_logo') || '').trim();
+    if (!logo) {
+      try {
+        const raw = localStorage.getItem('me');
+        const me = raw ? (JSON.parse(raw) as UsuarioMe) : null;
+        logo = String(me?.companies?.[0]?.logo ?? '').trim();
+        if (logo) {
+          localStorage.setItem('cia_logo', logo);
+        }
+      } catch {
+        logo = '';
+      }
+    }
+    if (logo) return this.resolveLogoUrl(logo);
+    return null;
+  }
+
+  private resolveLogoUrl(rawLogo: string): string {
+    const value = rawLogo.trim();
+    if (!value) return '';
+    if (/^(https?:)?\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) {
+      return value;
+    }
+    const base = (environment.apiUrl || '').replace(/\/+$/, '');
+    const path = value.replace(/^\/+/, '');
+    return `${base}/${path}`;
   }
 
   getCompaniaId(): number | null {

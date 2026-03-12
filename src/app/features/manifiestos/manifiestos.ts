@@ -334,7 +334,7 @@ export class ManifiestosFeature implements OnInit {
     const mid = Number((item as any)?.id);
     const destinoId = Number((item as any)?.codigo_punto_destino);
     if (!mid || !destinoId) return;
-    this.enviosSrv.getEnvios().subscribe({
+    this.getEnviosByRole().subscribe({
       next: (res) => {
         const all = (res || []) as any[];
         const toAttach = all.filter((e: any) => e?.manifiesto == null && Number(e?.punto_destino_id) === destinoId); // filtro por el destino, todos los envíos que pueden pertenecer
@@ -396,7 +396,11 @@ export class ManifiestosFeature implements OnInit {
   loadManifiestos() {
     this.loading = true;
     this.error = null;
-    this.manifiestosSrv.getManifiestos().subscribe({
+    const puntoId = this.getUserPuntoId();
+    const source$ = this.useManifiestoPuntoEndpoint()
+      ? this.manifiestosSrv.getManifiestoPunto(puntoId)
+      : this.manifiestosSrv.getManifiestos();
+    source$.subscribe({
       next: (response) => { this.lista_manifiestos = (response as any) || []; this.loading = false; },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los manifiestos'; },
     });
@@ -986,7 +990,7 @@ ngOnInit(): void {
     this.addEnviosError = null;
     this.addEnviosLista = [];
     this.addManifiestoId = (item as any)?.id;
-    this.enviosSrv.getEnvios().subscribe({
+    this.getEnviosByRole().subscribe({
       next: (res) => {
         const all = (res || []) as any[];
         this.addEnviosLista = all.filter(e => (e as any)?.manifiesto == null && Number((e as any)?.punto_destino_id) === Number(this.addDestinoId));
@@ -1550,6 +1554,53 @@ ngOnInit(): void {
       numero_completo: numeroCompleto,
       emitido_en: this.utilSrv.formatFecha(new Date()),
     };
+  }
+
+  private getCurrentMe(): any | null {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  private getRoleNames(): string[] {
+    const me = this.getCurrentMe();
+    const roles = Array.isArray(me?.roles) ? me.roles : [];
+    return roles.map((r: any) => String(r?.name ?? r?.nombre ?? r?.rol ?? r?.role ?? r).toLowerCase().trim());
+  }
+
+  private hasRole(...targetRoles: string[]): boolean {
+    const roleNames = this.getRoleNames();
+    return targetRoles.some((role) => roleNames.includes(role));
+  }
+
+  private getUserPuntoId(): number {
+    const me = this.getCurrentMe();
+    const sede = Array.isArray(me?.sedes) ? me.sedes[0] : null;
+    return Number(sede?.id || 0);
+  }
+
+  private useManifiestoPuntoEndpoint(): boolean {
+    const puntoId = this.getUserPuntoId();
+    if (puntoId <= 0) return false;
+    return this.hasRole('operario', 'adm_sede', 'admin_sede');
+  }
+
+  private useEnviosSedeEndpoint(): boolean {
+    const puntoId = this.getUserPuntoId();
+    if (puntoId <= 0) return false;
+    return this.hasRole('adm_sede', 'admin_sede');
+  }
+
+  private getEnviosByRole() {
+    const puntoId = this.getUserPuntoId();
+    if (this.useEnviosSedeEndpoint()) {
+      return this.enviosSrv.getEnviosSede(puntoId);
+    }
+    return this.enviosSrv.getEnvios();
   }
 
   private buildGuiaItemPayloads(despachoId: number, envios: Envio[], detList: any[]): ItemGuiaCreate[] {

@@ -8,7 +8,9 @@ import {
   Resumen,
   ManifiestoResumen,
   PublicLinkResponse,
-  EnvioTrackingPublicLinkRequest
+  EnvioTrackingPublicLinkRequest,
+  EnviosDiariosAgrupadosRead,
+  EnviosDiariosResumenPorUsuarioRead
 } from '../mapped';
 import { AuthService } from './auth.service';
 
@@ -55,5 +57,27 @@ export class Envios {
 
   getPublicLink(body: EnvioTrackingPublicLinkRequest): Observable<PublicLinkResponse> {
     return this.api.post('/envios/tracking/public-link', body);
+  }
+
+  getEnviosTotales(): Observable<EnviosDiariosAgrupadosRead[]> {
+    return this.api.get('/envios/reporte-envios-dia-agrupado');
+  }
+
+  getEnviosTotalesByFecha(fecha?: string): Observable<EnviosDiariosAgrupadosRead[]> {
+    const query = fecha ? `?fecha=${encodeURIComponent(fecha)}` : '';
+    return this.api.get(`/envios/reporte-envios-dia-agrupado${query}`);
+  }
+
+  getEnviosResumen(): Observable<EnviosDiariosResumenPorUsuarioRead[]> {
+    return this.api.get('/envios/reporte-envios-dia-resumen');
+  }
+
+  getEnviosResumenByFecha(fecha?: string): Observable<EnviosDiariosResumenPorUsuarioRead[]> {
+    const query = fecha ? `?fecha=${encodeURIComponent(fecha)}` : '';
+    return this.api.get(`/envios/reporte-envios-dia-resumen${query}`);
+  }
+
+  getEnviosSede(punto_id: number): Observable<Envio[]> {
+    return this.api.get(`/envios/por-punto?punto_id=${punto_id}`);
   }
 }

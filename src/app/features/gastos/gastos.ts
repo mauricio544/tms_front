@@ -19,6 +19,7 @@ export class GastosFeature implements OnInit {
   private readonly movimientosSrv = inject(Movimientos);
   private readonly personasSrv = inject(Personas);
   private readonly serieSrv = inject(SerieComprobanteService);
+  isOperario = false;
 
   loading = false;
   error: string | null = null;
@@ -49,6 +50,7 @@ export class GastosFeature implements OnInit {
   }
 
   ngOnInit(): void {
+    this.isOperario = this.hasOperarioRole();
     if (!this.selectedDate) {
       this.selectedDate = this.todayIso();
     }
@@ -110,8 +112,11 @@ export class GastosFeature implements OnInit {
   load() {
     this.loading = true;
     this.error = null;
-    this.detalleSrv.getDetallesListFull().subscribe({
-      next: (res) => { this.detalles = res || []; this.loading = false; },
+    const source$ = this.useDetallesPuntoEndpoint()
+      ? this.detalleSrv.getDetallesListFullPunto(this.getUserSedeId())
+      : this.detalleSrv.getDetallesListFull();
+    source$.subscribe({
+      next: (res) => { this.detalles = this.filterDetallesBySelectedDate(res || []); this.loading = false; },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los movimientos'; }
     });
   }
@@ -165,6 +170,7 @@ export class GastosFeature implements OnInit {
   }
 
   openAddMovimiento() {
+    if (this.isOperario) return;
     this.showAddModal = true;
     this.savingAdd = false;
     this.addError = null;
@@ -179,6 +185,7 @@ export class GastosFeature implements OnInit {
   closeAddMovimiento() { this.showAddModal = false; }
 
   submitAddMovimiento() {
+    if (this.isOperario) return;
     if (!this.isValidAdd || this.savingAdd) return;
     const c: any = this.cabeceraForm;
     const d: any = this.detalleForm;
@@ -254,6 +261,10 @@ export class GastosFeature implements OnInit {
     onDateChange() {
       const d = (this.selectedDate || '').trim();
       this.page = 1;
+      if (this.useDetallesPuntoEndpoint()) {
+        this.load();
+        return;
+      }
       if (!d) { this.load(); return; }
       this.loading = true; this.error = null;
       const param = 'fecha=' + encodeURIComponent(d);
@@ -325,6 +336,67 @@ export class GastosFeature implements OnInit {
       const correlativo = Number((serie as any).correlativo || 0);
       this.detalleForm.numero_comprobante = ``.toUpperCase();
     }
+  }
+
+  private hasOperarioRole(): boolean {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return false;
+      const me = JSON.parse(raw) as any;
+      const roles = Array.isArray(me?.roles) ? me.roles : [];
+      const roleNames = roles.map((r: any) => String(r?.name ?? r?.nombre ?? r?.rol ?? r?.role ?? r).toLowerCase().trim());
+      return roleNames.includes('operario') && !roleNames.includes('admin_sede');
+    } catch {
+      return false;
+    }
+  }
+
+  private getCurrentMe(): any | null {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  private getRoleNames(): string[] {
+    const me = this.getCurrentMe();
+    const roles = Array.isArray(me?.roles) ? me.roles : [];
+    return roles.map((r: any) => String(r?.name ?? r?.nombre ?? r?.rol ?? r?.role ?? r).toLowerCase().trim());
+  }
+
+  private useDetallesPuntoEndpoint(): boolean {
+    const sedeId = this.getUserSedeId();
+    if (sedeId <= 0) return false;
+    const roles = this.getRoleNames();
+    return roles.includes('operario') || roles.includes('admin_sede') || roles.includes('adm_sede');
+  }
+
+  private parseDate(value: any): Date | null {
+    if (!value) return null;
+    const s = String(value).trim();
+    if (!s) return null;
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  private filterDetallesBySelectedDate(list: Detalle[]): Detalle[] {
+    const d = String(this.selectedDate || '').trim();
+    if (!d) return list;
+    const target = this.parseDate(d);
+    if (!target) return list;
+    target.setHours(0, 0, 0, 0);
+    return (list || []).filter((it: any) => {
+      const raw = it?.cabecera?.fecha || it?.cabecera?.created_at || it?.cabecera?.fecha_movimiento || it?.fecha;
+      const current = this.parseDate(raw);
+      if (!current) return false;
+      current.setHours(0, 0, 0, 0);
+      return current.getTime() === target.getTime();
+    });
   }
 }
 

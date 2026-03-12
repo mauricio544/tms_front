@@ -4,7 +4,6 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { UsuarioMe } from '../../../core/mapped';
-import {empty} from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -42,7 +41,6 @@ export class LoginComponent {
       .login({ username, password }, remember)
       .subscribe({
         next: () => {
-          this.loading = false;
           this.auth.me().subscribe({
             next: (response) => {
               this.usuario_me = response;
@@ -50,14 +48,27 @@ export class LoginComponent {
               localStorage.setItem('cia', this.usuario_me.companies[0].nombre);
               localStorage.setItem('cia_id', this.usuario_me.companies[0].id.toString());
               localStorage.setItem('ruc', this.usuario_me?.companies[0].ruc);
-              console.log(this.usuario_me);
+              const logo = String(this.usuario_me?.companies?.[0]?.logo ?? '').trim();
+              if (logo) {
+                localStorage.setItem('cia_logo', logo);
+              } else {
+                localStorage.removeItem('cia_logo');
+              }
+              const roles = Array.isArray((this.usuario_me as any)?.roles) ? (this.usuario_me as any).roles : [];
+              const hasRole = (targetRole: string) => roles.some((r: any) => {
+                const roleName = String(r?.name ?? r?.nombre ?? r?.rol ?? r?.role ?? r).toLowerCase().trim();
+                return roleName === targetRole;
+              });
+              const isAdminSede = hasRole('admin_sede');
+              const isOperario = hasRole('operario') && !isAdminSede;
+              this.loading = false;
+              this.router.navigateByUrl(isOperario ? 'envios' : 'dashboard');
             },
-            error: (err) => {
-
+            error: () => {
+              this.loading = false;
+              this.router.navigateByUrl('dashboard');
             }
           });
-          // Ajusta la ruta de destino según tu app
-          this.router.navigateByUrl('dashboard');
         },
         error: (err) => {
           this.loading = false;
@@ -67,4 +78,3 @@ export class LoginComponent {
       });
   }
 }
-

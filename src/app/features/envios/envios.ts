@@ -20,7 +20,7 @@ import { DetallesComprobante } from '../../../../core/services/detalles-comproba
 import { Movimientos } from '../../../../core/services/movimientos';
 import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
 import { Clientes } from '../../../../core/services/clientes';
-import { Envio, Persona, Puntos as PuntoModel, DetalleEnvioCreate, General, MessageCreate, SerieComprobante as SerieComprobanteModel, EnvioTrackingPublicLinkRequest } from '../../../../core/mapped';
+import { Envio, Persona, PersonaListItemResponse, Puntos as PuntoModel, DetalleEnvioCreate, General, MessageCreate, SerieComprobante as SerieComprobanteModel, EnvioTrackingPublicLinkRequest } from '../../../../core/mapped';
 import { Utilitarios } from '../../../../core/services/utilitarios';
 import { forkJoin } from 'rxjs';
 import { SerieComprobante as SerieComprobanteService } from '../../../../core/services/serie-comprobante';
@@ -456,6 +456,9 @@ export class EnviosFeature implements OnInit {
   destinatarioDocNumber: string = '';
   remLookupLoading = false; remLookupError: string | null = null;
   destLookupLoading = false; destLookupError: string | null = null;
+  remitenteCredito: PersonaListItemResponse | null = null;
+  remitenteCreditoLoading = false;
+  remitenteCreditoError: string | null = null;
 
   // Comprobante (creaciÃ³n cuando pagado)
   compTipos: SerieComprobanteModel[] = [];
@@ -632,6 +635,26 @@ export class EnviosFeature implements OnInit {
   personaLabel(p: Persona): string { const nombre = [p.nombre, p.apellido].filter(Boolean).join(' ').trim(); const razon = (p.razon_social || '').trim(); const base = (razon || nombre || '').trim(); const doc = (p.nro_documento || '').trim(); return [base, doc].filter(Boolean).join(' - '); }
   personaLabelById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? this.personaLabel(p) : null; }
   personaCelularById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? String((p as any).celular || '') : null; }
+  private resetRemitenteCredito() { this.remitenteCredito = null; this.remitenteCreditoLoading = false; this.remitenteCreditoError = null; }
+  private loadRemitenteCreditoByDoc(nro: string) {
+    const doc = String(nro || '').trim();
+    if (!doc) { this.resetRemitenteCredito(); return; }
+    this.remitenteCreditoLoading = true;
+    this.remitenteCreditoError = null;
+    const query = `q=${encodeURIComponent(doc)}`;
+    this.personasSrv.getPersonaComplete(query).subscribe({
+      next: (res: any) => {
+        const item = (res?.items || [])[0] || null;
+        this.remitenteCredito = item;
+        this.remitenteCreditoLoading = false;
+      },
+      error: () => {
+        this.remitenteCreditoLoading = false;
+        this.remitenteCredito = null;
+        this.remitenteCreditoError = 'No se pudo validar el crédito del remitente';
+      }
+    });
+  }
   private normalizePhone(value: string): string { return String(value || '').replace(/\D/g, ''); }
   canSendText(item: Envio): boolean {
     const cel = this.personaCelularById((item as any)?.destinatario) || '';
@@ -681,6 +704,32 @@ export class EnviosFeature implements OnInit {
       return 0;
     }
   }
+
+  private getCurrentMe(): any | null {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  private useSedeEndpointByRole(): boolean {
+    const me = this.getCurrentMe();
+    const roles = Array.isArray(me?.roles) ? me.roles : [];
+    const roleNames = roles.map((r: any) =>
+      String(
+        r?.name ??
+        r?.nombre ??
+        r?.rol ??
+        r?.role ??
+        r
+      ).toLowerCase().trim()
+    );
+    return roleNames.includes('operario') || roleNames.includes('admin_sede') || roleNames.includes('adm_sede');
+  }
+
   private applyDefaultOrigen() {
     if (this.editing) return;
     if (Number((this.newEnvio as any)?.punto_origen_id || 0)) return;
@@ -708,14 +757,14 @@ export class EnviosFeature implements OnInit {
     const celular = this.personaCelularById(destId) || '';
     if (celular) this.destinatarioCelular = celular;
   }
-  selectRemitente(p: Persona) { (this.newEnvio as any).remitente = (p as any).id; this.remitenteQuery = this.personaLabel(p); this.showRemitenteOptions = false; }
+  selectRemitente(p: Persona) { (this.newEnvio as any).remitente = (p as any).id; this.remitenteQuery = this.personaLabel(p); this.showRemitenteOptions = false; this.remitenteDocType = ((p as any).tipo_documento || this.remitenteDocType) as any; this.remitenteDocNumber = String((p as any).nro_documento || this.remitenteDocNumber || ''); this.loadRemitenteCreditoByDoc(String((p as any).nro_documento || '')); }
   selectDestinatario(p: Persona) {
     (this.newEnvio as any).destinatario = (p as any).id;
     this.destinatarioQuery = this.personaLabel(p);
     this.destinatarioCelular = String((p as any).celular || '');
     this.showDestinatarioOptions = false;
   }
-  clearRemitente() { (this.newEnvio as any).remitente = null as any; this.remitenteQuery = ''; }
+  clearRemitente() { (this.newEnvio as any).remitente = null as any; this.remitenteQuery = ''; this.resetRemitenteCredito(); }
   clearDestinatario() { (this.newEnvio as any).destinatario = null as any; this.destinatarioQuery = ''; }
 
   private buildPersonaFromRUC(data: any): Partial<Persona> { return { nombre: '', apellido: '', razon_social: (data?.razon_social || '').toString(), direccion: (data?.direccion || '').toString(), celular: '', email: '', nro_documento: (data?.numero_documento || '').toString(), tipo_documento: 'RUC' } as any; }
@@ -797,6 +846,7 @@ export class EnviosFeature implements OnInit {
     // Defaults for unified DNI/RUC lookup control
     this.remitenteDocType = 'DNI'; this.destinatarioDocType = 'DNI';
     this.remitenteDocNumber = ''; this.destinatarioDocNumber = '';
+    this.resetRemitenteCredito();
     // Reset WhatsApp helpers
     this.sendWhatsapp = false; this.whatsappPhone = '';
     this.applyDefaultOrigen();
@@ -825,6 +875,16 @@ export class EnviosFeature implements OnInit {
       punto_destino_id: (item as any).punto_destino_id,
       ticket_numero: (item as any).ticket_numero,
     } as any;
+    const remitentePersona = (this.personas || []).find(p => Number((p as any).id) === Number((item as any).remitente));
+    if (remitentePersona) {
+      this.remitenteDocType = ((remitentePersona as any).tipo_documento || 'DNI') as any;
+      this.remitenteDocNumber = String((remitentePersona as any).nro_documento || '');
+      this.loadRemitenteCreditoByDoc(this.remitenteDocNumber);
+    } else {
+      this.remitenteDocType = 'DNI';
+      this.remitenteDocNumber = '';
+      this.resetRemitenteCredito();
+    }
     this.saveError = null; this.remitenteQuery = this.personaLabelById((item as any).remitente) || ''; this.destinatarioQuery = this.personaLabelById((item as any).destinatario) || ''; this.showEdit = true;
     this.destinatarioCelular = this.personaCelularById((item as any).destinatario) || '';
     this.confirmClaveRecojo = String((item as any).clave_recojo || '');
@@ -1159,12 +1219,18 @@ export class EnviosFeature implements OnInit {
 
   loadEnvios() {
     this.loading = true; this.error = null;
-    this.enviosSrv.getEnvios().subscribe({
+    const sedeId = this.getUserSedeId();
+    const useSedeEndpoint = this.useSedeEndpointByRole() && sedeId > 0;
+    const request$ = useSedeEndpoint
+      ? this.enviosSrv.getEnviosSede(sedeId)
+      : this.enviosSrv.getEnvios();
+
+    request$.subscribe({
       next: (response) => { this.lista_envios = response || []; this.loading = false; const qpId = Number(this.route.snapshot.queryParamMap.get('id') || 0); if (qpId) { const it = (this.lista_envios || []).find((v: any) => Number((v as any).id) === qpId); if (it) { this.openEdit(it as any); } } },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los envíos'; },
     });
   }
-  loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; this.syncDestinatarioCelular(); }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }
+  loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; this.syncDestinatarioCelular(); const remId = Number((this.newEnvio as any)?.remitente || 0); if (remId && !this.remitenteDocNumber) { const p = (this.personas || []).find(x => Number((x as any).id) === remId); if (p) { this.remitenteDocType = ((p as any).tipo_documento || 'DNI') as any; this.remitenteDocNumber = String((p as any).nro_documento || ''); this.loadRemitenteCreditoByDoc(this.remitenteDocNumber); } } }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }
   loadPuntos() {
     this.puntosLoading = true; this.puntosError = null;
     this.puntosSrv.getPuntos().subscribe({

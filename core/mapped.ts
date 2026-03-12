@@ -4,6 +4,7 @@ export interface Company {
   tipo: string,
   is_default: boolean;
   ruc: string;
+  logo?: string | null;
 }
 
 export interface UsuarioMe {
@@ -56,6 +57,7 @@ export interface PersonaListItemResponse {
   nro_documento: string;
   tipo_documento: string;
   tiene_documento: boolean;
+  tiene_credito?: boolean;
   limite_credito: number;
   fecha_credito:string;
 }
@@ -301,6 +303,17 @@ export interface ComprobanteDetraccionRead {
   nro_constancia_det: string;
 }
 
+export interface ComprobanteReporteRead {
+  id: number;
+  envio_id: number;
+  numero_comprobante: string;
+  serie: string;
+  numero: string;
+  precio_total: number;
+  fecha_comprobante: string;
+  estado_comprobante: string;
+}
+
 export interface DetalleComprobante {
   id: number;
   numero_item: number;
@@ -407,6 +420,18 @@ export interface DetalleCreate {
   tipo_gasto?: number;
   cabecera_id: number;
   monto: number;
+}
+
+export interface MovimientoDetalleReporteRead {
+  id: number;
+  tipo_comprobante_sunat: string;
+  numero_comprobante: string;
+  descripcion: string;
+  tipo_gasto?: number;
+  cabecera_id: number;
+  monto?: number;
+  fecha_creacion: string;
+  usuario_crea: string;
 }
 
 export interface MessageCreate {
@@ -643,4 +668,32 @@ export interface GuiaTramaFinal {
   conductor: Conductor;
   vehiculo: Vehiculo;
   items: DetalleEnvio[];
+}
+
+export interface EnvioReporteRead extends Envio {
+  origen_nombre: string;
+  destino_nombre: string;
+}
+
+export interface EnvioReporteRelacionesRead {
+  envio: EnvioReporteRead;
+  comprobantes: ComprobanteReporteRead[];
+  movimientos: MovimientoDetalleReporteRead[];
+}
+
+export interface EnviosDiariosAgrupadosRead {
+  fecha_creacion: string;
+  usuario_crea: string;
+  total_envios: number;
+  envios: EnvioReporteRelacionesRead[]
+}
+
+export interface EnviosDiariosResumenPorUsuarioRead {
+  fecha_creacion: string;
+  usuario_crea: string;
+  total_envios: number;
+  total_comprobantes: number;
+  total_movimientos: number;
+  total_monto_comprobantes: number;
+  total_monto_movimientos: number;
 }

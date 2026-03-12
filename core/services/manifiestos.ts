@@ -36,4 +36,8 @@ export class Manifiestos {
   updateManifiestosEstado(id: number, body: ManifiestoArrivedUpdate): Observable<Manifiesto> {
     return this.api.patch(`/envios/manifiestos/${id}/estado`, body);
   }
+
+  getManifiestoPunto(punto_id: number): Observable<Manifiesto[]> {
+    return this.api.get(`/envios/manifiestos/por-punto?punto_id=${punto_id}`);
+  }
 }

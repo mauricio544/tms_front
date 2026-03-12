@@ -1,4 +1,4 @@
-﻿import { Component } from '@angular/core';
+﻿import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
@@ -16,6 +16,7 @@ import {
   heroCreditCard,
   heroChartBar,
 } from '@ng-icons/heroicons/outline';
+import { AuthService } from '../../../core/services/auth.service';
 
 interface Item {
   key: string;
@@ -49,6 +50,19 @@ interface Item {
   styleUrl: './dashboard.css',
 })
 export class Dashboard {
+  private readonly auth = inject(AuthService);
+
+  readonly isAdminSede = this.hasRole('admin_sede');
+  readonly isOperario = this.hasRole('operario') && !this.isAdminSede;
+
+  get ciaLogo(): string | null {
+    return this.auth.getCompaniaLogo();
+  }
+
+  get cia(): string {
+    return this.auth.getCompania() || 'Compañía';
+  }
+
   maestros: Item[] = [
     /*{ key: 'clientes', title: 'Clientes', description: 'Alta y gestión de clientes', route: '/clientes', icon: 'heroUsers' },*/
     { key: 'vehiculos', title: 'Vehículos', description: 'Flota y documentos', route: '/vehiculos', icon: 'heroTruck' },
@@ -68,6 +82,30 @@ export class Dashboard {
     { key: 'reportes', title: 'Reportes', description: 'KPIs y análisis', route: '/reportes', icon: 'heroChartBar' },
     { key: 'comprobantes', title: 'Comprobantes', description: 'Comprobantes Emitidos', route: '/comprobantes', icon: 'heroTicket' },
   ];
-}
 
+  get maestrosVisible(): Item[] {
+    if (this.isOperario) {
+      return this.maestros.filter((m) => m.key === 'conductores' || m.key === 'personas');
+    }
+    if (this.isAdminSede) {
+      return this.maestros.filter((m) => m.key === 'conductores' || m.key === 'personas');
+    }
+    return this.maestros;
+  }
+
+  private hasRole(targetRole: string): boolean {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return false;
+      const me = JSON.parse(raw) as any;
+      const roles = Array.isArray(me?.roles) ? me.roles : [];
+      return roles.some((r: any) => {
+        const roleName = String(r?.name ?? r?.nombre ?? r?.rol ?? r?.role ?? r).toLowerCase().trim();
+        return roleName === targetRole;
+      });
+    } catch {
+      return false;
+    }
+  }
+}
 

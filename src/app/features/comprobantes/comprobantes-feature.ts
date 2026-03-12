@@ -21,6 +21,7 @@ import { Utils } from '../../../../core/services/utils';
   providers: [provideIcons({ heroPrinter, heroDocumentText, heroDocumentArrowDown })],
 })
 export class ComprobantesFeature implements OnInit {
+  isOperario = false;
   private readonly comprobantesSrv = inject(Comprobantes);
   private readonly detallesSrv = inject(DetallesComprobante);
   private readonly route = inject(ActivatedRoute);
@@ -212,18 +213,22 @@ export class ComprobantesFeature implements OnInit {
   }
 
   printRow(c: Comprobante) {
+    if (this.isOperario) return;
     this.selectForExport(c, () => this.printSelected());
   }
 
   exportCsvRow(c: Comprobante) {
+    if (this.isOperario) return;
     this.selectForExport(c, () => this.exportSelectedCSV());
   }
 
   exportPdfRow(c: Comprobante) {
+    if (this.isOperario) return;
     this.selectForExport(c, () => this.exportSelectedPDF());
   }
 
   generarSunatRow(c: Comprobante) {
+    if (this.isOperario) return;
     this.select(c);
     this.generarSunat();
   }
@@ -231,7 +236,11 @@ export class ComprobantesFeature implements OnInit {
   load() {
     this.loading = true;
     this.error = null;
-    this.comprobantesSrv.getComprobantes().subscribe({
+    const puntoId = this.getUserPuntoId();
+    const source$ = this.useComprobantesPuntoEndpoint()
+      ? this.comprobantesSrv.getComprobantesPunto(puntoId)
+      : this.comprobantesSrv.getComprobantes();
+    source$.subscribe({
       next: (res) => { this.lista = res || []; this.loading = false; this.trySelectById(); this.trySelectByEnvioId(); },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los comprobantes'; }
     });
@@ -260,6 +269,7 @@ export class ComprobantesFeature implements OnInit {
   }
 
   ngOnInit(): void { try { const saved = (localStorage.getItem('comprobantes.viewMode') || '').toLowerCase(); if (saved === 'grid' || saved === 'cards') this.viewMode = saved as any; } catch {}
+    this.isOperario = this.hasOperarioRole();
     // Leer id de comprobante por query param para auto-selección
         this.route.queryParamMap.subscribe(pm => {
       const idStr = pm.get('id');
@@ -288,6 +298,7 @@ export class ComprobantesFeature implements OnInit {
   }
 
   printSelected() {
+    if (this.isOperario) return;
     const c: any = this.selected; const d: any[] = (this.detalles || []);
     if (!c) return;
     const title = `Comprobante ${c.serie||'-'}-${c.numero||'-'}`;
@@ -365,6 +376,7 @@ export class ComprobantesFeature implements OnInit {
   }
 
   exportSelectedCSV() {
+    if (this.isOperario) return;
     const c: any = this.selected; const d: any[] = (this.detalles || []);
     if (!c) return;
     const esc = (v:any)=> '"' + String(v ?? '').replace(/"/g,'""') + '"';
@@ -386,6 +398,7 @@ export class ComprobantesFeature implements OnInit {
   }
 
   exportSelectedPDF() {
+    if (this.isOperario) return;
     const c: any = this.selected; const d: any[] = (this.detalles || []);
     if (!c) return;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -459,6 +472,7 @@ export class ComprobantesFeature implements OnInit {
   }
 
   generarSunat() {
+    if (this.isOperario) return;
     const c: any = this.selected;
     if (!c?.id || this.sunatLoading) return;
     const codigo = '0';
@@ -480,6 +494,7 @@ export class ComprobantesFeature implements OnInit {
   }
 
   generarSunatPendientes() {
+    if (this.isOperario) return;
     if (this.sunatBulkLoading) return;
     const pendientes = (this.lista || []).filter(c => {
       const code = String((c as any)?.estado_cpe ?? '').trim().toUpperCase();
@@ -526,5 +541,47 @@ export class ComprobantesFeature implements OnInit {
       });
     };
     runNext();
+  }
+
+  private hasOperarioRole(): boolean {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return false;
+      const me = JSON.parse(raw) as any;
+      const roles = Array.isArray(me?.roles) ? me.roles : [];
+      const roleNames = roles.map((r: any) => String(r?.name ?? r?.nombre ?? r?.rol ?? r?.role ?? r).toLowerCase().trim());
+      return roleNames.includes('operario') && !roleNames.includes('admin_sede');
+    } catch {
+      return false;
+    }
+  }
+
+  private getCurrentMe(): any | null {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  private getRoleNames(): string[] {
+    const me = this.getCurrentMe();
+    const roles = Array.isArray(me?.roles) ? me.roles : [];
+    return roles.map((r: any) => String(r?.name ?? r?.nombre ?? r?.rol ?? r?.role ?? r).toLowerCase().trim());
+  }
+
+  private getUserPuntoId(): number {
+    const me = this.getCurrentMe();
+    const sede = Array.isArray(me?.sedes) ? me.sedes[0] : null;
+    return Number(sede?.id || 0);
+  }
+
+  private useComprobantesPuntoEndpoint(): boolean {
+    const puntoId = this.getUserPuntoId();
+    if (puntoId <= 0) return false;
+    const roles = this.getRoleNames();
+    return roles.includes('operario') || roles.includes('admin_sede') || roles.includes('adm_sede');
   }
 }

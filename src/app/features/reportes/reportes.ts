@@ -20,6 +20,7 @@ import {Utils} from '../../../../core/services/utils';
   styleUrl: './reportes.css',
 })
 export class ReportesFeature implements OnInit {
+  isOperario = false;
   fromDate: string = '';
   toDate: string = '';
   private readonly enviosSrv = inject(Envios);
@@ -56,6 +57,7 @@ export class ReportesFeature implements OnInit {
   destLayer: any = null;
 
   ngOnInit(): void {
+    this.isOperario = this.hasOperarioRole();
     this.load();
   }
 
@@ -418,6 +420,7 @@ export class ReportesFeature implements OnInit {
   }
 
   onDateChange() {
+    if (this.isOperario) return;
     this.updateLeafletMarkers();
     this.refreshMovimientosByRange();
   }
@@ -441,6 +444,7 @@ export class ReportesFeature implements OnInit {
 
   // Export CSV del resumen
   exportCSV() {
+    if (this.isOperario) return;
     const esc = (v:any)=> '"' + String(v ?? '').replace(/"/g,'""') + '"';
     const lines: string[] = [];
     lines.push(['KPI','Valor'].map(esc).join(','));
@@ -469,6 +473,7 @@ export class ReportesFeature implements OnInit {
 
   // Export PDF del resumen
   exportPDF() {
+    if (this.isOperario) return;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     let y = 48;
     const line = 18; const x = 48;
@@ -498,5 +503,18 @@ export class ReportesFeature implements OnInit {
     doc.text(`Egresos: ${this.totalEgresos.toFixed(2)}`, x, y); y += line;
     doc.text(`Neto: ${this.totalNeto.toFixed(2)}`, x, y);
     doc.save('reporte_kpis.pdf');
+  }
+
+  private hasOperarioRole(): boolean {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return false;
+      const me = JSON.parse(raw) as any;
+      const roles = Array.isArray(me?.roles) ? me.roles : [];
+      const roleNames = roles.map((r: any) => String(r?.name ?? r?.nombre ?? r?.rol ?? r?.role ?? r).toLowerCase().trim());
+      return roleNames.includes('operario') && !roleNames.includes('admin_sede');
+    } catch {
+      return false;
+    }
   }
 }

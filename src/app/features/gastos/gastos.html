@@ -9,9 +9,12 @@
       <input type="date" [(ngModel)]="selectedDate" (ngModelChange)="onDateChange()" class="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       <button (click)="clearDate()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Limpiar fecha</button>
       <button (click)="load()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Refrescar</button>
-      <button (click)="openAddMovimiento()" class="h-9 rounded-md bg-[#21D0B2] px-3 text-sm font-medium text-white hover:bg-[#21D0B2]/90">Agregar movimiento</button>
+      <button (click)="openAddMovimiento()" [disabled]="isOperario" class="h-9 rounded-md bg-[#21D0B2] px-3 text-sm font-medium text-white hover:bg-[#21D0B2]/90 disabled:opacity-50">Agregar movimiento</button>
       <button (click)="exportCSV()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Exportar CSV</button>
     </div>
+  </div>
+  <div *ngIf="isOperario" class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+    Modo solo lectura: no tienes permisos para registrar movimientos.
   </div>
 </div>
 

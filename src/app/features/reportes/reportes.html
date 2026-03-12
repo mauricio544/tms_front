@@ -5,7 +5,10 @@
       <p class="mt-1 text-slate-600">Resumen de KPIs y movimientos</p>
     </div>
     <div class="flex items-center gap-2">
-      <button (click)="load()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Refrescar</button>
+      <div *ngIf="isOperario" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+        Usuario operario: modo solo lectura
+      </div>
+      <button (click)="load()" [disabled]="isOperario" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50 disabled:opacity-50">Refrescar</button>
     </div>
   </div>
 </div>
@@ -18,15 +21,15 @@
   <div *ngIf="!loading && !error" class="mt-2 flex flex-wrap items-end gap-3">
     <div class="flex items-center gap-2">
       <label class="text-sm text-slate-600">Desde</label>
-      <input type="date" [(ngModel)]="fromDate" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary " (ngModelChange)="onDateChange()">
+      <input type="date" [(ngModel)]="fromDate" [disabled]="isOperario" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary " (ngModelChange)="onDateChange()">
     </div>
     <div class="flex items-center gap-2">
       <label class="text-sm text-slate-600">Hasta</label>
-      <input type="date" [(ngModel)]="toDate" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary " (ngModelChange)="onDateChange()">
+      <input type="date" [(ngModel)]="toDate" [disabled]="isOperario" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary " (ngModelChange)="onDateChange()">
     </div>
     <div class="ml-auto flex items-center gap-2">
-      <button (click)="exportCSV()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Exportar CSV</button>
-      <button (click)="exportPDF()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Exportar PDF</button>
+      <button (click)="exportCSV()" [disabled]="isOperario" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50 disabled:opacity-50">Exportar CSV</button>
+      <button (click)="exportPDF()" [disabled]="isOperario" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50 disabled:opacity-50">Exportar PDF</button>
     </div>
   </div>
 

@@ -99,69 +99,85 @@
 
 <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center">
   <div class="absolute inset-0 bg-black/30" (click)="closeModal()"></div>
-  <div class="relative z-10 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+  <div class="relative z-10 w-full max-w-3xl rounded-lg bg-white shadow-xl mx-4">
+    <div class="flex max-h-[90vh] flex-col">
+      <div class="border-b border-slate-200 px-6 py-4">
+        <h3 class="text-lg font-semibold text-slate-800">{{ editing ? 'Editar usuario' : 'Nuevo usuario' }}</h3>
+        <p class="mt-1 text-xs text-slate-500">Los cambios se guardan al finalizar. El botón guardar siempre estará disponible.</p>
+      </div>
 
-    <div class="mt-4 space-y-4">
-      <div>
-        <label class="block text-sm text-slate-700">Usuario</label>
-        <input type="email" [(ngModel)]="newUser.username" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
-      </div>
-      <div>
-        <label class="block text-sm text-slate-700">Contraseña</label>
-        <input type="password" [(ngModel)]="newUser.password" placeholder="********"
-               autocomplete="new-password"
-               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
-        <div class="text-xs text-red-600" *ngIf="newUser.password && newUser.password.length < 6">Mínimo 6 caracteres</div>
-      </div>
-      <div>
-        <label class="block text-sm text-slate-700">Persona</label>
-        <select [(ngModel)]="newUser.person_id"
-                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" required>
-          <option [ngValue]="null">Sin persona</option>
-          <option *ngFor="let p of personas" [ngValue]="p.id">
-            {{ (p.razon_social ?? '').toUpperCase()  || ((p.nombre ?? '').toUpperCase() + ' ' + ((p.apellido ?? '').toUpperCase() || '')) }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm text-slate-700">Punto</label>
-        <select [(ngModel)]="newUser.punto_id"
-                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" required>
-          <option [ngValue]="null">Selecciona un punto</option>
-          <option *ngFor="let p of puntos" [ngValue]="p.id">
-            {{ (p.nombre ?? '').toUpperCase() }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm text-slate-700">Roles y permisos</label>
-        <div class="mt-2" *ngIf="rolesLoading">Cargando roles...</div>
-        <div class="mt-2 text-xs text-red-600" *ngIf="rolesError">{{ rolesError }}</div>
-        <div class="mt-2 space-y-3" *ngIf="!rolesLoading && roles?.length">
-          <div *ngFor="let r of roles" class="rounded-md border border-slate-200 bg-slate-50 p-3">
-            <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <input type="checkbox" [checked]="r.selected" (change)="toggleRole(r, $event)" class="h-4 w-4 accent-[#2F455C]" />
-              {{ r.info.nombre }}
-            </label>
-            <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm text-slate-700" *ngIf="r.selected">
-              <div *ngFor="let p of r.permisos" class="flex items-start gap-2">
-                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-slate-400"></span>
-                <span>{{ p.description || p.code }}</span>
+      <div class="overflow-y-auto px-6 py-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm text-slate-700">Usuario</label>
+            <input type="email" [(ngModel)]="newUser.username" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+          </div>
+          <div>
+            <label class="block text-sm text-slate-700">Contraseña</label>
+            <input type="password" [(ngModel)]="newUser.password" placeholder="********"
+                   autocomplete="new-password"
+                   class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+            <div class="text-xs text-red-600" *ngIf="newUser.password && newUser.password.length < 6">Mínimo 6 caracteres</div>
+          </div>
+          <div>
+            <label class="block text-sm text-slate-700">Persona</label>
+            <select [(ngModel)]="newUser.person_id"
+                    class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" required>
+              <option [ngValue]="null">Sin persona</option>
+              <option *ngFor="let p of personas" [ngValue]="p.id">
+                {{ (p.razon_social ?? '').toUpperCase()  || ((p.nombre ?? '').toUpperCase() + ' ' + ((p.apellido ?? '').toUpperCase() || '')) }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-slate-700">Punto</label>
+            <select [(ngModel)]="newUser.punto_id"
+                    class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" required>
+              <option [ngValue]="null">Selecciona un punto</option>
+              <option *ngFor="let p of puntos" [ngValue]="p.id">
+                {{ (p.nombre ?? '').toUpperCase() }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex items-center justify-between gap-2">
+            <label class="block text-sm text-slate-700">Roles y permisos</label>
+            <span class="text-xs text-slate-500">{{ getSelectedRoleCodes().length }} rol(es) seleccionados</span>
+          </div>
+          <div class="mt-2" *ngIf="rolesLoading">Cargando roles...</div>
+          <div class="mt-2 text-xs text-red-600" *ngIf="rolesError">{{ rolesError }}</div>
+          <div class="mt-2 max-h-72 overflow-y-auto space-y-3 pr-1" *ngIf="!rolesLoading && roles?.length">
+            <div *ngFor="let r of roles" class="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input type="checkbox" [checked]="r.selected" (change)="toggleRole(r, $event)" class="h-4 w-4 accent-[#2F455C]" />
+                {{ r.info.nombre }}
+              </label>
+              <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm text-slate-700" *ngIf="r.selected">
+                <div *ngFor="let p of r.permisos" class="flex items-start gap-2">
+                  <span class="mt-1 h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+                  <span>{{ p.description || p.code }}</span>
+                </div>
               </div>
             </div>
           </div>
+          <div class="mt-2 text-xs text-slate-500" *ngIf="!rolesLoading && !roles?.length">No hay roles disponibles.</div>
         </div>
-        <div class="mt-2 text-xs text-slate-500" *ngIf="!rolesLoading && !roles?.length">No hay roles disponibles.</div>
-      </div>
-      <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-        <input type="checkbox" [(ngModel)]="newUser.is_active" class="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-primary" />
-        Activo
-      </label>
 
-    <div class="mt-6 flex items-center justify-between gap-2">
-      <button (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
-      <button (click)="submitNewUser()" [disabled]="!isValidUser || saving"
-              class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 disabled:opacity-50">Guardar</button>
+        <label class="mt-4 inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" [(ngModel)]="newUser.is_active" class="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-primary" />
+          Activo
+        </label>
+      </div>
+
+      <div class="border-t border-slate-200 px-6 py-4 bg-white">
+        <div class="flex items-center justify-between gap-2">
+          <button (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>
+          <button (click)="submitNewUser()" [disabled]="!isValidUser || saving"
+                  class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 disabled:opacity-50">Guardar</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

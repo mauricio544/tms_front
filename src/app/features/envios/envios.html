@@ -98,6 +98,12 @@
           </div>
 
           <div class="text-xs text-red-600 mt-1" *ngIf="remLookupError">{{ remLookupError }}</div>
+          <div class="mt-2 text-xs text-slate-500" *ngIf="remitenteCreditoLoading">Validando crédito...</div>
+          <div class="mt-2 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-800"
+               *ngIf="remitenteCredito?.tiene_credito">
+            Remitente con crédito. Límite: {{ remitenteCredito?.limite_credito | number:'1.2-2' }}. Fecha límite: {{ remitenteCredito?.fecha_credito | ymd }}
+          </div>
+          <div class="mt-2 text-xs text-red-600" *ngIf="remitenteCreditoError">{{ remitenteCreditoError }}</div>
         </div>
 
         <!--control destinatario-->

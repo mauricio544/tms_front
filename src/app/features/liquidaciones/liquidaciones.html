@@ -1,4 +1,159 @@
-﻿<div class="p-6">
-  <h1 class="text-xl font-semibold text-slate-800 capitalize">liquidaciones</h1>
-  <p class="mt-2 text-slate-600">Vista base para liquidaciones.</p>
+<div class="p-6">
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-slate-800">Liquidaciones</h1>
+      <p class="mt-1 text-slate-600">Resumen diario por usuario.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <div *ngIf="isOperario" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+        Usuario operario: modo solo lectura
+      </div>
+      <input
+        type="date"
+        [value]="fechaFiltro"
+        (change)="onFechaFiltroChange($any($event.target).value)"
+        [disabled]="isOperario"
+        class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+      />
+      <button
+        *ngIf="fechaFiltro"
+        type="button"
+        (click)="clearFechaFiltro()"
+        [disabled]="isOperario"
+        class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60"
+      >
+        Limpiar fecha
+      </button>
+      <button type="button" (click)="printGrillas()"
+              [disabled]="isOperario"
+              class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60">
+        Imprimir grillas
+      </button>
+      <button type="button" (click)="loadResumen()"
+              [disabled]="isOperario"
+              class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60">
+        Refrescar resumen
+      </button>
+      <button type="button" (click)="loadTotales()"
+              [disabled]="isOperario"
+              class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60">
+        Refrescar totales
+      </button>
+    </div>
+  </div>
+
+  <div class="mt-4" *ngIf="loading">
+    <div class="rounded-md border border-slate-200 bg-white p-4 text-slate-600">Cargando resumen...</div>
+  </div>
+  <div class="mt-4" *ngIf="error">
+    <div class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ error }}</div>
+  </div>
+
+  <div id="liquidaciones-resumen-grid" class="mt-4 overflow-x-auto" *ngIf="!loading && !error">
+    <table class="min-w-full divide-y divide-slate-200 bg-white rounded-md border border-slate-200">
+      <thead class="bg-white/60 text-slate-700 text-sm">
+      <tr>
+        <th class="px-3 py-2 text-left">Fecha</th>
+        <th class="px-3 py-2 text-left">Usuario</th>
+        <th class="px-3 py-2 text-right">Total env&iacute;os</th>
+        <th class="px-3 py-2 text-right">Total comprobantes</th>
+        <th class="px-3 py-2 text-right">Monto comprobantes</th>
+      </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 text-sm text-slate-800">
+      <tr *ngFor="let row of resumen">
+        <td class="px-3 py-2">{{ row.fecha_creacion | date:'yyyy-MM-dd' }}</td>
+        <td class="px-3 py-2">{{ row.usuario_crea }}</td>
+        <td class="px-3 py-2 text-right">{{ row.total_envios }}</td>
+        <td class="px-3 py-2 text-right">{{ row.total_comprobantes }}</td>
+        <td class="px-3 py-2 text-right">{{ row.total_monto_comprobantes | number:'1.2-2' }}</td>
+      </tr>
+      <tr *ngIf="resumen?.length" class="bg-slate-50">
+        <td class="px-3 py-2 font-semibold text-slate-700" colspan="2">Total</td>
+        <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ resumenTotalEnvios() }}</td>
+        <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ resumenTotalComprobantes() }}</td>
+        <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ resumenTotalMontoComprobantes() | number:'1.2-2' }}</td>
+      </tr>
+      <tr *ngIf="!resumen?.length">
+        <td class="px-3 py-4 text-center text-slate-500" colspan="5">Sin datos para mostrar.</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-8">
+    <h2 class="text-lg font-semibold text-slate-800">Totales por d&iacute;a</h2>
+    <p class="mt-1 text-slate-600">Env&iacute;os por d&iacute;a y usuario con detalle agregado.</p>
+  </div>
+
+  <div class="mt-4" *ngIf="totalesLoading">
+    <div class="rounded-md border border-slate-200 bg-white p-4 text-slate-600">Cargando totales...</div>
+  </div>
+  <div class="mt-4" *ngIf="totalesError">
+    <div class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ totalesError }}</div>
+  </div>
+
+  <div id="liquidaciones-totales-grid" class="mt-4 overflow-x-auto" *ngIf="!totalesLoading && !totalesError">
+    <table class="min-w-full divide-y divide-slate-200 bg-white rounded-md border border-slate-200">
+      <thead class="bg-white/60 text-slate-700 text-sm">
+      <tr>
+        <th class="px-3 py-2 text-left">Fecha</th>
+        <th class="px-3 py-2 text-left">Usuario</th>
+        <th class="px-3 py-2 text-right">Total env&iacute;os</th>
+      </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 text-sm text-slate-800">
+      <ng-container *ngFor="let row of totales">
+        <tr>
+          <td class="px-3 py-2">{{ row.fecha_creacion | date:'yyyy-MM-dd' }}</td>
+          <td class="px-3 py-2">{{ row.usuario_crea }}</td>
+          <td class="px-3 py-2 text-right">{{ row.total_envios }}</td>
+        </tr>
+        <tr *ngIf="row.envios?.length">
+          <td class="px-3 py-2" colspan="3">
+            <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <div class="text-xs font-semibold text-slate-700 mb-2">Detalle de env&iacute;os</div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-xs">
+                  <thead class="text-slate-600">
+                  <tr>
+                    <th class="px-2 py-1 text-left">Env&iacute;o</th>
+                    <th class="px-2 py-1 text-left">Origen</th>
+                    <th class="px-2 py-1 text-left">Destino</th>
+                    <th class="px-2 py-1 text-right">Comprobantes</th>
+                    <th class="px-2 py-1 text-right">Monto comprobantes</th>
+                    <th class="px-2 py-1 text-left">N&uacute;meros comprobantes</th>
+                  </tr>
+                  </thead>
+                  <tbody class="text-slate-800">
+                  <tr *ngFor="let e of row.envios" class="border-t border-slate-200">
+                    <td class="px-2 py-1">{{ e.envio?.id }}</td>
+                    <td class="px-2 py-1">{{ e.envio?.origen_nombre }}</td>
+                    <td class="px-2 py-1">{{ e.envio?.destino_nombre }}</td>
+                    <td class="px-2 py-1 text-right">{{ countComprobantes(e.comprobantes) }}</td>
+                    <td class="px-2 py-1 text-right">{{ totalComprobantes(e.comprobantes) | number:'1.2-2' }}</td>
+                    <td class="px-2 py-1 text-left">{{ comprobanteLabels(e.comprobantes) }}</td>
+                  </tr>
+                  <tr *ngIf="row.envios?.length" class="bg-white/70">
+                    <td class="px-2 py-1 font-semibold text-slate-700" colspan="3">Total</td>
+                    <td class="px-2 py-1 text-right font-semibold text-slate-700">{{ totalesDetalleComprobantes(row.envios) }}</td>
+                    <td class="px-2 py-1 text-right font-semibold text-slate-700">{{ totalesDetalleMontoComprobantes(row.envios) | number:'1.2-2' }}</td>
+                    <td class="px-2 py-1 text-left font-semibold text-slate-700">-</td>
+                  </tr>
+                  <tr *ngIf="!row.envios?.length">
+                    <td class="px-2 py-2 text-center text-slate-500" colspan="6">Sin detalle para mostrar.</td>
+                  </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </ng-container>
+      <tr *ngIf="!totales?.length">
+        <td class="px-3 py-4 text-center text-slate-500" colspan="3">Sin datos para mostrar.</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
 </div>

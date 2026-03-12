@@ -41,4 +41,8 @@ export class Comprobantes {
   getDatosComprobanteSunat(comprobante_id: number): Observable<ComprobanteSunat> {
     return this.api.get(`/envios/comprobantes/${comprobante_id}/sunat`);
   }
+
+  getComprobantesPunto(punto_id: number): Observable<Comprobante[]> {
+    return this.api.get(`/envios/comprobantes/por-punto?punto_id=${punto_id}`);
+  }
 }

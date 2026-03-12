@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { LoginComponent } from './login/login.component';
 import { Dashboard } from './dashboard/dashboard';
 import { authGuard } from '../../core/guards/auth.guard';
+import { maestrosGuard } from '../../core/guards/maestros.guard';
 import { LayoutComponent } from './layout/layout';
 
 // Feature components
@@ -37,15 +38,15 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'dashboard', component: Dashboard, data: { breadcrumb: 'Dashboard' } },
-      { path: 'conductores', component: Conductores, data: { breadcrumb: 'Conductores' } },
+      { path: 'conductores', component: Conductores, canActivate: [maestrosGuard], data: { breadcrumb: 'Conductores' } },
       // Maestros
-      { path: 'clientes', component: ClientesFeature, data: { breadcrumb: 'Clientes' } },
-      { path: 'vehiculos', component: VehiculosFeature, data: { breadcrumb: 'Vehículos' } },
-      { path: 'usuarios', component: UsuariosFeature, data: { breadcrumb: 'Usuarios' } },
-      { path: 'personas', component: PersonasFeature, data: { breadcrumb: 'Personas' } },
-      { path: 'roles', component: RolesFeature, data: { breadcrumb: 'Roles' } },
-      { path: 'puntos', component: RutasFeature, data: { breadcrumb: 'Puntos' } },
-      { path: 'sedes', component: SedesFeature, data: { breadcrumb: 'Sedes' } },
+      { path: 'clientes', component: ClientesFeature, canActivate: [maestrosGuard], data: { breadcrumb: 'Clientes' } },
+      { path: 'vehiculos', component: VehiculosFeature, canActivate: [maestrosGuard], data: { breadcrumb: 'Vehículos' } },
+      { path: 'usuarios', component: UsuariosFeature, canActivate: [maestrosGuard], data: { breadcrumb: 'Usuarios' } },
+      { path: 'personas', component: PersonasFeature, canActivate: [maestrosGuard], data: { breadcrumb: 'Personas' } },
+      { path: 'roles', component: RolesFeature, canActivate: [maestrosGuard], data: { breadcrumb: 'Roles' } },
+      { path: 'puntos', component: RutasFeature, canActivate: [maestrosGuard], data: { breadcrumb: 'Puntos' } },
+      { path: 'sedes', component: SedesFeature, canActivate: [maestrosGuard], data: { breadcrumb: 'Sedes' } },
       // Funcionalidades
       { path: 'manifiestos', component: ManifiestosFeature, data: { breadcrumb: 'Manifiestos' } },
       { path: 'envios', component: EnviosFeature, data: { breadcrumb: 'Envíos' } },

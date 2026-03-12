@@ -116,10 +116,11 @@ export class RutasFeature implements OnInit {
         this.closeModal();
         this.showNotif(wasEditing ? 'Punto actualizado' : 'Punto creado');
       },
-      error: () => {
+      error: (err: any) => {
+        console.log(err);
         this.saving = false;
-        this.saveError = this.editing ? 'No se pudo actualizar' : 'No se pudo crear el punto';
-        this.showNotif('No se pudo crear/actualizar el punto', 'error');
+        this.saveError = err.error.detail;
+        this.showNotif(`${this.saveError}`, 'error');
       }
     });
   }

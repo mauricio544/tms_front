@@ -17,6 +17,7 @@ import {DetalleMovimientos} from '../../../../core/services/detalle-movimientos'
   templateUrl: './comprobantes.html',
 })
 export class ComprobantesModalComponent implements OnInit, OnChanges {
+  isOperario = false;
   @Input() show = false;
   @Input() estado: 'P' | 'B' = 'P';
   @Input() comprobanteId: number | null = null;
@@ -89,6 +90,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
+    this.isOperario = this.hasOperarioRole();
     if (this.comprobanteId) { this.loadExisting(this.comprobanteId); }
     this.generalesSrv.getGenerales().subscribe({
       next: (gs: General[]) => {
@@ -124,6 +126,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
   onClose() { this.close.emit(); }
 
   guardarCabecera() {
+    if (this.isOperario) return;
     if (!this.validaCabecera || this.guardandoCabecera) return;
     this.guardandoCabecera = true;
     this.errorCabecera = null;
@@ -153,6 +156,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
   }
 
   agregarItem() {
+    if (this.isOperario) return;
     if (!this.cabeceraId || !this.validaItem) return;
     this.errorDetalle = null;
     const i: any = this.nuevoItem;
@@ -182,6 +186,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
   }
 
   eliminarItem(it: DetalleComprobante) {
+    if (this.isOperario) return;
     if (!it || !(it as any).id) return;
     this.errorDetalle = null;
     this.detallesSrv.deleteDetalles((it as any).id).subscribe({
@@ -194,6 +199,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
   }
 
   actualizarTotal() {
+    if (this.isOperario) return;
     if (!this.cabeceraId) return;
     const total = this.totalCalculado;
     this.comprobantesSrv.updateComprobantes(this.cabeceraId, { precio_total: total } as any).subscribe({
@@ -203,6 +209,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
   }
 
     finalizar() {
+    if (this.isOperario) return;
     if (!this.cabeceraId || this.finalizando || this.movimientoCreado) { if (this.cabeceraId && !this.finalizando && this.movimientoCreado){ this.saved.emit(this.cabeceraId); this.onClose(); } return; }
     this.finalizando = true;
     this.errorMovimiento = "";
@@ -266,6 +273,19 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
       if (id && (!this.cabeceraId || this.cabeceraId !== id)) {
         this.loadExisting(id);
       }
+    }
+  }
+
+  private hasOperarioRole(): boolean {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return false;
+      const me = JSON.parse(raw) as any;
+      const roles = Array.isArray(me?.roles) ? me.roles : [];
+      const roleNames = roles.map((r: any) => String(r?.name ?? r?.nombre ?? r?.rol ?? r?.role ?? r).toLowerCase().trim());
+      return roleNames.includes('operario') && !roleNames.includes('admin_sede');
+    } catch {
+      return false;
     }
   }
 }
