@@ -38,6 +38,19 @@
       <option [ngValue]="null">Destino: Todos</option>
       <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre.toUpperCase() }}</option>
     </select>
+    <input
+      type="date"
+      [(ngModel)]="fechaFiltro"
+      (ngModelChange)="onFechaFilterChange()"
+      class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"
+    />
+    <button
+      type="button"
+      (click)="clearFechaFilter()"
+      class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"
+    >
+      Limpiar fecha
+    </button>
     <button (click)="openCreate()"
             class="inline-flex items-center rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 focus:outline-none focus:ring-2 focus:ring-[#26A69A]">
       Nuevo
@@ -68,12 +81,20 @@
             <select [(ngModel)]="remitenteDocType" class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
               <option [ngValue]="'RUC'">RUC</option>
               <option [ngValue]="'DNI'">DNI</option>
+              <option [ngValue]="'CE'">Carné Extranjería</option>
+              <option [ngValue]="'P'">Pasaporte</option>
             </select>
             <input type="text" [(ngModel)]="remitenteDocNumber" (keydown.enter)="lookupRemitente()" placeholder="Nro documento" (keydown.tab)="focusDestinatarioDoc($event, destinatarioDocNumberInput)"
                    class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
             <!--<button type="button" (click)="lookupRemitente()" [disabled]="remLookupLoading"
                     class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-white/60">{{ remLookupLoading ? 'Buscando...' : 'Buscar' }}
             </button>-->
+          </div>
+          <div *ngIf="isSpecialDocType(remitenteDocType)" class="mt-2 grid grid-cols-2 gap-2">
+            <input type="text" [(ngModel)]="remitenteNombre" placeholder="Nombre"
+                   class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+            <input type="text" [(ngModel)]="remitenteApellido" placeholder="Apellido"
+                   class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
           </div>
           <div class="mt-1 relative">
             <div class="flex items-center gap-2">
@@ -114,8 +135,16 @@
                     class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
               <option [ngValue]="'RUC'">RUC</option>
               <option [ngValue]="'DNI'">DNI</option>
+              <option [ngValue]="'CE'">Carné Extranjería</option>
+              <option [ngValue]="'P'">Pasaporte</option>
             </select>
             <input #destinatarioDocNumberInput type="text" [(ngModel)]="destinatarioDocNumber" (keydown.enter)="lookupDestinatario()" placeholder="Nro documento"
+                   class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+          </div>
+          <div *ngIf="isSpecialDocType(destinatarioDocType)" class="mt-2 grid grid-cols-2 gap-2">
+            <input type="text" [(ngModel)]="destinatarioNombre" placeholder="Nombre"
+                   class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+            <input type="text" [(ngModel)]="destinatarioApellido" placeholder="Apellido"
                    class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
           </div>
           <div class="mt-1 relative">
@@ -301,12 +330,16 @@
                    class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
           <div>
-            <label class="block text-sm text-slate-700">Forma de pago</label>
+            <label class="block text-sm text-slate-700">Forma de pago <span class="text-red-600">*</span></label>
             <select [(ngModel)]="compFormaPagoId"
-                    class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
+                    class="mt-1 w-full rounded-md border px-2 py-2 text-sm"
+                    [class.border-red-400]="!compFormaPagoId"
+                    [class.border-slate-300]="!!compFormaPagoId"
+                    style="background-color: #ffffff;">
               <option [ngValue]="null">Seleccione...</option>
               <option *ngFor="let p of payTipos" [ngValue]="p.id">{{ p.nombre }}</option>
            </select>
+            <div class="mt-1 text-xs text-red-600" *ngIf="!compFormaPagoId">Seleccione una forma de pago</div>
           </div>
           <div>
             <label class="block text-sm text-slate-700">Fecha pago</label>
@@ -408,12 +441,16 @@
                    class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
           <div>
-            <label class="block text-sm text-slate-700">Forma de pago</label>
+            <label class="block text-sm text-slate-700">Forma de pago <span class="text-red-600">*</span></label>
             <select [(ngModel)]="compFormaPagoId"
-                    class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
+                    class="mt-1 w-full rounded-md border px-2 py-2 text-sm"
+                    [class.border-red-400]="!compFormaPagoId"
+                    [class.border-slate-300]="!!compFormaPagoId"
+                    style="background-color: #ffffff;">
               <option [ngValue]="null">Seleccione...</option>
               <option *ngFor="let p of payTipos" [ngValue]="p.id">{{ p.nombre }}</option>
            </select>
+            <div class="mt-1 text-xs text-red-600" *ngIf="!compFormaPagoId">Seleccione una forma de pago</div>
           </div>
           <div>
             <label class="block text-sm text-slate-700">Fecha pago</label>
@@ -564,6 +601,8 @@
 
 
               <option [ngValue]="'DNI'">DNI</option>
+              <option [ngValue]="'CE'">Carné Extranjería</option>
+              <option [ngValue]="'P'">Pasaporte</option>
 
 
             </select>
@@ -578,6 +617,12 @@
             </button>
 
 
+          </div>
+          <div *ngIf="isSpecialDocType(remitenteDocType)" class="mt-2 grid grid-cols-2 gap-2">
+            <input type="text" [(ngModel)]="remitenteNombre" placeholder="Nombre"
+                   class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+            <input type="text" [(ngModel)]="remitenteApellido" placeholder="Apellido"
+                   class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
           </div>
 
 
@@ -649,6 +694,8 @@
 
 
               <option [ngValue]="'DNI'">DNI</option>
+              <option [ngValue]="'CE'">Carné Extranjería</option>
+              <option [ngValue]="'P'">Pasaporte</option>
 
 
             </select>
@@ -663,6 +710,12 @@
             </button>
 
 
+          </div>
+          <div *ngIf="isSpecialDocType(destinatarioDocType)" class="mt-2 grid grid-cols-2 gap-2">
+            <input type="text" [(ngModel)]="destinatarioNombre" placeholder="Nombre"
+                   class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+            <input type="text" [(ngModel)]="destinatarioApellido" placeholder="Apellido"
+                   class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
           </div>
 
 
@@ -812,12 +865,16 @@
                    class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
           <div>
-            <label class="block text-sm text-slate-700">Forma de pago</label>
+            <label class="block text-sm text-slate-700">Forma de pago <span class="text-red-600">*</span></label>
             <select [(ngModel)]="compFormaPagoId"
-                    class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
+                    class="mt-1 w-full rounded-md border px-2 py-2 text-sm"
+                    [class.border-red-400]="!compFormaPagoId"
+                    [class.border-slate-300]="!!compFormaPagoId"
+                    style="background-color: #ffffff;">
               <option [ngValue]="null">Seleccione...</option>
               <option *ngFor="let p of payTipos" [ngValue]="p.id">{{ p.nombre }}</option>
            </select>
+            <div class="mt-1 text-xs text-red-600" *ngIf="!compFormaPagoId">Seleccione una forma de pago</div>
           </div>
           <div>
             <label class="block text-sm text-slate-700">Fecha pago</label>
@@ -985,11 +1042,15 @@
                class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
       </div>
       <div>
-        <label class="block text-sm text-slate-700">Forma de pago</label>
-        <select [(ngModel)]="compFormaPagoId" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;">
+        <label class="block text-sm text-slate-700">Forma de pago <span class="text-red-600">*</span></label>
+        <select [(ngModel)]="compFormaPagoId" class="mt-1 w-full rounded-md border px-2 py-2 text-sm"
+                [class.border-red-400]="!compFormaPagoId"
+                [class.border-slate-300]="!!compFormaPagoId"
+                style="background-color: #ffffff;">
           <option [ngValue]="null">Seleccione...</option>
           <option *ngFor="let p of payTipos" [ngValue]="p.id">{{ p.nombre }}</option>
         </select>
+        <div class="mt-1 text-xs text-red-600" *ngIf="!compFormaPagoId">Seleccione una forma de pago</div>
       </div>
       <div>
         <label class="block text-sm text-slate-700">Fecha pago</label>
@@ -1098,7 +1159,7 @@
           <div class="min-w-0">
 
 
-            <div class="font-medium text-slate-800 truncate max-w-[14rem]">Envío: {{ item.id || '-' }}</div>
+            <div class="font-medium text-slate-800 truncate max-w-[14rem]">Ticket: {{ item.ticket_numero || '-' }}</div>
 
 
             <div class="text-xs text-slate-500">ID: {{ i + 1 + (page - 1) * pageSize }}</div>
@@ -1120,7 +1181,7 @@
           <span class="inline-block rounded border border-indigo-200 bg-indigo-50 text-indigo-700 px-2 py-0.5">Destinatario: {{ personaLabelById(item.destinatario) || item.destinatario }}</span>
 
 
-          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Peso: {{ item.peso }}</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Precio: {{ item.precio_envio | number:'1.2-2' }}</span>
 
 
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Fecha envío</span>
@@ -1132,6 +1193,8 @@
 
           <span
             class="inline-block rounded bg-slate-100 px-2 py-0.5">Destino: {{ getPuntoNombre(item.punto_destino_id) }}</span>
+          <span
+            class="inline-block rounded bg-slate-100 px-2 py-0.5">Usuario: {{ item.usuario_crea || '-' }}</span>
 
 
           <span class="inline-block rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5"
@@ -1153,7 +1216,7 @@
             class=""></i></span>
 
 
-          <button type="button" *ngIf="!item.fecha_recepcion"
+          <button type="button" *ngIf="canConfirmEntrega(item)"
                   class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100"
                   (click)="openEntrega(item); $event.stopPropagation()">Entregar
           </button>
@@ -1189,13 +1252,14 @@
       <table class="min-w-full divide-y divide-slate-200 bg-white rounded-md border border-slate-200">
         <thead class="bg-white/60 text-slate-700 text-sm">
         <tr>
-          <th class="px-3 py-2 text-left">Gu&iacute;a</th>
+          <th class="px-3 py-2 text-left">Ticket</th>
           <th class="px-3 py-2 text-left">Remitente</th>
           <th class="px-3 py-2 text-left">Destinatario</th>
-          <th class="px-3 py-2 text-left">Peso</th>
+          <th class="px-3 py-2 text-left">Precio</th>
           <th class="px-3 py-2 text-left">Fecha envío</th>
           <th class="px-3 py-2 text-left">Origen</th>
           <th class="px-3 py-2 text-left">Destino</th>
+          <th class="px-3 py-2 text-left">Usuario</th>
           <th class="px-3 py-2 text-center">¿Pagado?</th>
           <th class="px-3 py-2 text-center">¿Entregado?</th>
           <th class="px-3 py-2 text-right">Acciones</th>
@@ -1203,13 +1267,14 @@
         </thead>
         <tbody class="divide-y divide-slate-100 text-sm text-slate-800">
         <tr *ngFor="let item of pageItems">
-          <td class="px-3 py-2">{{ item.id || '-' }}</td>
+          <td class="px-3 py-2">{{ item.ticket_numero || '-' }}</td>
           <td class="px-3 py-2">{{ personaLabelById(item.remitente) || item.remitente }}</td>
           <td class="px-3 py-2">{{ personaLabelById(item.destinatario) || item.destinatario }}</td>
-          <td class="px-3 py-2">{{ item.peso }}</td>
+          <td class="px-3 py-2">{{ item.precio_envio | number:'1.2-2' }}</td>
           <td class="px-3 py-2">{{ item.fecha_envio | ymd }}</td>
           <td class="px-3 py-2">{{ getPuntoNombre(item.punto_origen_id) }}</td>
           <td class="px-3 py-2">{{ getPuntoNombre(item.punto_destino_id) }}</td>
+          <td class="px-3 py-2">{{ item.usuario_crea || '-' }}</td>
           <td class="px-3 py-2 text-center">
             <span class="inline-block rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5"
                 *ngIf="item.estado_pago">S&iacute;</span>
@@ -1232,7 +1297,7 @@
                     class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60 disabled:opacity-50"
                     [disabled]="!canSendText(item)"
                     (click)="sendEnvioText(item, $event)">Enviar SMS</button>
-            <button type="button" *ngIf="!item.fecha_recepcion"
+            <button type="button" *ngIf="canConfirmEntrega(item)"
                     class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-800 hover:bg-emerald-100"
                     (click)="openEntrega(item)">Confirmar entrega
             </button>
@@ -1461,7 +1526,7 @@
 
 
         <input type="password" [(ngModel)]="entregaClaveInput" autocomplete="new-password" autocapitalize="off" spellcheck="false"
-               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
+               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]" maxlength="4"/>
 
 
         <div class="mt-1 text-xs" [class.text-emerald-700]="entregaClaveOk"
@@ -1588,11 +1653,11 @@
 
 <!-- Comprobante Modal  1 -->
 <div *ngIf="showComprobante" class="fixed inset-0 z-50 flex items-center justify-center">
-  <div class="absolute inset-0 bg-black/30" (click)="closeComprobante()"></div>
-  <div class="relative z-10 w-[800px] max-w-[95vw] rounded-md bg-white p-4 shadow-xl">
+  <div class="absolute inset-0 bg-black/30 comprobante-backdrop" (click)="closeComprobante()"></div>
+  <div class="relative z-10 w-[800px] max-w-[95vw] rounded-md bg-white p-4 shadow-xl comprobante-modal">
     <div class="flex items-center justify-between">
       <h3 class="text-sm font-semibold text-slate-800">Comprobante Edición</h3>
-      <div class="flex gap-2">
+      <div class="flex gap-2 comprobante-actions">
         <button (click)="printComprobante()"
                 class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Imprimir</button>
         <button (click)="closeComprobante()"
@@ -1600,7 +1665,7 @@
       </div>
     </div>
     <div class="mt-2">
-      <div class="max-w-4xl mx-auto bg-white p-4 sm:p-6 text-[13px] text-gray-900 print:bg-white">
+      <div class="max-w-4xl mx-auto bg-white p-4 sm:p-6 text-[13px] text-gray-900 print:bg-white comprobante-print">
         <div class="flex justify-between items-start gap-6">
           <div class="flex-1">
             <div class="text-base font-bold leading-tight">{{ compView.razon || "-" }}</div>

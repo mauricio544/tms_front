@@ -10,7 +10,8 @@ import {
   PublicLinkResponse,
   EnvioTrackingPublicLinkRequest,
   EnviosDiariosAgrupadosRead,
-  EnviosDiariosResumenPorUsuarioRead
+  EnviosDiariosResumenPorUsuarioRead,
+  EnvioListRead
 } from '../mapped';
 import { AuthService } from './auth.service';
 
@@ -25,6 +26,10 @@ export class Envios {
 
   getEnvios(): Observable<Envio[]> {
     return this.api.get('/envios/');
+  }
+
+  getEnviosDate(fecha: string): Observable<Envio[]> {
+    return this.api.get(`/envios?fecha=${fecha}`);
   }
 
   getEnvio(id: number): Observable<Envio> {
@@ -79,5 +84,9 @@ export class Envios {
 
   getEnviosSede(punto_id: number): Observable<Envio[]> {
     return this.api.get(`/envios/por-punto?punto_id=${punto_id}`);
+  }
+
+  getEnviosSedeDate(punto_id: number, fecha: string): Observable<Envio[]> {
+    return this.api.get(`/envios/por-punto?punto_id=${punto_id}&fecha=${fecha}`);
   }
 }

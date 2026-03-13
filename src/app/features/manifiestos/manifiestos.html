@@ -415,6 +415,7 @@
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-lg font-semibold text-slate-800">Doc. del Manifiesto {{ guiaSerie }}-{{ guiaNumero }}</h3>
       <div class="flex items-center gap-2">
+        <button (click)="printManifiestoInline()" [disabled]="guiaLoading || !!guiaError" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Imprimir</button>
         <button (click)="exportGuiaPDF()" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50">Exportar PDF</button>
         <button (click)="closeGuia()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
       </div>
@@ -422,7 +423,7 @@
     <div *ngIf="guiaLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando.</div>
     <div *ngIf="guiaError" class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ guiaError }}</div>
     <div *ngIf="!guiaLoading && !guiaError" class="overflow-x-auto rounded-md border border-slate-200 p-3">
-      <div class="mx-auto w-full max-w-[210mm] bg-white text-[12px] leading-tight text-slate-900">
+      <div id="manifiesto-inline-print" class="mx-auto w-full max-w-[210mm] bg-white text-[12px] leading-tight text-slate-900">
         <div class="p-4 font-mono">
           <div class="grid grid-cols-3 gap-2">
             <div class="space-y-1">

@@ -1,17 +1,43 @@
 ﻿
-/* Print styles for 80mm ticket */
+/* Print styles */
 @media print {
-  @page { size: 80mm auto; margin: 4mm; }
+  @page { margin: 6mm; }
   html, body { padding: 0; margin: 0; }
-  /* Hide everything by default */
   body * { visibility: hidden !important; }
-  /* Only show the ticket content */
-  .ticket, .ticket * { visibility: visible !important; }
-  .ticket { position: absolute; left: 0; top: 0; width: 80mm !important; max-width: 80mm !important; font-size: 11px; line-height: 1.2; }
-  /* Hide action buttons/header in the modal */
-  .ticket-actions { display: none !important; }
-  /* Remove borders/shadows for clean print */
-  .shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .border, [class*="border-"] { box-shadow: none !important; border: 0 !important; }
+
+  body.print-ticket .ticket,
+  body.print-ticket .ticket * { visibility: visible !important; }
+  body.print-ticket .ticket {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+  body.print-ticket .ticket-actions { display: none !important; }
+
+  body.print-comprobante .comprobante-print,
+  body.print-comprobante .comprobante-print * { visibility: visible !important; }
+  body.print-comprobante .comprobante-backdrop,
+  body.print-comprobante .comprobante-actions { display: none !important; }
+  body.print-comprobante .comprobante-modal {
+    box-shadow: none !important;
+    border: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    background: #fff !important;
+  }
+  body.print-comprobante .comprobante-print {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 190mm;
+    margin: 0 auto;
+    page-break-inside: avoid;
+  }
 }
 /* Highlight Detalle del envío inside inline Nuevo envío */
 .detalle-envio-resaltado {

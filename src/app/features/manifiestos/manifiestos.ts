@@ -614,6 +614,51 @@ ngOnInit(): void {
   }
   closeGuia() { this.showGuiaModal = false; }
 
+  printManifiestoInline() {
+    const printContent = document.getElementById('manifiesto-inline-print');
+    if (!printContent) {
+      this.showNotif('No se pudo preparar la impresion', 'error');
+      return;
+    }
+    const win = window.open('', '_blank', 'width=1024,height=768');
+    if (!win) {
+      this.showNotif('No se pudo abrir la ventana de impresion', 'error');
+      return;
+    }
+    const styleTags = Array.from(document.querySelectorAll('style'))
+      .map((n) => (n as HTMLStyleElement).outerHTML)
+      .join('\n');
+    const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map((n) => {
+        const href = (n as HTMLLinkElement).href;
+        return href ? `<link rel="stylesheet" href="${href}">` : '';
+      })
+      .join('\n');
+    const baseHref = `${window.location.origin}/`;
+    const printCss = `
+      <style>
+        @page { size: A4 portrait; margin: 10mm; }
+        html, body { margin: 0; padding: 0; background: #fff; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .print-host { width: 100%; max-width: 190mm; margin: 0 auto; }
+      </style>
+    `;
+    const bodyClass = String(document.body.className || '');
+    win.document.open();
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><base href="${baseHref}"><title>Manifiesto ${this.guiaSerie || ''}-${this.guiaNumero || ''}</title>${linkTags}${styleTags}${printCss}</head><body class="${bodyClass}"><div class="print-host">${printContent.outerHTML}</div></body></html>`);
+    win.document.close();
+    let printed = false;
+    const doPrint = () => {
+      if (printed) return;
+      printed = true;
+      try { win.focus(); } catch {}
+      try { win.print(); } catch {}
+      setTimeout(() => { try { win.close(); } catch {} }, 120);
+    };
+    win.addEventListener('load', doPrint, { once: true });
+    setTimeout(doPrint, 700);
+  }
+
   private getUserSedeId(): number {
     try {
       const raw = localStorage.getItem('me');

@@ -196,6 +196,8 @@ export interface Envio {
   estado_whatsapp: string;
   estado_envio: string;
   id_tracking: string;
+  usuario_crea: string;
+  precio_envio?: number;
 }
 
 export interface EnvioCreate {
@@ -634,6 +636,10 @@ export interface EnvioWithDetalleRead extends Partial<Envio> {
   detalles: DetalleEnvio[];
   origen_nombre: string
   destino_nombre: string
+}
+
+export interface EnvioListRead extends Partial<Envio> {
+  usuario_crea: string;
 }
 
 export interface ManifiestoWithEnviosRead {
