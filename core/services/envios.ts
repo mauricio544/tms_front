@@ -29,7 +29,7 @@ export class Envios {
   }
 
   getEnviosDate(fecha: string): Observable<Envio[]> {
-    return this.api.get(`/envios?fecha=${fecha}`);
+    return this.api.get(`/envios/?fecha=${fecha}`);
   }
 
   getEnvio(id: number): Observable<Envio> {
@@ -67,19 +67,43 @@ export class Envios {
   getEnviosTotales(): Observable<EnviosDiariosAgrupadosRead[]> {
     return this.api.get('/envios/reporte-envios-dia-agrupado');
   }
-
+  // admin
   getEnviosTotalesByFecha(fecha?: string): Observable<EnviosDiariosAgrupadosRead[]> {
     const query = fecha ? `?fecha=${encodeURIComponent(fecha)}` : '';
     return this.api.get(`/envios/reporte-envios-dia-agrupado${query}`);
+  }
+  // admin sede
+  getEnviosTotalesByFechaSede(fecha?: string, sede_id?: number): Observable<EnviosDiariosAgrupadosRead[]> {
+    const query = fecha ? `&fecha=${encodeURIComponent(fecha)}` : '';
+    return this.api.get(`/envios/reporte-envios-dia-agrupado/liquidaciones-por-sede?sede_id=${sede_id}${query}`);
+  }
+
+  // operario
+  getEnviosTotalesByFechaUsuario(fecha?: string, usuario_id?: number): Observable<EnviosDiariosAgrupadosRead[]> {
+    const query = fecha ? `&fecha=${encodeURIComponent(fecha)}` : '';
+    return this.api.get(`/envios/reporte-envios-dia-agrupado/liquidaciones-por-usuario?usuario_id=${usuario_id}${query}`);
   }
 
   getEnviosResumen(): Observable<EnviosDiariosResumenPorUsuarioRead[]> {
     return this.api.get('/envios/reporte-envios-dia-resumen');
   }
 
+  // admin
   getEnviosResumenByFecha(fecha?: string): Observable<EnviosDiariosResumenPorUsuarioRead[]> {
     const query = fecha ? `?fecha=${encodeURIComponent(fecha)}` : '';
     return this.api.get(`/envios/reporte-envios-dia-resumen${query}`);
+  }
+
+  // admin sede
+  getEnviosResumenByFechaSede(fecha?: string, sede_id?: number): Observable<EnviosDiariosResumenPorUsuarioRead[]> {
+    const query = fecha ? `&fecha=${encodeURIComponent(fecha)}` : '';
+    return this.api.get(`/envios/reporte-envios-dia-resumen/liquidaciones-por-sede?sede_id=${sede_id}${query}`);
+  }
+
+  // operario
+  getEnviosResumenByFechaUsuario(fecha?: string, usuario_id?: number): Observable<EnviosDiariosResumenPorUsuarioRead[]> {
+    const query = fecha ? `&fecha=${encodeURIComponent(fecha)}` : '';
+    return this.api.get(`/envios/reporte-envios-dia-resumen/liquidaciones-por-usuario?usuario_id=${usuario_id}${query}`);
   }
 
   getEnviosSede(punto_id: number): Observable<Envio[]> {

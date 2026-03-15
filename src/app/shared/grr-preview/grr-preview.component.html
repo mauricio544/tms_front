@@ -1,0 +1,63 @@
+<div class="mx-auto w-full max-w-md px-2 py-3 print:p-0">
+  <div class="no-print mb-3 flex justify-center">
+    <button
+      type="button"
+      (click)="print()"
+      class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+      Imprimir guía
+    </button>
+  </div>
+
+  <section class="thermal-80 mx-auto border border-slate-200 bg-white p-2 text-[11px] leading-tight text-slate-900 shadow-sm print:border-0 print:shadow-none">
+    <header class="border-b border-dashed border-slate-300 pb-2 text-center">
+      <img *ngIf="companyLogoSrc() as logo" [src]="logo" alt="Logo empresa" class="mx-auto mb-1 max-h-16 object-contain" />
+      <div class="font-semibold tracking-wide">GUÍA DE REMISIÓN REMITENTE</div>
+      <div class="font-bold">{{ doc?.fullNumber || '-' }}</div>
+    </header>
+
+    <div class="border-b border-dashed border-slate-300 py-2">
+      <div class="font-semibold">Datos generales</div>
+      <div>Emitida: {{ doc?.issuedAt || '-' }}</div>
+      <div>Inicio traslado: {{ doc?.startDatetime || '-' }}</div>
+      <div>Empresa: {{ doc?.companyName || '-' }}</div>
+      <div>RUC: {{ doc?.companyRuc || '-' }}</div>
+    </div>
+
+    <div class="border-b border-dashed border-slate-300 py-2">
+      <div class="font-semibold">Ruta</div>
+      <div>Origen: {{ doc?.originAddress || '-' }}</div>
+      <div>Destino: {{ doc?.destAddress || '-' }}</div>
+    </div>
+
+    <div class="border-b border-dashed border-slate-300 py-2">
+      <div class="font-semibold">Transporte</div>
+      <div>Vehículo: {{ doc?.vehiclePlate || '-' }}</div>
+      <div>Conductor: {{ doc?.driverName || '-' }}</div>
+      <div>Doc: {{ doc?.driverDocType || '' }} {{ doc?.driverDocNumber || '' }}</div>
+      <div>Licencia: {{ doc?.driverLicense || '-' }}</div>
+    </div>
+
+    <div class="border-b border-dashed border-slate-300 py-2">
+      <div class="mb-1 font-semibold">Bienes trasladados</div>
+      <article *ngFor="let it of doc?.items; index as i" class="mb-2 border-b border-dotted border-slate-200 pb-1 last:mb-0 last:border-b-0 last:pb-0">
+        <div class="font-medium">{{ i + 1 }}. {{ it.description }}</div>
+        <div>SKU: {{ it.sku || '-' }}</div>
+        <div>Cantidad: {{ it.qty || 0 }} {{ it.uom || 'UND' }}</div>
+        <div>Peso: {{ it.weightKg || 0 }} kg</div>
+      </article>
+      <div class="mt-1 font-semibold">Total cant: {{ doc?.totalQty || 0 }}</div>
+      <div class="font-semibold">Total peso: {{ doc?.totalWeightKg || 0 }} kg</div>
+    </div>
+
+    <div *ngIf="doc?.hashSha256 || doc?.qrDataUrl" class="border-b border-dashed border-slate-300 py-2">
+      <div class="font-semibold">Trazabilidad</div>
+      <div *ngIf="doc?.hashSha256">Hash: {{ doc?.hashSha256 }}</div>
+      <img *ngIf="toImageSrc(doc?.qrDataUrl) as qr" [src]="qr" alt="QR guía" class="mx-auto mt-2 h-24 w-24 object-contain" />
+    </div>
+
+    <div class="pt-2 text-center text-[10px] text-slate-600">
+      Representación impresa de guía remitente
+    </div>
+  </section>
+</div>
+

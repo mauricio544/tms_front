@@ -134,11 +134,17 @@
                   class="rounded-md border border-slate-200 bg-white p-1.5 hover:bg-slate-50 disabled:opacity-50">
                   <ng-icon name="heroDocumentArrowDown" size="16"></ng-icon>
                 </button>
-                <button
+                <!--<button
                   (click)="$event.stopPropagation(); generarSunatRow(c)"
                   [disabled]="isOperario || sunatLoading || isSunatAccepted(c)"
                   class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50">
                   Generar SUNAT
+                </button>-->
+                <button
+                  (click)="$event.stopPropagation(); enviarSunatRow(c)"
+                  [disabled]="isOperario || sunatLoading"
+                  class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50">
+                  Enviar SUNAT
                 </button>
               </div>
             </td>
@@ -175,7 +181,8 @@
           <button (click)="exportSelectedCSV()" [disabled]="isOperario" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Exportar CSV</button>
           <button (click)="exportSelectedPDF()" [disabled]="isOperario" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Exportar PDF</button>
           <button (click)="generarSunat()" [disabled]="isOperario || sunatLoading || sunatStatus === 'accepted'" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Generar SUNAT</button>
-          <button class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" (click)="selected=null">Cerrar</button>
+          <button (click)="enviarSunat()" [disabled]="isOperario || sunatLoading" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Enviar SUNAT</button>
+          <button class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" (click)="selected=null; comprobantePreview=null">Cerrar</button>
         </div>
       </div>
       <div class="mb-3 text-xs">
@@ -184,74 +191,7 @@
       </div>
 
       <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div class="border border-slate-200 bg-white p-3">
-            <div class="font-semibold mb-2">Datos del cliente</div>
-            <div class="space-y-1">
-              <div class="flex gap-2"><span class="w-28 text-slate-600">Señor(es):</span><span class="flex-1">{{ clienteNombre(selected) }}</span></div>
-              <div class="flex gap-2"><span class="w-28 text-slate-600">RUC/DNI:</span><span class="flex-1">{{ selected.cliente_documento || '-' }}</span></div>
-              <div class="flex gap-2"><span class="w-28 text-slate-600">Dirección:</span><span class="flex-1">-</span></div>
-            </div>
-          </div>
-          <div class="border border-slate-200 bg-white p-3">
-            <div class="font-semibold mb-2">Datos del comprobante</div>
-            <div class="space-y-1">
-              <div class="flex gap-2"><span class="w-32 text-slate-600">Fecha emisión:</span><span class="flex-1">{{ selected.fecha_comprobante | ymd }}</span></div>
-              <div class="flex gap-2"><span class="w-32 text-slate-600">Forma de pago:</span><span class="flex-1">{{ formaNombre(selected.forma_pago) }}</span></div>
-              <div class="flex gap-2"><span class="w-32 text-slate-600">Tipo:</span><span class="flex-1">{{ tipoNombre(selected.tipo_comprobante_sunat) }}</span></div>
-              <div class="flex gap-2"><span class="w-32 text-slate-600">Impuesto:</span><span class="flex-1">{{ selected.impuesto | number:'1.2-2' }}</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <div class="overflow-x-auto rounded-md border border-slate-200 shadow-sm">
-          <table class="min-w-full text-sm">
-            <thead class="bg-slate-50 text-left text-slate-700">
-              <tr>
-                <th class="px-2 py-1 text-center">Ítem</th>
-                <th class="px-2 py-1 text-center">Cant.</th>
-                <th class="px-2 py-1 text-center">Und.</th>
-                <th class="px-2 py-1">Descripción</th>
-                <th class="px-2 py-1 text-right">V. Unit</th>
-                <th class="px-2 py-1 text-right">IGV</th>
-                <th class="px-2 py-1 text-right">Importe</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let it of detalles; index as i" class="border-t border-slate-200 odd:bg-slate-50">
-                <td class="px-2 py-1 text-center">{{ it.numero_item }}</td>
-                <td class="px-2 py-1 text-center">{{ it.cantidad }}</td>
-                <td class="px-2 py-1 text-center">UND</td>
-                <td class="px-2 py-1">
-                  {{ it.descripcion }}
-                  <div class="text-[11px] text-slate-500" *ngIf="selectedIsFactura">Afecto al IGV</div>
-                </td>
-                <td class="px-2 py-1 text-right">{{ it.precio_unitario | number: '1.2-2' }}</td>
-                <td class="px-2 py-1 text-right">{{ selectedIsFactura ? ((it.cantidad || 0) * (it.precio_unitario || 0) * 0.18 | number: '1.2-2') : (0 | number: '1.2-2') }}</td>
-                <td class="px-2 py-1 text-right">{{ ((it.cantidad || 0) * (it.precio_unitario || 0) + (selectedIsFactura ? ((it.cantidad || 0) * (it.precio_unitario || 0) * 0.18) : 0)) | number: '1.2-2' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="mt-4 flex justify-end">
-          <div class="w-80 border border-slate-200 bg-white p-3 text-sm">
-            <div class="flex justify-between py-0.5">
-              <span class="text-slate-600">Op. Gravadas</span>
-              <span>{{ subtotal | number:'1.2-2' }}</span>
-            </div>
-            <div class="flex justify-between py-0.5" *ngIf="selectedIsFactura">
-              <span class="text-slate-600">IGV (18%)</span>
-              <span>{{ selectedIgv | number:'1.2-2' }}</span>
-            </div>
-            <div class="border-t border-slate-200 my-2"></div>
-            <div class="flex justify-between py-0.5 text-base font-bold">
-              <span>Total</span>
-              <span>{{ selectedTotal | number:'1.2-2' }}</span>
-            </div>
-          </div>
-        </div>
+        <app-comprobante-preview [comprobante]="comprobantePreview"></app-comprobante-preview>
       </div>
     </div>
 </section>

@@ -46,7 +46,11 @@
   <ng-container *ngIf="pageItems?.length; else empty">
     <ng-container *ngIf="viewMode === 'cards'; else gridView">
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <div *ngFor="let item of pageItems; index as i" class="group rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <div *ngFor="let item of pageItems; index as i"
+             class="group rounded-lg border bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+             [class.border-[#21D0B2]]="selectedManifiestoId === item.id"
+             [class.border-slate-200]="selectedManifiestoId !== item.id"
+             (click)="openDetailContext(item)">
           <div class="mb-3 flex items-start justify-between">
             <div class="min-w-0">
               <div class="max-w-[14rem] truncate font-medium text-slate-800">{{ item.serie }}-{{ item.numero }}</div>
@@ -59,15 +63,30 @@
             <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Destino: {{ nameFrom(safeDestino(item)) }}</span>
             <span class="inline-block rounded bg-slate-100 px-2 py-0.5">fecha Traslado: {{ item.fecha_traslado | ymd }}</span>
           </div>
-          <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
-            <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Manifiesto</button>
-            <!--<button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>-->
-            <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuiaSunat(item)">Generar Gu&iacute;a Sunat</button>
-            <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[item.id]" (click)="generarPublicLink(item)">{{ publicLinkLoading[item.id] ? 'Generando...' : 'Enlace p&uacute;blico' }}</button>
-            <button class="rounded-md bg-[#21D0B2] px-2.5 py-1.5 text-xs text-white hover:bg-[#21D0B2]/90" (click)="verEnvios(item)">Ver Envíos</button>
-            <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
-            <button class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
-            <button class="rounded-md border border-[#2F455C]/20 bg-[#2F455C]/10 px-2.5 py-1.5 text-xs text-[#2F455C] hover:bg-[#2F455C]/20" (click)="askDelete(item)">Eliminar</button>
+          <div class="relative mt-4 flex flex-wrap items-center justify-end gap-2">
+            <button
+              class="rounded-md bg-[#21D0B2] px-2.5 py-1.5 text-xs text-white hover:bg-[#21D0B2]/90"
+              (click)="openEnviosContext(item, $event)">
+              Ver Envíos
+            </button>
+            <button
+              class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+              (click)="toggleActionMenu(item, $event)">
+              Más
+            </button>
+            <div
+              *ngIf="isActionMenuOpen(item)"
+              class="absolute right-0 top-full z-20 mt-1 w-48 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
+              (click)="$event.stopPropagation()">
+              <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGenerarManifiestoContext(item, $event)">Generar Manifiesto</button>
+              <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGuiaSunatContext(item, $event)">Generar Guía Sunat</button>
+              <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGrtContext(item, $event)">Generar GRT</button>
+              <button *ngIf="canShowPublicLink(item)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[item.id]" (click)="openPublicLinkContext(item, $event)">{{ publicLinkLoading[item.id] ? 'Generando...' : 'Enlace público' }}</button>
+              <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openAddEnviosContext(item, $event)">Añadir Envío</button>
+              <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openEditContext(item, $event)">Editar</button>
+              <button *ngIf="hasGeo(item)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGeoContext(item, $event)">Ver mapa</button>
+              <button class="block w-full rounded px-2 py-1.5 text-left text-xs text-red-700 hover:bg-red-50" (click)="askDeleteContext(item, $event)">Eliminar</button>
+            </div>
           </div>
         </div>
       </div>
@@ -91,7 +110,7 @@
           </thead>
           <tbody>
             <ng-container *ngFor="let item of pageItems">
-            <tr class="border-t border-slate-100">
+            <tr class="border-t border-slate-100 cursor-pointer" (click)="openDetailContext(item)">
               <td class="px-3 py-2">{{ item.serie }}-{{ item.numero }}</td>
               <td class="px-3 py-2">{{ conductorLabel(item.conductor_id) }}</td>
               <td class="px-3 py-2">{{ item.fecha_traslado | ymd }}</td>
@@ -130,15 +149,22 @@
                 <span *ngIf="!sunatGenState[item.id]" class="text-slate-400">-</span>
               </td>
               <td class="px-3 py-2">
-                <div class="flex flex-wrap items-center gap-2">
-                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarManifiesto(item)">Generar Manifiesto</button>
-                  <!--<button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuia(item)">Generar Gu&iacute;a</button>-->
-                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="generarGuiaSunat(item)">Generar Gu&iacute;a Sunat</button>
-                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[item.id]" (click)="generarPublicLink(item)">{{ publicLinkLoading[item.id] ? 'Generando...' : 'Enlace p&uacute;blico' }}</button>
-                  <button class="rounded-md bg-[#21D0B2] px-2 py-1 text-xs text-white hover:bg-[#21D0B2]/90" (click)="verEnvios(item)">Ver Envíos</button>
-                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="anadirEnvio(item)">Añadir Envío</button>
-                  <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="openEdit(item)">Editar</button>
-                  <button class="rounded-md border border-[#2F455C]/20 bg-[#2F455C]/10 px-2 py-1 text-xs text-[#2F455C] hover:bg-[#2F455C]/20" (click)="askDelete(item)">Eliminar</button>
+                <div class="relative flex flex-wrap items-center gap-2">
+                  <button class="rounded-md bg-[#21D0B2] px-2 py-1 text-xs text-white hover:bg-[#21D0B2]/90" (click)="openEnviosContext(item, $event)">Ver Envíos</button>
+                  <button class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50" (click)="toggleActionMenu(item, $event)">Más</button>
+                  <div
+                    *ngIf="isActionMenuOpen(item)"
+                    class="absolute right-0 top-full z-20 mt-1 w-48 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
+                    (click)="$event.stopPropagation()">
+                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGenerarManifiestoContext(item, $event)">Generar Manifiesto</button>
+                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGuiaSunatContext(item, $event)">Generar Guía Sunat</button>
+                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGrtContext(item, $event)">Generar GRT</button>
+                    <button *ngIf="canShowPublicLink(item)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[item.id]" (click)="openPublicLinkContext(item, $event)">{{ publicLinkLoading[item.id] ? 'Generando...' : 'Enlace público' }}</button>
+                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openAddEnviosContext(item, $event)">Añadir Envío</button>
+                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openEditContext(item, $event)">Editar</button>
+                    <button *ngIf="hasGeo(item)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGeoContext(item, $event)">Ver mapa</button>
+                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs text-red-700 hover:bg-red-50" (click)="askDeleteContext(item, $event)">Eliminar</button>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -180,6 +206,318 @@
   <ng-template #empty>
     <div class="flex items-center justify-center rounded-md border border-dashed border-slate-300 bg-white py-16 text-slate-500">No hay manifiestos para mostrar.</div>
   </ng-template>
+
+  <!-- Drawer de detalle contextual -->
+  <div *ngIf="drawerOpen" class="fixed inset-0 z-[950]">
+    <div class="absolute inset-0 bg-black/20" (click)="closeDetailContext()"></div>
+    <aside role="dialog" aria-modal="true" aria-label="Detalle de manifiesto" class="absolute right-0 top-0 h-full w-full max-w-3xl overflow-hidden border-l border-slate-200 bg-white shadow-2xl">
+      <div class="flex h-full flex-col">
+        <div class="flex items-start justify-between border-b border-slate-200 px-4 py-3">
+          <div>
+            <div class="text-sm text-slate-500">Detalle de manifiesto</div>
+            <div class="text-lg font-semibold text-slate-800">
+              {{ selectedManifiesto?.serie || '-' }}-{{ selectedManifiesto?.numero || '-' }}
+            </div>
+          </div>
+          <button class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50" (click)="closeDetailContext()">Cerrar</button>
+        </div>
+
+        <div class="flex items-center gap-2 border-b border-slate-200 px-4 py-2 text-sm">
+          <button class="rounded-md px-3 py-1.5" [class.bg-slate-900]="activeTab==='resumen'" [class.text-white]="activeTab==='resumen'" [class.text-slate-700]="activeTab!=='resumen'" (click)="setActiveTab('resumen')">Resumen</button>
+          <button class="rounded-md px-3 py-1.5" [class.bg-slate-900]="activeTab==='envios'" [class.text-white]="activeTab==='envios'" [class.text-slate-700]="activeTab!=='envios'" (click)="setActiveTab('envios')">Envíos</button>
+          <button class="rounded-md px-3 py-1.5" [class.bg-slate-900]="activeTab==='guias'" [class.text-white]="activeTab==='guias'" [class.text-slate-700]="activeTab!=='guias'" (click)="setActiveTab('guias')">Guías</button>
+          <button class="rounded-md px-3 py-1.5" [class.bg-slate-900]="activeTab==='documento'" [class.text-white]="activeTab==='documento'" [class.text-slate-700]="activeTab!=='documento'" (click)="setActiveTab('documento')">Documento</button>
+          <button class="rounded-md px-3 py-1.5" [class.bg-slate-900]="activeTab==='mapa'" [class.text-white]="activeTab==='mapa'" [class.text-slate-700]="activeTab!=='mapa'" (click)="setActiveTab('mapa')">Mapa</button>
+        </div>
+
+        <div class="flex-1 overflow-auto p-4">
+          <ng-container *ngIf="selectedManifiesto as sel; else noSelected">
+            <ng-container [ngSwitch]="activeTab">
+              <div *ngSwitchCase="'resumen'" class="space-y-4">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <div><span class="text-slate-500">Conductor:</span> <span class="font-medium text-slate-800">{{ conductorLabel(sel.conductor_id) }}</span></div>
+                    <div><span class="text-slate-500">Estado:</span> <span class="font-medium text-slate-800">{{ estadoLabel(sel) }}</span></div>
+                    <div><span class="text-slate-500">Origen:</span> <span class="font-medium text-slate-800">{{ nameFrom(safeOrigen(sel)) }}</span></div>
+                    <div><span class="text-slate-500">Destino:</span> <span class="font-medium text-slate-800">{{ nameFrom(safeDestino(sel)) }}</span></div>
+                    <div><span class="text-slate-500">Fecha traslado:</span> <span class="font-medium text-slate-800">{{ sel.fecha_traslado | ymd }}</span></div>
+                    <div><span class="text-slate-500">Llegada:</span> <span class="font-medium text-slate-800">{{ sel?.arrived_at ? (sel.arrived_at | ymd) : '-' }}</span></div>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm text-white hover:bg-[#21D0B2]/90" (click)="openEnviosContext(sel, $event)">Ver envíos</button>
+                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="openGenerarManifiestoContext(sel, $event)">Generar manifiesto</button>
+                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="openGuiaSunatContext(sel, $event)">Generar guía Sunat</button>
+                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="openAddEnviosContext(sel, $event)">Añadir envío</button>
+                </div>
+              </div>
+
+              <div *ngSwitchCase="'envios'" class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-semibold text-slate-800">Envíos del manifiesto</h3>
+                  <button class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50" (click)="openAddEnviosContext(sel, $event)">Añadir envío</button>
+                </div>
+                <div *ngIf="enviosLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando.</div>
+                <div *ngIf="enviosError" class="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{{ enviosError }}</div>
+                <div *ngIf="!enviosLoading && !enviosError" class="overflow-x-auto rounded-md border border-slate-200">
+                  <table class="min-w-max text-sm">
+                    <thead class="bg-slate-50 text-left text-slate-600">
+                    <tr>
+                      <th class="px-3 py-2">Guía</th>
+                      <th class="px-3 py-2">Origen</th>
+                      <th class="px-3 py-2">Destino</th>
+                      <th class="px-3 py-2">Remitente</th>
+                      <th class="px-3 py-2">Destinatario</th>
+                      <th class="px-3 py-2">Peso</th>
+                      <th class="px-3 py-2">Fecha</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr *ngFor="let e of enviosLista" class="border-t border-slate-200">
+                      <td class="px-3 py-2">{{ e.id || '-' }}</td>
+                      <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>
+                      <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
+                      <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
+                      <td class="px-3 py-2">{{ personaLabelById(e.destinatario) || e.destinatario }}</td>
+                      <td class="px-3 py-2">{{ e.peso }}</td>
+                      <td class="px-3 py-2">{{ e.fecha_envio | ymd }}</td>
+                    </tr>
+                    <tr *ngIf="!enviosLista.length">
+                      <td colspan="7" class="px-3 py-6 text-center text-slate-500">No hay envíos para este manifiesto.</td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div *ngSwitchCase="'guias'" class="space-y-3">
+                <div class="flex flex-wrap items-center gap-2">
+                  <button class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm text-white hover:bg-[#21D0B2]/90" (click)="openGuiaSunatContext(sel, $event)">Generar guía Sunat</button>
+                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="openGrtContext(sel, $event)">Generar GRT</button>
+                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="setActiveTab('documento')">Ver documento</button>
+                </div>
+                <div *ngIf="showGrtModal" class="rounded-md border border-slate-200 bg-white p-3">
+                  <div class="mb-2 flex items-center justify-between">
+                    <div class="text-sm font-semibold text-slate-800">Guía de Remisión Transportista</div>
+                    <button (click)="closeGrt()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ocultar</button>
+                  </div>
+                  <div *ngIf="grtLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando GRT...</div>
+                  <div *ngIf="grtError" class="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{{ grtError }}</div>
+                  <div *ngIf="!grtLoading && !grtError">
+                    <app-grt-preview [grt]="grtDoc"></app-grt-preview>
+                  </div>
+                </div>
+                <div *ngIf="showGuiaGeneradaModal" class="rounded-md border border-slate-200 bg-white p-3">
+                  <div class="mb-2 flex items-center justify-between">
+                    <div class="text-sm font-semibold text-slate-800">Guía por envío (GRR)</div>
+                    <button (click)="closeGuiaGenerada()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ocultar</button>
+                  </div>
+                  <div *ngIf="guiaGenLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando guía...</div>
+                  <div *ngIf="guiaGenError" class="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{{ guiaGenError }}</div>
+                  <div *ngIf="!guiaGenLoading && !guiaGenError && guiaDoc">
+                    <app-grr-preview [doc]="guiaDoc"></app-grr-preview>
+                  </div>
+                </div>
+                <div *ngIf="selectedSunatState as st" class="rounded-md border border-slate-200 bg-white p-3">
+                  <div class="mb-2 flex items-center gap-2">
+                    <div class="h-2 w-28 overflow-hidden rounded-full bg-slate-200">
+                      <div class="h-full bg-emerald-500 transition-all" [style.width.%]="sunatProgress(sel.id)"></div>
+                    </div>
+                    <div class="text-xs text-slate-600">{{ st.done }} / {{ st.total }} <span *ngIf="st.running">· procesando</span></div>
+                  </div>
+                  <div class="grid gap-2 sm:grid-cols-2" *ngIf="st.guias?.length; else noGuiasSunat">
+                    <div *ngFor="let g of st.guias" class="rounded-md border border-slate-200 px-3 py-2 text-sm">
+                      <div class="text-slate-600">Envío {{ g.envioId }}</div>
+                      <div class="font-medium text-slate-800">{{ g.numero || '-' }}</div>
+                      <button class="mt-2 rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="verGuiaTrama(g.envioId)">Ver guía</button>
+                    </div>
+                  </div>
+                  <ng-template #noGuiasSunat>
+                    <div class="text-sm text-slate-500">No hay guías generadas para este manifiesto.</div>
+                  </ng-template>
+                </div>
+                <div *ngIf="!selectedSunatState" class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                  Aún no se han generado guías Sunat para este manifiesto.
+                </div>
+              </div>
+
+              <div *ngSwitchCase="'documento'" class="space-y-3">
+                <div class="flex flex-wrap items-center gap-2">
+                  <button class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm text-white hover:bg-[#21D0B2]/90" (click)="openGenerarManifiestoContext(sel, $event)">Cargar documento</button>
+                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="printManifiestoInline()" [disabled]="guiaLoading || !!guiaError || !guiaRows.length">Imprimir</button>
+                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="exportGuiaPDF()" [disabled]="guiaLoading || !!guiaError || !guiaRows.length">Exportar PDF</button>
+                </div>
+                <div *ngIf="guiaLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando documento.</div>
+                <div *ngIf="guiaError" class="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{{ guiaError }}</div>
+                <div *ngIf="!guiaLoading && !guiaError && guiaRows.length" class="rounded-md border border-slate-200 bg-white p-3">
+                  <div id="manifiesto-inline-print" class="mx-auto w-full max-w-[210mm] bg-white text-[12px] leading-tight text-slate-900">
+                    <div class="p-4 font-mono">
+                      <div class="grid grid-cols-3 gap-2">
+                        <div class="space-y-1">
+                          <div><span class="font-semibold">PILOTO:</span> {{ conductorLabel(guiaConductorId) }}</div>
+                          <div><span class="font-semibold">COPILOTO:</span> {{ conductorLabel(guiaCopilotoId) }}</div>
+                          <div><span class="font-semibold">FECHA TRASLADO:</span> {{ formatFechaCorta(guiaFechaTraslado) }}</div>
+                        </div>
+                        <div class="text-center">
+                          <div class="text-[14px] font-semibold tracking-wide">MANIFIESTO DE ENCOMIENDAS</div>
+                          <div class="text-[13px] font-semibold">{{ guiaSerie }}-{{ guiaNumero }}</div>
+                          <div class="mt-2 space-y-1 text-left">
+                            <div><span class="font-semibold">PLACA:</span> {{ guiaPlaca || 'Pendiente' }}</div>
+                            <div><span class="font-semibold">ORIGEN:</span> {{ nameFrom(guiaOrigenId) }}</div>
+                          </div>
+                        </div>
+                        <div class="space-y-1 text-right">
+                          <div class="font-semibold">{{ guiaFechaLarga }}</div>
+                          <div class="mt-3"><span class="font-semibold">TURNO:</span> {{ turnoLabel(guiaTurno) }}</div>
+                          <div><span class="font-semibold">DESTINO:</span> {{ nameFrom(guiaDestinoId) }}</div>
+                        </div>
+                      </div>
+
+                      <div class="my-3 border-t border-slate-800"></div>
+                      <div class="mb-2 font-semibold">DETALLE:</div>
+
+                      <div class="overflow-hidden rounded-sm border border-slate-800">
+                        <table class="w-full table-fixed border-collapse">
+                          <thead class="bg-slate-50">
+                          <tr class="text-[11px]">
+                            <th class="w-[4%] border-r border-slate-800 p-1 text-center">N°</th>
+                            <th class="w-[10%] border-r border-slate-800 p-1 text-center">FECHA<br/>EMISIÓN</th>
+                            <th class="w-[12%] border-r border-slate-800 p-1 text-center">NRO DOC.</th>
+                            <th class="w-[6%] border-r border-slate-800 p-1 text-center">CANT</th>
+                            <th class="w-[25%] border-r border-slate-800 p-1 text-center">DESCRIPCIÓN</th>
+                            <th class="w-[10%] border-r border-slate-800 p-1 text-center">DNI</th>
+                            <th class="w-[14%] border-r border-slate-800 p-1 text-center">REMITENTE</th>
+                            <th class="w-[10%] border-r border-slate-800 p-1 text-center">DNI</th>
+                            <th class="w-[14%] border-r border-slate-800 p-1 text-center">DESTINATARIO</th>
+                            <th class="w-[10%] border-r border-slate-800 p-1 text-center">USUARIO</th>
+                            <th class="w-[8%] p-1 text-center">TOT<br/>S/.</th>
+                          </tr>
+                          </thead>
+                          <tbody class="text-[11px]">
+                          <tr>
+                            <td colspan="11" class="border-t border-slate-800 p-1">
+                              <div class="flex items-center justify-between">
+                                <div class="font-semibold tracking-wide">AL CONTADO</div>
+                                <div class="text-[10px] text-slate-600">{{ nameFrom(guiaOrigenId) }}</div>
+                              </div>
+                            </td>
+                          </tr>
+                          <tr *ngFor="let row of guiaRows; index as ri" class="border-t border-slate-800">
+                            <td class="border-r border-slate-800 p-1 text-center align-top">{{ ri + 1 }}</td>
+                            <td class="border-r border-slate-800 p-1 text-center align-top">{{ formatFechaCorta(row.envio?.fecha_envio) }}</td>
+                            <td class="border-r border-slate-800 p-1 text-center align-top">{{ envioDocumento(row.envio) }}</td>
+                            <td class="border-r border-slate-800 p-1 text-center align-top">{{ row.cantidad }}</td>
+                            <td class="border-r border-slate-800 p-1 align-top">{{ row.descripcion }}</td>
+                            <td class="border-r border-slate-800 p-1 text-center align-top">{{ personaDocumentoById(row.envio?.remitente) }}</td>
+                            <td class="border-r border-slate-800 p-1 align-top">{{ personaNombreById(row.envio?.remitente) }}</td>
+                            <td class="border-r border-slate-800 p-1 text-center align-top">{{ personaDocumentoById(row.envio?.destinatario) }}</td>
+                            <td class="border-r border-slate-800 p-1 align-top">{{ personaNombreById(row.envio?.destinatario) }}</td>
+                            <td class="border-r border-slate-800 p-1 text-center align-top">{{ envioUsuario(row.envio) }}</td>
+                            <td class="p-1 text-right align-top">{{ row.subtotal | number:'1.2-2' }}</td>
+                          </tr>
+                          <tr *ngIf="!guiaRows.length">
+                            <td colspan="11" class="border-t border-slate-800 p-2 text-center text-slate-500">No hay ítems para este manifiesto.</td>
+                          </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div class="mt-2 grid grid-cols-2 gap-2">
+                        <div class="rounded-sm border border-slate-800 p-2 text-[11px]">
+                          <div class="flex justify-between"><span class="font-semibold">SUB TOTAL</span><span>{{ guiaSubTotal | number:'1.2-2' }}</span></div>
+                          <div class="flex justify-between"><span class="font-semibold">IGV</span><span>{{ guiaIgv | number:'1.2-2' }}</span></div>
+                          <div class="mt-1 flex justify-between border-t border-slate-800 pt-1">
+                            <span class="font-semibold">TOTAL</span>
+                            <span class="font-semibold">S/. {{ guiaTotal | number:'1.2-2' }}</span>
+                          </div>
+                        </div>
+                        <div class="rounded-sm border border-slate-800 p-2 text-[11px]">
+                          <div class="flex justify-between"><span class="font-semibold">P. DEST.</span><span>S/. {{ guiaTotal | number:'1.2-2' }}</span></div>
+                          <div class="mt-1 flex justify-between border-t border-slate-800 pt-1">
+                            <span class="font-semibold">TOTAL</span>
+                            <span class="font-semibold">S/. {{ guiaTotal | number:'1.2-2' }}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="mt-3 grid grid-cols-2 gap-2 text-[10px]">
+                        <div class="space-y-0.5">
+                          <div class="font-semibold">DATOS DE IMPRESIÓN</div>
+                          <div><span class="font-semibold">OPERADOR:</span> {{ guiaOperador || '-' }}</div>
+                          <div><span class="font-semibold">SUCURSAL:</span> {{ guiaSucursal || '-' }}</div>
+                          <div><span class="font-semibold">AGENCIA:</span> {{ guiaAgencia || '-' }}</div>
+                          <div><span class="font-semibold">FECHA IMPRESIÓN:</span> {{ guiaFechaImpresion }}</div>
+                          <div><span class="font-semibold">NOTA:</span> {{ guiaNota || '-' }}</div>
+                        </div>
+                        <div class="flex items-end justify-center">
+                          <div class="flex h-20 w-56 items-center justify-center rounded-sm border border-dashed border-slate-400 text-center text-[10px] text-slate-500">
+                            Firma / Sello (opcional)
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="mt-4 grid grid-cols-2 gap-8">
+                        <div class="text-center">
+                          <div class="mx-auto h-24 w-40 border border-slate-800"></div>
+                          <div class="mt-2 border-t border-slate-800 pt-1 text-[11px]">
+                            {{ conductorLabel(guiaConductorId) }}<br />
+                            {{ conductorDocumento(guiaConductorId) }}
+                          </div>
+                        </div>
+                        <div class="text-center">
+                          <div class="mx-auto h-24 w-40 border border-slate-800"></div>
+                          <div class="mt-2 border-t border-slate-800 pt-1 text-[11px]">
+                            Recibido por<br />
+                            -
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="!guiaLoading && !guiaError && !guiaRows.length" class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                  Aún no se ha cargado el documento del manifiesto.
+                </div>
+                <div *ngIf="guiaDoc" class="rounded-md border border-slate-200 bg-white p-3">
+                  <div class="mb-2 flex flex-wrap gap-2">
+                    <button class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" (click)="printGuia()">Imprimir guía</button>
+                    <button class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" (click)="downloadGuiaPdf()">Descargar guía PDF</button>
+                  </div>
+                  <div id="guia-print" class="text-xs text-slate-700">
+                    <div><span class="font-semibold">Guía:</span> {{ guiaDoc?.fullNumber || '-' }}</div>
+                    <div><span class="font-semibold">Empresa:</span> {{ guiaDoc?.companyName || '-' }}</div>
+                    <div><span class="font-semibold">Origen:</span> {{ guiaDoc?.originAddress || '-' }}</div>
+                    <div><span class="font-semibold">Destino:</span> {{ guiaDoc?.destAddress || '-' }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngSwitchCase="'mapa'" class="space-y-3">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
+                  <div><span class="text-slate-500">Estado:</span> <span class="font-medium text-slate-800">{{ estadoLabel(sel) }}</span></div>
+                  <div><span class="text-slate-500">Llegada:</span> <span class="font-medium text-slate-800">{{ sel?.arrived_at ? (sel.arrived_at | ymd) : '-' }}</span></div>
+                  <div *ngIf="hasGeo(sel); else noGeo">
+                    <div class="mt-1 text-slate-700">Lat: {{ sel?.arrived_lat }} | Lng: {{ sel?.arrived_lng }}</div>
+                    <button class="mt-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" (click)="openGeoContext(sel, $event)">Ver mapa</button>
+                  </div>
+                  <ng-template #noGeo>
+                    <div class="mt-2 text-slate-500">Aún no hay geolocalización registrada para este manifiesto.</div>
+                  </ng-template>
+                </div>
+              </div>
+
+              <div *ngSwitchDefault class="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                Sin contenido para esta pestaña.
+              </div>
+            </ng-container>
+          </ng-container>
+          <ng-template #noSelected>
+            <div class="rounded-md border border-dashed border-slate-300 p-6 text-center text-slate-500">Seleccione un manifiesto de la lista.</div>
+          </ng-template>
+        </div>
+      </div>
+    </aside>
+  </div>
 
 
 <!-- Modal geolocalización -->
@@ -303,61 +641,10 @@
     </form>    </div>
   </div>
 
-<!-- Envíos en Página (inline) -->
-<div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showEnviosModal">
-  <div class="rounded-md border border-slate-200 bg-white p-6">
-    <div class="mb-4 flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-slate-800">Envíos del Manifiesto - Conductor: {{ conductorLabel(enviosConductorId) }} | Origen: {{ nameFrom(enviosOrigenId) }} | Destino: {{ nameFrom(enviosDestinoId) }}</h3>
-      <button (click)="closeEnvios()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
-    </div>
-    <div *ngIf="enviosLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando.</div>
-    <div *ngIf="enviosError" class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ enviosError }}</div>
-    <div *ngIf="!enviosLoading && !enviosError" class="overflow-x-auto rounded-md border border-slate-200">
-      <table class="min-w-max text-sm">
-        <thead class="bg-slate-50 text-left text-slate-600">
-          <tr>
-            <th class="px-3 py-2">Guía</th>
-            <th class="px-3 py-2">Origen</th>
-            <th class="px-3 py-2">Destino</th>
-            <th class="px-3 py-2">Remitente</th>
-            <th class="px-3 py-2">Destinatario</th>
-            <th class="px-3 py-2">Peso</th>
-            <th class="px-3 py-2">Fecha Envío</th>
-            <th class="px-3 py-2">Pagado</th>
-            <th class="px-3 py-2 text-center">Operaciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let e of enviosLista" class="border-t border-slate-200">
-            <td class="px-3 py-2">{{ e.id || '-' }}</td>
-            <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>
-            <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
-            <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
-            <td class="px-3 py-2">{{ personaLabelById(e.destinatario) || e.destinatario }}</td>
-            <td class="px-3 py-2">{{ e.peso }}</td>
-            <td class="px-3 py-2">{{ e.fecha_envio | ymd }}</td>
-            <td class="px-3 py-2">{{ e.estado_pago ? 'Sí' : 'No' }}</td>
-            <td class="px-3 py-2">
-              <div class="flex items-center justify-end gap-2">
-                <a [routerLink]="['/envios']" [queryParams]="{ id: e.id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver Envío</a>
-                <a *ngIf="e.id" [routerLink]="['/comprobantes']" [queryParams]="{ envio_id: e.id }" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Ver comprobante</a>
-                <span *ngIf="!e.id" class="text-xs text-slate-400">Sin comprobante</span>
-                <button (click)="detachEnvioFromManifiesto(e)" class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 hover:bg-red-100">Quitar</button>
-              </div>
-            </td>
-          </tr>
-          <tr *ngIf="!enviosLista.length">
-            <td colspan="9" class="px-3 py-6 text-center text-slate-500">No hay Envíos para este manifiesto.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- Añadir Envíos en Página (inline) -->
-<div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showAddEnviosModal">
-  <div class="rounded-md border border-slate-200 bg-white p-6">
+<!-- Añadir Envíos (modal flotante) -->
+<div *ngIf="showAddEnviosModal" class="fixed inset-0 z-[980] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-label="Añadir envíos">
+  <div class="absolute inset-0 bg-black/30" (click)="closeAddEnvios()"></div>
+  <div class="relative z-10 max-h-[90vh] w-full max-w-6xl overflow-auto rounded-md border border-slate-200 bg-white p-6 shadow-xl">
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-lg font-semibold text-slate-800">Añadir Envíos — Conductor: {{ conductorLabel(addConductorId) }} | Origen: {{ nameFrom(addOrigenId) }} | Destino: {{ nameFrom(addDestinoId) }}</h3>
       <div class="flex items-center gap-2">
@@ -410,7 +697,7 @@
 </div>
 
 <!-- Guía en Página (inline) -->
-<div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showGuiaModal">
+<div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showGuiaModal && !drawerOpen">
   <div class="rounded-md border border-slate-200 bg-white p-6">
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-lg font-semibold text-slate-800">Doc. del Manifiesto {{ guiaSerie }}-{{ guiaNumero }}</h3>
@@ -560,7 +847,7 @@
 </div>
 
 <!-- Guía generada (Despacho/Guía/Items) -->
-<div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showGuiaGeneradaModal">
+<div class="px-3 sm:px-4 pb-6 mt-4" *ngIf="showGuiaGeneradaModal && !drawerOpen">
   <div class="rounded-md border border-slate-200 bg-white p-6">
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-lg font-semibold text-slate-800">{{ guiaGenTitle }}</h3>

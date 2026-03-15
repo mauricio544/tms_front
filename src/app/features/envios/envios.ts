@@ -35,11 +35,13 @@ import {
 import { Utilitarios } from '../../../../core/services/utilitarios';
 import { forkJoin } from 'rxjs';
 import { SerieComprobante as SerieComprobanteService } from '../../../../core/services/serie-comprobante';
+import { ComprobantePreview, ComprobantePreviewComponent } from '../../shared/comprobante-preview/comprobante-preview.component';
+import { DeclaracionJuradaComponent, DeclaracionJuradaData } from '../../shared/declaracion-jurada/declaracion-jurada.component';
 
 @Component({
   selector: 'feature-envios',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, UiAlertComponent, UiConfirmComponent, Utils, OverlayModule, PortalModule, NgIconComponent],
+  imports: [CommonModule, FormsModule, RouterModule, UiAlertComponent, UiConfirmComponent, Utils, OverlayModule, PortalModule, NgIconComponent, ComprobantePreviewComponent, DeclaracionJuradaComponent],
   templateUrl: './envios.html',
   styleUrl: './envios.css',
   providers: [provideIcons({ heroPencil, heroNoSymbol })],
@@ -134,45 +136,45 @@ export class EnviosFeature implements OnInit {
     if (!e || !dets.length) return;
     const origen = this.getPuntoNombre(e.punto_origen_id);
     const destino = this.getPuntoNombre(e.punto_destino_id);
+    const ticket = String(e.ticket_numero || e.id || '-').trim();
     const tracking = String(publicUrl || '').trim() || this.trackingUrl(e.id);
-    const qr = tracking ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(tracking)}` : '';
-    const rows = dets.map((d, i) => {
-      const desc = String(d.descripcion || '');
+    const qr = tracking ? `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(tracking)}` : '';
+    const labels = dets.map((d, i) => {
+      const desc = this.escHtml(String(d.descripcion || ''));
       const qty = Math.max(1, Number(d.cantidad || 0));
       const perUnit = Array.from({ length: qty }).map((_, unitIdx) => `<div class="label">
-  <div class="head">
-    <div class="title">ETIQUETA ENVIO</div>
-    <div class="id">Envio #${e.id || '-'} · ${i + 1}.${unitIdx + 1}</div>
+  <div class="title">ETIQUETA ENVIO</div>
+  <div class="id">Ticket: ${this.escHtml(ticket)} · ${i + 1}.${unitIdx + 1}</div>
+  <div class="sep"></div>
+  <div class="row"><span class="k">Item</span><span class="v">${i + 1}</span></div>
+  <div class="row"><span class="k">Descripcion</span><span class="v">${desc}</span></div>
+  <div class="row"><span class="k">Cantidad</span><span class="v">1</span></div>
+  <div class="row"><span class="k">Origen</span><span class="v">${this.escHtml(origen)}</span></div>
+  <div class="row"><span class="k">Destino</span><span class="v">${this.escHtml(destino)}</span></div>
+  <div class="qr-wrap">
+    ${qr ? `<img src="${qr}" alt="QR" />` : ''}
   </div>
-  <div class="body">
-    <div class="row"><span class="k">Item</span><span class="v">${i + 1}</span></div>
-    <div class="row"><span class="k">Descripcion</span><span class="v">${desc}</span></div>
-    <div class="row"><span class="k">Cantidad</span><span class="v">1</span></div>
-    <div class="row"><span class="k">Origen</span><span class="v">${origen}</span></div>
-    <div class="row"><span class="k">Destino</span><span class="v">${destino}</span></div>
-  </div>
-  <div class="qr">${qr ? `<img src="${qr}" alt="QR" />` : ''}</div>
 </div>`).join('');
       return perUnit;
     }).join('');
-    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Etiquetas Envio ${e.id || ''}</title>
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Etiquetas Envio ${this.escHtml(ticket)}</title>
 <style>
-  @page { margin: 8mm; }
-  body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;margin:0;}
-  .sheet{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .label{border:1px solid #e2e8f0;border-radius:8px;padding:8px;break-inside:avoid;min-height:120px;}
-  .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
-  .title{font-size:12px;font-weight:700;}
-  .id{font-size:11px;color:#64748b;}
-  .row{display:flex;gap:6px;font-size:11px;margin:2px 0;}
-  .k{color:#64748b;min-width:64px;}
-  .v{font-weight:600;word-break:break-word;}
-  .qr{display:flex;justify-content:flex-end;margin-top:6px;}
-  .qr img{width:72px;height:72px;border:1px solid #e2e8f0;padding:3px;}
-  @media print { .sheet{grid-template-columns:1fr 1fr;} }
+  @page { size: 80mm auto; margin: 2mm; }
+  html,body{width:80mm;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:11px;}
+  .sheet{width:78mm;margin:0 auto;display:flex;flex-direction:column;gap:2mm;}
+  .label{width:78mm;box-sizing:border-box;border:1px dashed #cbd5e1;border-radius:2mm;padding:2.5mm;break-inside:avoid;}
+  .title{font-size:12px;font-weight:700;line-height:1.2;}
+  .id{margin-top:1mm;font-size:10px;color:#475569;line-height:1.2;}
+  .sep{border-top:1px dashed #cbd5e1;margin:1.5mm 0;}
+  .row{display:flex;gap:2mm;font-size:11px;line-height:1.25;margin:0.8mm 0;}
+  .k{color:#64748b;min-width:18mm;}
+  .v{font-weight:600;word-break:break-word;flex:1;}
+  .qr-wrap{display:flex;justify-content:flex-end;margin-top:1.5mm;}
+  .qr-wrap img{width:26mm;height:26mm;object-fit:contain;}
+  @media print { .sheet{width:78mm;} .label{page-break-inside:avoid;} }
 </style>
 </head><body>
-  <div class="sheet">${rows}</div>
+  <div class="sheet">${labels}</div>
   <script>window.addEventListener('load',()=>{window.print(); setTimeout(()=>window.close(),300)});</script>
 </body></html>`;
     const w = window.open('', '_blank');
@@ -267,8 +269,18 @@ export class EnviosFeature implements OnInit {
     this.compRows = compRows;
     this.compTotals = { base: baseTotal, igv: igvTotal, total: totalTotal };
     this.compView = {
-      razon, ruc, docTitle, numero, fechaEmision, fechaPago, moneda: "PEN (S/)", formaPago: "-", clienteDocumento, clienteNombre
+      razon,
+      ruc,
+      docTitle,
+      numero,
+      fechaEmision,
+      fechaPago,
+      moneda: "PEN (S/)",
+      formaPago: this.formaPagoLabel(c?.forma_pago),
+      clienteDocumento,
+      clienteNombre
     };
+    this.comprobantePreview = this.toComprobantePreview(c, fallback, clienteNombre, tipoKey);
     this.showComprobante = true;
     try { this.cdr.detectChanges(); } catch {}
     try { this.cdr.detectChanges(); } catch {}
@@ -368,15 +380,154 @@ export class EnviosFeature implements OnInit {
   }
   // Comprobante modal
   showComprobante = false;
+  showDeclaracion = false;
+  declaracionData: DeclaracionJuradaData | null = null;
   hasComprobante = false;
+  comprobantePreview: ComprobantePreview | null = null;
   compView: any = { razon: "", ruc: "", docTitle: "", numero: "", fechaEmision: "", fechaPago: "", moneda: "PEN (S/)", formaPago: "-", clienteDocumento: "-" };
   compRows: Array<{ numero_item: number; cantidad: number; unidad: string; descripcion: any; v_unit: number; igv: number; importe: number }> = [];
   compTotals: { base: number; igv: number; total: number } = { base: 0, igv: 0, total: 0 };
   closeComprobante() {
     this.showComprobante = false;
+    this.comprobantePreview = null;
     this.compView = { razon: "", ruc: "", docTitle: "", numero: "", fechaEmision: "", fechaPago: "", moneda: "PEN (S/)", formaPago: "-", clienteDocumento: "-" };
     this.compRows = [];
     this.compTotals = { base: 0, igv: 0, total: 0 };
+  }
+  openDeclaracion(item?: Envio) {
+    const envio: any = item || null;
+    const remitenteId = Number((envio as any)?.remitente || 0);
+    const remitente: any = remitenteId
+      ? (this.personas || []).find((p: any) => Number((p as any)?.id || 0) === remitenteId)
+      : null;
+    const remitenteNombre = remitente
+      ? [String((remitente as any)?.nombre || '').trim(), String((remitente as any)?.apellido || '').trim()].filter(Boolean).join(' ').trim() || String((remitente as any)?.razon_social || '').trim()
+      : String(this.personaLabelById(remitenteId) || '').split(' - ')[0].trim();
+    const remitenteDoc = String((remitente as any)?.nro_documento || '').trim();
+    const remitenteDomicilio = String((remitente as any)?.direccion || '').trim();
+    this.declaracionData = {
+      remitenteNombre: remitenteNombre || '',
+      remitenteDoc: remitenteDoc || '',
+      remitenteDomicilio: remitenteDomicilio || '',
+      itemsDescripcion: '',
+    };
+    this.showDeclaracion = true;
+    const envioId = Number((envio as any)?.id || 0);
+    if (!envioId) return;
+    this.detalleSrv.getDetallesEnvio(envioId).subscribe({
+      next: (list: any[]) => {
+        const items = (list || [])
+          .map((d: any) => `${Number((d as any)?.cantidad || 0)} ${String((d as any)?.descripcion || '').trim()}`.trim())
+          .filter(Boolean)
+          .join('; ');
+        this.declaracionData = {
+          ...(this.declaracionData || {}),
+          itemsDescripcion: items || '',
+        };
+      },
+      error: () => {}
+    });
+  }
+  closeDeclaracion() {
+    this.showDeclaracion = false;
+    this.declaracionData = null;
+  }
+  private toComprobantePreview(
+    c: any,
+    detalles: Array<{ numero_item: number; cantidad: number; descripcion: any; precio_unitario: number }>,
+    clienteNombre: string,
+    tipoKey: string
+  ): ComprobantePreview {
+    const isFactura = this.isFacturaTipo(tipoKey);
+    const items = (detalles || []).map((d, i) => {
+      const cantidad = Number(d?.cantidad || 0);
+      const precio = Number(d?.precio_unitario || 0);
+      const base = cantidad * precio;
+      const igv = isFactura ? +(base * 0.18).toFixed(2) : 0;
+      return {
+        numeroItem: Number(d?.numero_item || i + 1),
+        descripcion: String(d?.descripcion || ''),
+        cantidad,
+        unidadMedida: 'NIU',
+        precioUnitario: precio,
+        valorUnitario: precio,
+        igv,
+        totalLinea: base + igv,
+      };
+    });
+    const env: any = this.ticketEnvio || null;
+    const ciaLogo = String(localStorage.getItem('cia_logo') || '').trim();
+    const envioIdNum = Number(env?.id || c?.envio_id || 0);
+    const envFromList: any = envioIdNum > 0
+      ? (this.lista_envios || []).find((x: any) => Number((x as any)?.id || 0) === envioIdNum)
+      : null;
+    const ticketNumero = String(
+      env?.ticket_numero ||
+      (this.newEnvio as any)?.ticket_numero ||
+      c?.ticket_numero ||
+      c?.envio_ticket_numero ||
+      envFromList?.ticket_numero ||
+      ''
+    ).trim();
+    const codigoEnvio = ticketNumero || '-';
+    const codigoSeguimiento = String(
+      env?.id_tracking ||
+      c?.id_tracking ||
+      envFromList?.id_tracking ||
+      ''
+    ).trim();
+    const estado = String(c?.estado_cpe || '').toUpperCase();
+    const estadoCpe = estado === 'A' ? 'aceptado' : (estado === 'R' ? 'rechazado' : 'pendiente');
+    return {
+      tipo: tipoKey || String(c?.tipo_comprobante_sunat || c?.tipo_comprobante || ''),
+      ambiente: 'produccion',
+      serie: String(c?.serie || '-'),
+      numero: String(c?.numero || '-'),
+      fechaEmision: String(c?.fecha_comprobante || ''),
+      moneda: 'PEN',
+      formaPago: this.formaPagoLabel(c?.forma_pago),
+      logoUrl: ciaLogo || undefined,
+      emisor: {
+        razonSocial: String(localStorage.getItem('razon_social') || ''),
+        nombreComercial: String(localStorage.getItem('nombre_comercial') || ''),
+        ruc: String(localStorage.getItem('ruc') || ''),
+        direccion: String(localStorage.getItem('direccion_fiscal') || ''),
+        telefono: String(localStorage.getItem('telefono') || ''),
+        correo: String(localStorage.getItem('correo') || ''),
+      },
+      cliente: {
+        nombre: clienteNombre || '-',
+        tipoDocumento: isFactura ? 'RUC' : 'DNI',
+        numeroDocumento: String(c?.cliente_documento || '-'),
+      },
+      referencia: env ? {
+        envioId: codigoEnvio,
+        tracking: codigoSeguimiento,
+        origen: this.getPuntoNombre(env?.punto_origen_id),
+        destino: this.getPuntoNombre(env?.punto_destino_id),
+      } : ((ticketNumero || codigoSeguimiento) ? {
+        envioId: codigoEnvio,
+        tracking: codigoSeguimiento,
+      } : undefined),
+      items,
+      totales: {
+        gravadas: Number(this.compTotals.base || 0),
+        igv: Number(this.compTotals.igv || 0),
+        total: Number(this.compTotals.total || 0),
+      },
+      sunat: {
+        hash: String(c?.hash_sunat || ''),
+        qr: `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent('https://tms.maudev.online/tracking/publico/buscar')}`,
+        codigo: String(c?.sunat_cod || ''),
+        mensaje: String(c?.sunat_msg || ''),
+        ticket: String(c?.sunat_ticket || ''),
+        fechaEnvio: String(c?.sunat_fecha_envio || ''),
+        fechaRespuesta: String(c?.sunat_fecha_respuesta || ''),
+        estadoCpe: estadoCpe as any,
+      },
+      leyendas: [],
+      observaciones: [],
+    };
   }
   private clearPrintMode() {
     try { document.body.classList.remove('print-ticket', 'print-comprobante'); } catch { }
@@ -395,6 +546,31 @@ export class EnviosFeature implements OnInit {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
+  companyLogoSrc(): string | null {
+    const fromMe = (() => {
+      try {
+        const rawMe = localStorage.getItem('me');
+        if (!rawMe) return '';
+        const me = JSON.parse(rawMe) as any;
+        return String(me?.companies?.[0]?.logo || '').trim();
+      } catch {
+        return '';
+      }
+    })();
+    const raw = String(
+      localStorage.getItem('cia_logo') ||
+      localStorage.getItem('company_logo') ||
+      localStorage.getItem('logo') ||
+      fromMe ||
+      ''
+    ).trim();
+    if (!raw || raw.toLowerCase() === 'null' || raw.toLowerCase() === 'undefined') return null;
+    if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image')) return raw;
+    if (raw.startsWith('/')) {
+      try { return `${window.location.origin}${raw}`; } catch { return raw; }
+    }
+    return `data:image/png;base64,${raw}`;
+  }
   private printTicketWindow() {
     const env: any = this.ticketEnvio as any;
     const dets = Array.isArray(this.ticketDetalles) ? this.ticketDetalles : [];
@@ -407,6 +583,7 @@ export class EnviosFeature implements OnInit {
     const trackingCode = String(env?.id_tracking || '').trim();
     const qrData = String(this.publicTrackingUrl || '').trim() || trackingCode || String(env?.ticket_numero || '').trim();
     const qrSrc = qrData ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrData)}` : '';
+    const logo = this.companyLogoSrc();
     const rows = dets.map((d: any, i: number) => {
       const n = Number(d?.numero_item || i + 1);
       const c = Number(d?.cantidad || 0);
@@ -430,6 +607,8 @@ export class EnviosFeature implements OnInit {
     @page { size: 80mm auto; margin: 3mm; }
     html, body { width: 80mm; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; }
     .wrap { width: 74mm; margin: 0 auto; }
+    .logo { text-align:center; margin: 0 0 4px; }
+    .logo img { max-width: 34mm; max-height: 16mm; object-fit: contain; }
     .h { text-align: center; font-weight: 700; }
     .muted { color: #333; font-size: 10px; }
     .sep { border-top: 1px dashed #000; margin: 6px 0; }
@@ -444,6 +623,7 @@ export class EnviosFeature implements OnInit {
 </head>
 <body>
   <div class="wrap">
+    ${logo ? `<div class="logo"><img src="${this.escHtml(logo)}" alt="Logo"/></div>` : ''}
     <div class="h">TICKET DE ENVIO</div>
     <div class="row muted">Ticket: ${this.escHtml(env?.ticket_numero || '-')}</div>
     <div class="row">Remitente: ${this.escHtml(remitente)}</div>
@@ -498,6 +678,14 @@ export class EnviosFeature implements OnInit {
     const v: any = this.compView || {};
     const rows = Array.isArray(this.compRows) ? this.compRows : [];
     const totals = this.compTotals || { base: 0, igv: 0, total: 0 };
+    const preview: any = this.comprobantePreview || null;
+    const rawQr = String(preview?.sunat?.qr || '').trim();
+    const qrSrc = rawQr
+      ? (rawQr.startsWith('http://') || rawQr.startsWith('https://') || rawQr.startsWith('data:image')
+        ? rawQr
+        : `data:image/png;base64,${rawQr}`)
+      : '';
+    const trackingCode = String(preview?.referencia?.tracking || '').trim();
     const detailRows = rows.map((r: any, i: number) => {
       const n = Number(r?.numero_item || i + 1);
       const c = Number(r?.cantidad || 0);
@@ -531,6 +719,8 @@ export class EnviosFeature implements OnInit {
     .tot { margin-top: 4px; }
     .tot .line { display: flex; justify-content: space-between; }
     .tot .final { font-weight: 700; font-size: 12px; border-top: 1px dashed #000; padding-top: 3px; margin-top: 3px; }
+    .qr { margin-top: 6px; text-align: center; }
+    .qr img { width: 120px; height: 120px; object-fit: contain; }
   </style>
 </head>
 <body>
@@ -563,6 +753,8 @@ export class EnviosFeature implements OnInit {
       ${Number(totals.igv || 0) > 0 ? `<div class="line"><span>IGV</span><span>${this.format2(totals.igv)}</span></div>` : ''}
       <div class="line final"><span>Total</span><span>${this.format2(totals.total)}</span></div>
     </div>
+    ${(trackingCode || qrSrc) ? `<div class="sep"></div><div class="row muted">Código de seguimiento:</div><div class="row">${this.escHtml(trackingCode || '-')}</div>` : ''}
+    ${qrSrc ? `<div class="qr"><img src="${this.escHtml(qrSrc)}" alt="QR comprobante"/></div>` : ''}
   </div>
   <script>
     (function () {
@@ -830,7 +1022,7 @@ export class EnviosFeature implements OnInit {
   // Lista filtrada y paginaciÃ³n
   get filteredEnvios(): Envio[] {
     const term = (this.search || '').trim().toLowerCase();
-    return (this.lista_envios || []).filter((e: any) => {
+    const filtered = (this.lista_envios || []).filter((e: any) => {
       const entregado = !!(e?.fecha_recepcion || e?.estado_entrega);
       if (this.entregaFilter === 'delivered' && !entregado) return false;
       if (this.entregaFilter === 'pending' && entregado) return false;
@@ -844,6 +1036,7 @@ export class EnviosFeature implements OnInit {
       ].join(' ').toLowerCase();
       if (this.origenFilterId && Number(e.punto_origen_id) !== Number(this.origenFilterId)) return false; if (this.destinoFilterId && Number(e.punto_destino_id) !== Number(this.destinoFilterId)) return false; if (this.personaSearchTarget === 'remitente') return remit.includes(term); if (this.personaSearchTarget === 'destinatario') return dest.includes(term); return remit.includes(term) || dest.includes(term) || values.includes(term);
     });
+    return filtered.sort((a: any, b: any) => this.compareTicketDesc(a, b));
   }
   get total(): number { return this.filteredEnvios.length; }
   get totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
@@ -856,12 +1049,29 @@ export class EnviosFeature implements OnInit {
     this.onFilterChange();
     this.loadEnvios();
   }
+  private formaPagoLabel(value: any): string {
+    const id = Number(value || 0);
+    const found = (this.payTipos || []).find((p: any) => Number((p as any)?.id || 0) === id);
+    if (found) return String((found as any)?.nombre || '-');
+    const text = String(value || '').trim();
+    return text || '-';
+  }
   clearFechaFilter() {
     if (!this.fechaFiltro) return;
     this.fechaFiltro = '';
     this.onFechaFilterChange();
   }
   resetFilters() { this.search = ''; this.entregaFilter = 'all'; this.fechaFiltro = ''; this.setPage(1); this.loadEnvios(); }
+  private compareTicketDesc(a: any, b: any): number {
+    const ta = String(a?.ticket_numero || '').trim().toUpperCase();
+    const tb = String(b?.ticket_numero || '').trim().toUpperCase();
+    if (!ta && !tb) return (Number(b?.id || 0) - Number(a?.id || 0));
+    if (!ta) return 1;
+    if (!tb) return -1;
+    const byTicket = tb.localeCompare(ta, 'es', { numeric: true, sensitivity: 'base' });
+    if (byTicket !== 0) return byTicket;
+    return (Number(b?.id || 0) - Number(a?.id || 0));
+  }
 
   // Autocomplete personas helpers
   get filteredRemitentes(): Persona[] { const q = (this.remitenteQuery || '').toLowerCase().trim(); const list = this.personas || []; if (!q) return list.slice(0, 10); return list.filter(p => this.personaLabel(p).toLowerCase().includes(q)).slice(0, 10); }
@@ -1393,8 +1603,8 @@ export class EnviosFeature implements OnInit {
         error: () => { this.showNotif('Env\u00edo creado, pero no se pudo actualizar la serie del ticket', 'error'); }
       });
     }
-    this.openTicketAfterCreate(updated, newId);
     if (payload.estado_pago) {
+      this.closeTicket();
       // WhatsApp: enviar si se solicitó y estás pagado
       if (this.sendWhatsapp && payload.estado_pago && newId) {
         try {
@@ -1443,6 +1653,8 @@ export class EnviosFeature implements OnInit {
   error: () => { this.closeCreate(); }
 });
       });
+    } else {
+      this.openTicketAfterCreate(updated, newId);
     }
     this.showNotif('Env\u00edo creado');
   }

@@ -12,30 +12,25 @@
         type="date"
         [value]="fechaFiltro"
         (change)="onFechaFiltroChange($any($event.target).value)"
-        [disabled]="isOperario"
         class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
       />
       <button
         *ngIf="fechaFiltro"
         type="button"
         (click)="clearFechaFiltro()"
-        [disabled]="isOperario"
         class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60"
       >
         Limpiar fecha
       </button>
       <button type="button" (click)="printGrillas()"
-              [disabled]="isOperario"
               class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60">
         Imprimir grillas
       </button>
       <button type="button" (click)="loadResumen()"
-              [disabled]="isOperario"
               class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60">
         Refrescar resumen
       </button>
       <button type="button" (click)="loadTotales()"
-              [disabled]="isOperario"
               class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60">
         Refrescar totales
       </button>

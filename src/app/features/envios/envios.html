@@ -489,15 +489,6 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 mt-2">
-        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" [(ngModel)]="sendWhatsapp" class="h-4 w-4 accent-[#2F455C]" readonly disabled="disabled"/>
-          Enviar WhatsApp
-        </label>
-        <div *ngIf="sendWhatsapp">
-          <input type="text" [(ngModel)]="whatsappPhone" placeholder="Celular (sin +51)" class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-        </div>
-      </div>
 
       <div class="mt-6 flex items-center justify-between gap-2">
 
@@ -913,15 +904,6 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 mt-2">
-        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" [(ngModel)]="sendWhatsapp" class="h-4 w-4 accent-[#2F455C]" readonly disabled="disabled"/>
-          Enviar WhatsApp
-        </label>
-        <div *ngIf="sendWhatsapp">
-          <input type="text" [(ngModel)]="whatsappPhone" placeholder="Celular (sin +51)"/>
-        </div>
-      </div>
       <div class="mt-6">
         <div *ngIf="editing && newEnvio.estado_pago && hasComprobante" class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           El envío ya tiene comprobante generado.
@@ -1226,6 +1208,10 @@
                   (click)="sendEnvioText(item, $event)">Enviar SMS
           </button>
           <button type="button"
+                  class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
+                  (click)="openDeclaracion(item)">Declaración
+          </button>
+          <button type="button"
                   class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
                   (click)="openEdit(item)">
             <ng-icon name="heroPencil" size="16"></ng-icon>
@@ -1297,6 +1283,9 @@
                     class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60 disabled:opacity-50"
                     [disabled]="!canSendText(item)"
                     (click)="sendEnvioText(item, $event)">Enviar SMS</button>
+            <button type="button"
+                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
+                    (click)="openDeclaracion(item)">Declaración</button>
             <button type="button" *ngIf="canConfirmEntrega(item)"
                     class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-800 hover:bg-emerald-100"
                     (click)="openEntrega(item)">Confirmar entrega
@@ -1419,6 +1408,9 @@
 
     <div class="mt-2 ticket w-[80mm] max-w-[80mm] text-[12px] text-slate-800">
       <div class="text-center">
+        <div class="mb-1 flex justify-center" *ngIf="companyLogoSrc() as logo">
+          <img [src]="logo" alt="Logo empresa" class="max-h-12 max-w-[34mm] object-contain" />
+        </div>
         <div class="font-semibold">ENV&Iacute;O</div>
         <div class="text-xs text-slate-600">Ticket: {{ ticketEnvio?.ticket_numero }}</div>
       </div>
@@ -1651,112 +1643,34 @@
 
 
 
+<!-- Declaración Modal -->
+<div *ngIf="showDeclaracion" class="fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/30" (click)="closeDeclaracion()"></div>
+  <div class="relative z-10 w-[860px] max-w-[95vw] rounded-md bg-white p-4 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-slate-800">Declaración Jurada</h3>
+      <button (click)="closeDeclaracion()"
+              class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Cerrar</button>
+    </div>
+    <div class="mt-2 max-h-[82vh] overflow-auto">
+      <app-declaracion-jurada [data]="declaracionData"></app-declaracion-jurada>
+    </div>
+  </div>
+</div>
+
 <!-- Comprobante Modal  1 -->
 <div *ngIf="showComprobante" class="fixed inset-0 z-50 flex items-center justify-center">
   <div class="absolute inset-0 bg-black/30 comprobante-backdrop" (click)="closeComprobante()"></div>
   <div class="relative z-10 w-[800px] max-w-[95vw] rounded-md bg-white p-4 shadow-xl comprobante-modal">
     <div class="flex items-center justify-between">
-      <h3 class="text-sm font-semibold text-slate-800">Comprobante Edición</h3>
+      <h3 class="text-sm font-semibold text-slate-800">Comprobante</h3>
       <div class="flex gap-2 comprobante-actions">
-        <button (click)="printComprobante()"
-                class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Imprimir</button>
         <button (click)="closeComprobante()"
                 class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-white/60">Cerrar</button>
       </div>
     </div>
     <div class="mt-2">
-      <div class="max-w-4xl mx-auto bg-white p-4 sm:p-6 text-[13px] text-gray-900 print:bg-white comprobante-print">
-        <div class="flex justify-between items-start gap-6">
-          <div class="flex-1">
-            <div class="text-base font-bold leading-tight">{{ compView.razon || "-" }}</div>
-            <div class="text-xs text-gray-700 mt-1 space-y-0.5">
-              <div>Dirección fiscal: -</div>
-              <div>Tel: -</div>
-              <div>Email: -</div>
-            </div>
-          </div>
-          <div class="w-72 border border-gray-500">
-            <div class="p-3 text-center">
-              <div class="font-semibold">RUC: {{ compView.ruc || "-" }}</div>
-              <div class="mt-1 font-bold tracking-wide">{{ (compView.docTitle || "Comprobante") | uppercase }} ELECTRÓNICA</div>
-              <div class="mt-1 text-lg font-extrabold">{{ compView.numero }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="my-5 border-t border-gray-300"></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="border border-gray-300 p-3">
-            <div class="font-semibold mb-2">Datos del cliente</div>
-            <div class="space-y-1">
-              <div class="flex gap-2"><span class="w-28 text-gray-700">Señor(es):</span><span class="flex-1">{{ compView.clienteNombre || '-' }}</span></div>
-              <div class="flex gap-2"><span class="w-28 text-gray-700">RUC/DNI:</span><span class="flex-1">{{ compView.clienteDocumento }}</span></div>
-              <div class="flex gap-2"><span class="w-28 text-gray-700">Dirección:</span><span class="flex-1">-</span></div>
-            </div>
-          </div>
-          <div class="border border-gray-300 p-3">
-            <div class="font-semibold mb-2">Datos del comprobante</div>
-            <div class="space-y-1">
-              <div class="flex gap-2"><span class="w-32 text-gray-700">Fecha emisión:</span><span class="flex-1">{{ compView.fechaEmision }}</span></div>
-              <div class="flex gap-2"><span class="w-32 text-gray-700">Fecha pago:</span><span class="flex-1">{{ compView.fechaPago }}</span></div>
-              <div class="flex gap-2"><span class="w-32 text-gray-700">Moneda:</span><span class="flex-1">{{ compView.moneda }}</span></div>
-              <div class="flex gap-2"><span class="w-32 text-gray-700">Forma de pago:</span><span class="flex-1">{{ compView.formaPago }}</span></div>
-            </div>
-          </div>
-        </div>
-        <div class="mt-5">
-          <table class="w-full border border-gray-400 border-collapse">
-            <thead>
-              <tr class="bg-gray-100">
-                <th class="border border-gray-400 px-2 py-1 text-center w-12">Ítem</th>
-                <th class="border border-gray-400 px-2 py-1 text-center w-20">Cant.</th>
-                <th class="border border-gray-400 px-2 py-1 text-center w-20">Und.</th>
-                <th class="border border-gray-400 px-2 py-1 text-left">Descripción</th>
-                <th class="border border-gray-400 px-2 py-1 text-right w-24">V. Unit</th>
-                <th class="border border-gray-400 px-2 py-1 text-right w-20">IGV</th>
-                <th class="border border-gray-400 px-2 py-1 text-right w-24">Importe</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let r of compRows" class="align-top">
-                <td class="border border-gray-300 px-2 py-1 text-center">{{ r.numero_item }}</td>
-                <td class="border border-gray-300 px-2 py-1 text-center">{{ r.cantidad | number:"1.0-2" }}</td>
-                <td class="border border-gray-300 px-2 py-1 text-center">{{ r.unidad }}</td>
-                <td class="border border-gray-300 px-2 py-1">
-                  {{ r.descripcion }}
-                  <div class="text-[11px] text-gray-600" *ngIf="compTotals.igv > 0">Afecto al IGV</div>
-                </td>
-                <td class="border border-gray-300 px-2 py-1 text-right">{{ r.v_unit | number:"1.2-2" }}</td>
-                <td class="border border-gray-300 px-2 py-1 text-right">{{ r.igv | number:"1.2-2" }}</td>
-                <td class="border border-gray-300 px-2 py-1 text-right">{{ r.importe | number:"1.2-2" }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-          <div class="text-xs text-gray-700 space-y-1">
-            <div class="font-semibold text-gray-900">Leyenda:</div>
-            <div>SON: -</div>
-            <div class="text-[11px] text-gray-600">Representación impresa del Comprobante Electrónico.</div>
-          </div>
-          <div class="flex justify-end">
-            <div class="w-80 border border-gray-500 p-3">
-              <div class="flex justify-between py-0.5">
-                <span class="text-gray-700">Op. Gravadas</span>
-                <span>{{ compTotals.base | number:"1.2-2" }}</span>
-              </div>
-              <div class="flex justify-between py-0.5" *ngIf="compTotals.igv > 0">
-                <span class="text-gray-700">IGV (18%)</span>
-                <span>{{ compTotals.igv | number:"1.2-2" }}</span>
-              </div>
-              <div class="border-t border-gray-300 my-2"></div>
-              <div class="flex justify-between py-0.5 text-base font-bold">
-                <span>Total</span>
-                <span>{{ compTotals.total | number:"1.2-2" }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <app-comprobante-preview [comprobante]="comprobantePreview" [showSunatTitle]="false" [showCpeStatus]="false"></app-comprobante-preview>
     </div>
   </div>
 </div>

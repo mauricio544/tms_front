@@ -46,7 +46,7 @@ export class DetalleMovimientos {
     return this.api.delete(`/envios/movimientos/detalle/${id}`);
   }
 
-  getDetallesListFullPunto(punto_id: number): Observable<DetalleFull[]> {
-    return this.api.get(`/envios/movimientos/detalle/full/por-punto?punto_id=${punto_id}`);
+  getDetallesListFullPunto(punto_id: number, fecha: string): Observable<DetalleFull[]> {
+    return this.api.get(`/envios/movimientos/detalle/full/por-punto?punto_id=${punto_id}&fecha=${fecha}`);
   }
 }

@@ -383,6 +383,7 @@ export interface Cabecera {
   placa: string;
   autorizado:number;
   manifiesto_id: number;
+  sede_id?: number;
 }
 
 export interface CabeceraCreate {
@@ -392,6 +393,7 @@ export interface CabeceraCreate {
   placa?: string;
   autorizado?:number;
   manifiesto_id?: number;
+  sede_id?: number;
 }
 
 export interface Detalle {

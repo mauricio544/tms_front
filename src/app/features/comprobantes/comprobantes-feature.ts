@@ -6,23 +6,27 @@ import { FormsModule } from '@angular/forms';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroPrinter, heroDocumentText, heroDocumentArrowDown } from '@ng-icons/heroicons/outline';
 import { Comprobantes } from '../../../../core/services/comprobantes';
+import { Envios } from '../../../../core/services/envios';
 import { Clientes } from '../../../../core/services/clientes';
 import { Personas } from '../../../../core/services/personas';
 import { Generales } from '../../../../core/services/generales';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
 import { Cliente, Comprobante, DetalleComprobante, Persona } from '../../../../core/mapped';
 import { Utils } from '../../../../core/services/utils';
+import { ComprobantePreview, ComprobantePreviewComponent } from '../../shared/comprobante-preview/comprobante-preview.component';
 
 @Component({
   selector: 'feature-comprobantes',
   standalone: true,
-  imports: [CommonModule, FormsModule, Utils, NgIconComponent],
+  imports: [CommonModule, FormsModule, Utils, NgIconComponent, ComprobantePreviewComponent],
   templateUrl: './comprobantes-feature.html',
   providers: [provideIcons({ heroPrinter, heroDocumentText, heroDocumentArrowDown })],
 })
 export class ComprobantesFeature implements OnInit {
+  private readonly publicTrackingSearchUrl = 'https://tms.maudev.online/tracking/publico/buscar';
   isOperario = false;
   private readonly comprobantesSrv = inject(Comprobantes);
+  private readonly enviosSrv = inject(Envios);
   private readonly detallesSrv = inject(DetallesComprobante);
   private readonly route = inject(ActivatedRoute);
   private readonly clientesSrv = inject(Clientes);
@@ -45,6 +49,7 @@ export class ComprobantesFeature implements OnInit {
 
   // Selección y detalle actual
   selected: Comprobante | null = null;
+  comprobantePreview: ComprobantePreview | null = null;
   detalles: DetalleComprobante[] = [];
   detallesLoading = false;
   detallesError: string | null = null;
@@ -65,6 +70,8 @@ export class ComprobantesFeature implements OnInit {
   formasPago: any[] = [];
   clientes: Cliente[] = [];
   personas: Persona[] = [];
+  private readonly envioInfoById = new Map<number, any>();
+  private readonly envioLoading = new Set<number>();
 
   tipoNombre(id: string | null | undefined): string {
     if (id == null) return '';
@@ -192,6 +199,8 @@ export class ComprobantesFeature implements OnInit {
 
   select(c: Comprobante) {
     this.selected = c;
+    this.ensureEnvioInfo(c);
+    this.rebuildComprobantePreview();
     this.sunatOk = null;
     this.sunatError = null;
     this.sunatStatus = null;
@@ -202,13 +211,15 @@ export class ComprobantesFeature implements OnInit {
 
   private selectForExport(c: Comprobante, done: () => void) {
     this.selected = c;
+    this.ensureEnvioInfo(c);
+    this.rebuildComprobantePreview();
     const id = Number((c as any).id || 0);
     if (!id) { done(); return; }
     this.detallesLoading = true;
     this.detallesError = null;
     this.detallesSrv.getDetalles(id).subscribe({
-      next: (res) => { this.detalles = res || []; this.detallesLoading = false; done(); },
-      error: () => { this.detalles = []; this.detallesLoading = false; done(); }
+      next: (res) => { this.detalles = res || []; this.detallesLoading = false; this.rebuildComprobantePreview(); done(); },
+      error: () => { this.detalles = []; this.detallesLoading = false; this.rebuildComprobantePreview(); done(); }
     });
   }
 
@@ -250,22 +261,91 @@ export class ComprobantesFeature implements OnInit {
   private trySelectById() {
     if (!this.initialSelectId) return;
     const found = (this.lista || []).find((x: any) => Number((x as any).id) === Number(this.initialSelectId));
-    if (found) { this.selected = found as any; this.loadDetalles((found as any).id); }
+    if (found) { this.selected = found as any; this.ensureEnvioInfo(found as any); this.rebuildComprobantePreview(); this.loadDetalles((found as any).id); }
   }
 
   private trySelectByEnvioId() {
     if (!this.initialEnvioId) return;
     const found = (this.lista || []).find((x: any) => Number((x as any).envio_id) === Number(this.initialEnvioId));
-    if (found) { this.selected = found as any; this.loadDetalles((found as any).id); }
+    if (found) { this.selected = found as any; this.ensureEnvioInfo(found as any); this.rebuildComprobantePreview(); this.loadDetalles((found as any).id); }
   }
 
   loadDetalles(id: number) {
     this.detallesLoading = true;
     this.detallesError = null;
     this.detallesSrv.getDetalles(id).subscribe({
-      next: (res) => { this.detalles = res || []; this.detallesLoading = false; },
-      error: () => { this.detallesLoading = false; this.detallesError = 'No se pudo cargar el detalle'; }
+      next: (res) => { this.detalles = res || []; this.detallesLoading = false; this.rebuildComprobantePreview(); },
+      error: () => { this.detallesLoading = false; this.detallesError = 'No se pudo cargar el detalle'; this.rebuildComprobantePreview(); }
     });
+  }
+
+  private rebuildComprobantePreview() {
+    const c: any = this.selected;
+    if (!c) { this.comprobantePreview = null; return; }
+    this.ensureEnvioInfo(c);
+    const items = (this.detalles || []).map((it: any, i: number) => {
+      const cantidad = Number(it?.cantidad || 0);
+      const precio = Number(it?.precio_unitario || 0);
+      const base = cantidad * precio;
+      const igv = this.selectedIsFactura ? +(base * 0.18).toFixed(2) : 0;
+      return {
+        numeroItem: Number(it?.numero_item || i + 1),
+        descripcion: String(it?.descripcion || ''),
+        cantidad,
+        unidadMedida: 'UND',
+        precioUnitario: precio,
+        valorUnitario: precio,
+        igv,
+        totalLinea: base + igv,
+      };
+    });
+    const estadoRaw = String(c?.estado_cpe || '').trim().toUpperCase();
+    const estadoCpe = estadoRaw === 'A' ? 'aceptado' : (estadoRaw === 'R' ? 'rechazado' : 'pendiente');
+    this.comprobantePreview = {
+      tipo: String(c?.tipo_comprobante_sunat || c?.tipo_comprobante || ''),
+      ambiente: 'produccion',
+      serie: String(c?.serie || '-'),
+      numero: String(c?.numero || '-'),
+      fechaEmision: String(c?.fecha_comprobante || ''),
+      moneda: String(c?.tipo_moneda || 'PEN'),
+      formaPago: this.formaNombre(c?.forma_pago),
+      logoUrl: this.companyLogoSrc() || undefined,
+      emisor: {
+        razonSocial: String(localStorage.getItem('razon_social') || ''),
+        nombreComercial: String(localStorage.getItem('nombre_comercial') || ''),
+        ruc: String(localStorage.getItem('ruc') || ''),
+        direccion: String(localStorage.getItem('direccion_fiscal') || ''),
+        telefono: String(localStorage.getItem('telefono') || ''),
+        correo: String(localStorage.getItem('correo') || ''),
+      },
+      cliente: {
+        nombre: this.clienteNombre(c),
+        tipoDocumento: this.selectedIsFactura ? 'RUC' : 'DNI',
+        numeroDocumento: String(c?.cliente_documento || '-'),
+      },
+      referencia: {
+        envioId: this.codigoEnvio(c),
+        tracking: this.codigoSeguimiento(c),
+      },
+      items,
+      totales: {
+        gravadas: this.subtotal,
+        igv: this.selectedIgv,
+        total: this.selectedTotal,
+      },
+      sunat: {
+        hash: String(c?.hash_sunat || c?.sunat_hash || ''),
+        qr: `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(this.publicTrackingSearchUrl)}`,
+        codigo: String(c?.sunat_cod || c?.codigo_sunat || ''),
+        mensaje: String(c?.sunat_msg || c?.mensaje_sunat || ''),
+        ticket: String(c?.sunat_ticket || c?.ticket_sunat || ''),
+        fechaEnvio: String(c?.sunat_fecha_envio || c?.fecha_envio_sunat || ''),
+        fechaRespuesta: String(c?.sunat_fecha_respuesta || c?.fecha_respuesta_sunat || ''),
+        estadoCpe: estadoCpe as any,
+      },
+      leyendas: [],
+      observaciones: [],
+    };
   }
 
   ngOnInit(): void { try { const saved = (localStorage.getItem('comprobantes.viewMode') || '').toLowerCase(); if (saved === 'grid' || saved === 'cards') this.viewMode = saved as any; } catch {}
@@ -296,6 +376,42 @@ export class ComprobantesFeature implements OnInit {
   private format(n: number): string {
     try { return (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); } catch { return String(n); }
   }
+  private companyLogoSrc(): string {
+    const raw = String(localStorage.getItem('cia_logo') || '').trim();
+    if (!raw) return '';
+    if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image')) return raw;
+    return `data:image/png;base64,${raw}`;
+  }
+  codigoEnvio(c: Comprobante | null): string {
+    if (!c) return '-';
+    const envioIdNum = Number((c as any)?.envio_id || 0);
+    const cache = envioIdNum > 0 ? this.envioInfoById.get(envioIdNum) : null;
+    const ticket = String((c as any)?.ticket_numero || cache?.ticket_numero || '').trim();
+    if (ticket) return ticket;
+    const envioId = String((c as any)?.envio_id || '').trim();
+    return envioId || '-';
+  }
+  codigoSeguimiento(c: Comprobante | null): string {
+    if (!c) return '';
+    const envioIdNum = Number((c as any)?.envio_id || 0);
+    const cache = envioIdNum > 0 ? this.envioInfoById.get(envioIdNum) : null;
+    return String((c as any)?.id_tracking || cache?.id_tracking || '').trim();
+  }
+  private ensureEnvioInfo(c: Comprobante | any) {
+    const envioId = Number((c as any)?.envio_id || 0);
+    if (!envioId || this.envioInfoById.has(envioId) || this.envioLoading.has(envioId)) return;
+    this.envioLoading.add(envioId);
+    this.enviosSrv.getEnvio(envioId).subscribe({
+      next: (envio: any) => {
+        this.envioInfoById.set(envioId, envio || {});
+        this.envioLoading.delete(envioId);
+        if (Number((this.selected as any)?.envio_id || 0) === envioId) {
+          this.rebuildComprobantePreview();
+        }
+      },
+      error: () => { this.envioLoading.delete(envioId); }
+    });
+  }
 
   printSelected() {
     if (this.isOperario) return;
@@ -307,68 +423,50 @@ export class ComprobantesFeature implements OnInit {
       const base = (Number(x.cantidad)||0) * (Number(x.precio_unitario)||0);
       const igv = isFactura ? base * 0.18 : 0;
       const total = base + igv;
-      return `<tr>
-  <td class="center">${x.numero_item||''}</td>
-  <td class="center">${x.cantidad||''}</td>
-  <td class="center">UND</td>
-  <td>${x.descripcion||''}</td>
-  <td class="right">${this.format(x.precio_unitario)}</td>
-  <td class="right">${this.format(igv)}</td>
-  <td class="right">${this.format(total)}</td>
-</tr>`;
+      return `<tr><td>${x.numero_item||''}</td><td class="r">${x.cantidad||''}</td><td>${x.descripcion||''}</td><td class="r">${this.format(x.precio_unitario)}</td><td class="r">${this.format(total)}</td></tr>`;
     }).join('');
     const subtotal = this.subtotal;
     const igvTotal = this.selectedIgv;
     const totalFinal = this.selectedTotal;
+    const logo = this.companyLogoSrc();
+    const codigoEnvio = this.codigoEnvio(c);
+    const tracking = this.codigoSeguimiento(c);
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>${title}</title>
 <style>
-  body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#0f172a;}
-  h1{font-size:18px;margin:0 0 6px;}
-  table{border-collapse:collapse;width:100%;font-size:12px;}
-  th,td{border:1px solid #e2e8f0;padding:6px;text-align:left;vertical-align:top;}
-  .meta{margin:10px 0 16px;font-size:13px;}
-  .right{text-align:right;}
-  .center{text-align:center;}
-  .muted{color:#64748b;}
-  .box{border:1px solid #e2e8f0;padding:8px;}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .totals{width:240px;border:1px solid #e2e8f0;padding:8px;margin-left:auto;}
+  @page { size: 80mm auto; margin: 2mm; }
+  html,body{width:80mm;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:11px}
+  .wrap{width:78mm;margin:0 auto;padding:1mm}
+  .c{text-align:center}.r{text-align:right}.muted{color:#64748b}
+  .sep{border-top:1px dashed #94a3b8;margin:6px 0}
+  .logo{display:block;max-height:16mm;max-width:40mm;margin:0 auto 4px;object-fit:contain}
+  table{width:100%;border-collapse:collapse;font-size:10px}
+  th,td{padding:2px 0;border-bottom:1px dotted #cbd5e1;vertical-align:top}
+  .tot{margin-top:6px}
 </style>
 </head><body>
-  <h1>${title}</h1>
-  <div class="grid meta">
-    <div class="box">
-      <div><b>Datos del cliente</b></div>
-      <div><span class="muted">Señor(es):</span> ${this.clienteNombre(c)}</div>
-      <div><span class="muted">RUC/DNI:</span> ${c.cliente_documento || '-'}</div>
-      <div><span class="muted">Dirección:</span> -</div>
+  <div class="wrap">
+    ${logo ? `<img src="${logo}" alt="Logo" class="logo">` : ''}
+    <div class="c"><b>${String(localStorage.getItem('razon_social') || '')}</b></div>
+    <div class="c">RUC: ${String(localStorage.getItem('ruc') || '-')}</div>
+    <div class="c"><b>${this.tipoSunatLabel(c).toUpperCase()} ELECTRONICA</b></div>
+    <div class="c"><b>${c.serie || '-'}-${c.numero || '-'}</b></div>
+    <div class="sep"></div>
+    <div><span class="muted">Cliente:</span> ${this.clienteNombre(c)}</div>
+    <div><span class="muted">RUC/DNI:</span> ${c.cliente_documento || '-'}</div>
+    <div><span class="muted">Emisión:</span> ${c.fecha_comprobante || ''}</div>
+    <div><span class="muted">Forma pago:</span> ${this.formaNombre(c.forma_pago)}</div>
+    <div><span class="muted">Código envío:</span> ${codigoEnvio}</div>
+    ${tracking ? `<div><span class="muted">Código de seguimiento:</span> ${tracking}</div>` : ''}
+    <div class="sep"></div>
+    <table>
+      <thead><tr><th>#</th><th class="r">Cant</th><th>Descripción</th><th class="r">V.U.</th><th class="r">Imp</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="tot">
+      <div class="r"><span class="muted">Op. Gravadas:</span> ${this.format(subtotal)}</div>
+      ${isFactura ? `<div class="r"><span class="muted">IGV:</span> ${this.format(igvTotal)}</div>` : ''}
+      <div class="r"><b>Total: ${this.format(totalFinal)}</b></div>
     </div>
-    <div class="box">
-      <div><b>Datos del comprobante</b></div>
-      <div><span class="muted">Fecha emisión:</span> ${c.fecha_comprobante||''}</div>
-      <div><span class="muted">Forma de pago:</span> ${this.formaNombre(c.forma_pago)}</div>
-      <div><span class="muted">Tipo:</span> ${this.tipoNombre(c.tipo_comprobante)}</div>
-      <div><span class="muted">Impuesto:</span> ${this.format(c.impuesto)}</div>
-    </div>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th class="center">Ítem</th>
-        <th class="center">Cant.</th>
-        <th class="center">Und.</th>
-        <th>Descripción</th>
-        <th class="right">V. Unit</th>
-        <th class="right">IGV</th>
-        <th class="right">Importe</th>
-      </tr>
-    </thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="totals meta">
-    <div class="right"><span class="muted">Op. Gravadas:</span> ${this.format(subtotal)}</div>
-    ${isFactura ? `<div class="right"><span class="muted">IGV (18%):</span> ${this.format(igvTotal)}</div>` : ''}
-    <div class="right"><b>Total: ${this.format(totalFinal)}</b></div>
   </div>
   <script>window.addEventListener('load',()=>{window.print(); setTimeout(()=>window.close(),300)});</script>
 </body></html>`;
@@ -385,6 +483,7 @@ export class ComprobantesFeature implements OnInit {
     lines.push('Fecha,' + esc(c.fecha_comprobante));
     lines.push('Tipo,' + esc(this.tipoNombre(c.tipo_comprobante)));
     lines.push('Forma de pago,' + esc(this.formaNombre(c.forma_pago)));
+    lines.push('Código envío,' + esc(this.codigoEnvio(c)));
     lines.push('Impuesto,' + esc(c.impuesto));
     lines.push('Total,' + esc(c.precio_total));
     lines.push('');
@@ -408,7 +507,9 @@ export class ComprobantesFeature implements OnInit {
     // Header
     doc.setFontSize(14); addLine(`Comprobante ${c.serie||'-'}-${c.numero||'-'}`, true);
     doc.setFontSize(10);
+    const codigoEnvio = this.codigoEnvio(c);
     addLine(`Fecha: ${c.fecha_comprobante||''}`);
+    addLine(`Código envío: ${codigoEnvio}`);
     addLine(`Tipo: ${c.tipo_comprobante||''}   Forma de pago: ${c.forma_pago||''}`);
     addLine(`Impuesto: ${Number(c.impuesto||0).toFixed(2)}   Total: ${Number(c.precio_total||0).toFixed(2)}`);
 
@@ -489,6 +590,49 @@ export class ComprobantesFeature implements OnInit {
       error: () => {
         this.sunatLoading = false;
         this.sunatError = 'No se pudo generar SUNAT';
+      }
+    });
+  }
+
+  enviarSunat() {
+    if (this.isOperario) return;
+    const c: any = this.selected;
+    if (!c?.id || this.sunatLoading) return;
+    const id = Number(c.id);
+    this.sunatLoading = true;
+    this.sunatError = null;
+    this.sunatOk = null;
+    this.comprobantesSrv.sendSunat(id).subscribe({
+      next: (res: any) => {
+        this.sunatLoading = false;
+        const cod = String((res as any)?.sunat_cod ?? '').trim();
+        this.sunatOk = cod ? `SUNAT: ${cod}` : 'Comprobante enviado a SUNAT';
+        this.loadSunatStatus(id);
+      },
+      error: () => {
+        this.sunatLoading = false;
+        this.sunatError = 'No se pudo enviar a SUNAT';
+      }
+    });
+  }
+
+  enviarSunatRow(c: Comprobante) {
+    if (this.isOperario) return;
+    const id = Number((c as any)?.id || 0);
+    if (!id || this.sunatLoading) return;
+    this.sunatLoading = true;
+    this.sunatError = null;
+    this.sunatOk = null;
+    this.comprobantesSrv.sendSunat(id).subscribe({
+      next: (res: any) => {
+        this.sunatLoading = false;
+        const cod = String((res as any)?.sunat_cod ?? '').trim();
+        this.sunatOk = cod ? `SUNAT: ${cod}` : 'Comprobante enviado a SUNAT';
+        this.loadSunatStatus(id);
+      },
+      error: () => {
+        this.sunatLoading = false;
+        this.sunatError = 'No se pudo enviar a SUNAT';
       }
     });
   }

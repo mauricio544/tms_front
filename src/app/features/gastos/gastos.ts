@@ -112,11 +112,17 @@ export class GastosFeature implements OnInit {
   load() {
     this.loading = true;
     this.error = null;
-    const source$ = this.useDetallesPuntoEndpoint()
-      ? this.detalleSrv.getDetallesListFullPunto(this.getUserSedeId())
+    const usePuntoEndpoint = this.useDetallesPuntoEndpoint();
+    const selected = String(this.selectedDate || '').trim();
+    const fecha = selected || this.todayIso();
+    const source$ = usePuntoEndpoint
+      ? this.detalleSrv.getDetallesListFullPunto(this.getUserSedeId(), fecha)
       : this.detalleSrv.getDetallesListFull();
     source$.subscribe({
-      next: (res) => { this.detalles = this.filterDetallesBySelectedDate(res || []); this.loading = false; },
+      next: (res) => {
+        this.detalles = usePuntoEndpoint ? (res || []) : this.filterDetallesBySelectedDate(res || []);
+        this.loading = false;
+      },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los movimientos'; }
     });
   }
@@ -192,6 +198,7 @@ export class GastosFeature implements OnInit {
     const cabBody: any = {
       tipo_movimiento: String(c.tipo_movimiento),
       monto: Number(c.monto),
+      sede_id: this.getUserSedeId() || undefined,
       persona_id: c.persona_id != null ? Number(c.persona_id) : undefined,
       placa: String(c.placa || '').trim() || undefined,
       autorizado: c.autorizado != null ? Number(c.autorizado) : undefined,
@@ -275,7 +282,7 @@ export class GastosFeature implements OnInit {
     }
 
     clearDate() {
-      this.selectedDate = null;
+      this.selectedDate = this.useDetallesPuntoEndpoint() ? this.todayIso() : null;
       this.page = 1;
       this.load();
     }

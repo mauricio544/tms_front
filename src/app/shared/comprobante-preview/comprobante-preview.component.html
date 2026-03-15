@@ -1,0 +1,122 @@
+﻿<div #printRoot class="mx-auto w-full max-w-md px-2 py-3 print:p-0">
+  <div class="no-print mb-3 flex justify-center">
+    <button
+      type="button"
+      (click)="print()"
+      class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+      Imprimir
+    </button>
+  </div>
+
+  <section class="thermal-80 mx-auto border border-slate-200 bg-white p-2 text-[11px] leading-tight text-slate-900 shadow-sm print:border-0 print:shadow-none">
+    <header class="border-b border-dashed border-slate-300 pb-2 text-center">
+      <img *ngIf="toImageSrc(comprobante?.logoUrl) as logo" [src]="logo" alt="Logo empresa" class="mx-auto mb-1 max-h-16 object-contain" />
+      <div class="font-semibold uppercase">{{ comprobante?.emisor?.nombreComercial || comprobante?.emisor?.razonSocial || '-' }}</div>
+      <div *ngIf="comprobante?.emisor?.nombreComercial" class="text-[10px]">{{ comprobante?.emisor?.razonSocial }}</div>
+      <div>RUC: {{ comprobante?.emisor?.ruc || '-' }}</div>
+      <div *ngIf="comprobante?.emisor?.direccion">{{ comprobante?.emisor?.direccion }}</div>
+      <div *ngIf="comprobante?.emisor?.telefono || comprobante?.emisor?.correo">
+        {{ comprobante?.emisor?.telefono || '' }} <span *ngIf="comprobante?.emisor?.telefono && comprobante?.emisor?.correo">|</span> {{ comprobante?.emisor?.correo || '' }}
+      </div>
+      <div class="mt-1 font-semibold tracking-wide">{{ resolveTituloDocumento(comprobante?.tipo) }}</div>
+      <div class="font-bold">{{ buildSerieNumero() }}</div>
+      <div *ngIf="comprobante?.ambiente === 'beta'" class="mt-1 inline-block rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">ENTORNO DE PRUEBA</div>
+    </header>
+
+    <div class="border-b border-dashed border-slate-300 py-2">
+      <div class="font-semibold">Cliente</div>
+      <div>{{ comprobante?.cliente?.nombre || '-' }}</div>
+      <div *ngIf="comprobante?.cliente?.tipoDocumento || comprobante?.cliente?.numeroDocumento">
+        {{ comprobante?.cliente?.tipoDocumento || 'DOC' }}: {{ comprobante?.cliente?.numeroDocumento || '-' }}
+      </div>
+      <div *ngIf="comprobante?.cliente?.direccion">{{ comprobante?.cliente?.direccion }}</div>
+      <div>Emisi&oacute;n: {{ formatFecha(comprobante?.fechaEmision) }}</div>
+      <div *ngIf="comprobante?.formaPago">Forma de pago: {{ comprobante?.formaPago }}</div>
+      <div>Moneda: {{ comprobante?.moneda || 'PEN' }}</div>
+    </div>
+
+    <div *ngIf="hasReferencia()" class="border-b border-dashed border-slate-300 py-2">
+      <div class="font-semibold">Referencia env&iacute;o</div>
+      <div *ngIf="comprobante?.referencia?.envioId">C&oacute;digo env&iacute;o: {{ comprobante?.referencia?.envioId }}</div>
+      <div *ngIf="comprobante?.referencia?.tracking">C&oacute;digo de seguimiento: {{ comprobante?.referencia?.tracking }}</div>
+      <div *ngIf="comprobante?.referencia?.origen">Origen: {{ comprobante?.referencia?.origen }}</div>
+      <div *ngIf="comprobante?.referencia?.destino">Destino: {{ comprobante?.referencia?.destino }}</div>
+    </div>
+
+    <div class="border-b border-dashed border-slate-300 py-2">
+      <div class="mb-1 font-semibold">Detalle</div>
+      <article *ngFor="let item of comprobante?.items; index as i" class="mb-2 border-b border-dotted border-slate-200 pb-1 last:mb-0 last:border-b-0 last:pb-0">
+        <div class="font-medium">{{ item.numeroItem || (i + 1) }}. {{ item.descripcion }}</div>
+        <div *ngIf="item.codigoProducto" class="text-[10px] text-slate-600">Cod: {{ item.codigoProducto }}</div>
+        <div class="grid grid-cols-2 gap-x-2 text-[10px]">
+          <div>Cant: {{ item.cantidad }} {{ item.unidadMedida || '' }}</div>
+          <div class="text-right">Total: {{ formatMoneda(item.totalLinea, comprobante?.moneda) }}</div>
+          <div *ngIf="item.precioUnitario != null">P. Unit: {{ formatMoneda(item.precioUnitario, comprobante?.moneda) }}</div>
+          <div *ngIf="item.valorUnitario != null" class="text-right">V. Unit: {{ formatMoneda(item.valorUnitario, comprobante?.moneda) }}</div>
+          <div *ngIf="item.igv != null" class="col-span-2 text-right">IGV l&iacute;nea: {{ formatMoneda(item.igv, comprobante?.moneda) }}</div>
+        </div>
+      </article>
+    </div>
+
+    <div class="border-b border-dashed border-slate-300 py-2">
+      <div class="space-y-0.5">
+        <div *ngIf="hasPositive(comprobante?.totales?.gravadas)" class="flex justify-between"><span>Op. Gravadas</span><span class="text-right">{{ formatMoneda(comprobante?.totales?.gravadas, comprobante?.moneda) }}</span></div>
+        <div *ngIf="hasPositive(comprobante?.totales?.exoneradas)" class="flex justify-between"><span>Op. Exoneradas</span><span class="text-right">{{ formatMoneda(comprobante?.totales?.exoneradas, comprobante?.moneda) }}</span></div>
+        <div *ngIf="hasPositive(comprobante?.totales?.inafectas)" class="flex justify-between"><span>Op. Inafectas</span><span class="text-right">{{ formatMoneda(comprobante?.totales?.inafectas, comprobante?.moneda) }}</span></div>
+        <div *ngIf="hasPositive(comprobante?.totales?.descuentos)" class="flex justify-between"><span>Descuentos</span><span class="text-right">-{{ formatMoneda(comprobante?.totales?.descuentos, comprobante?.moneda) }}</span></div>
+        <div *ngIf="hasPositive(comprobante?.totales?.otrosCargos)" class="flex justify-between"><span>Otros cargos</span><span class="text-right">{{ formatMoneda(comprobante?.totales?.otrosCargos, comprobante?.moneda) }}</span></div>
+        <div *ngIf="hasPositive(comprobante?.totales?.igv)" class="flex justify-between"><span>IGV</span><span class="text-right">{{ formatMoneda(comprobante?.totales?.igv, comprobante?.moneda) }}</span></div>
+        <div *ngIf="hasPositive(comprobante?.totales?.icbper)" class="flex justify-between"><span>ICBPER</span><span class="text-right">{{ formatMoneda(comprobante?.totales?.icbper, comprobante?.moneda) }}</span></div>
+      </div>
+      <div class="mt-1 flex justify-between border-t border-slate-300 pt-1 text-[12px] font-bold">
+        <span>IMPORTE TOTAL</span>
+        <span class="text-right">{{ formatMoneda(comprobante?.totales?.total, comprobante?.moneda) }}</span>
+      </div>
+      <div *ngIf="comprobante?.montoLetras" class="mt-1 text-[10px]">{{ comprobante?.montoLetras }}</div>
+    </div>
+
+    <div *ngIf="comprobante?.detraccion?.aplica" class="border-b border-dashed border-slate-300 py-2">
+      <div class="font-semibold">Operaci&oacute;n sujeta a detracci&oacute;n</div>
+      <div *ngIf="comprobante?.detraccion?.codigoSpot">C&oacute;digo SPOT: {{ comprobante?.detraccion?.codigoSpot }}</div>
+      <div *ngIf="comprobante?.detraccion?.porcentaje != null">Porcentaje: {{ comprobante?.detraccion?.porcentaje }}%</div>
+      <div *ngIf="comprobante?.detraccion?.base != null">Base: {{ formatMoneda(comprobante?.detraccion?.base, comprobante?.moneda) }}</div>
+      <div *ngIf="comprobante?.detraccion?.monto != null">Monto detracci&oacute;n: {{ formatMoneda(comprobante?.detraccion?.monto, comprobante?.moneda) }}</div>
+      <div *ngIf="comprobante?.detraccion?.estado">Estado: {{ comprobante?.detraccion?.estado }}</div>
+      <div *ngIf="comprobante?.detraccion?.fechaDeposito">F. dep&oacute;sito: {{ formatFecha(comprobante?.detraccion?.fechaDeposito) }}</div>
+      <div *ngIf="comprobante?.detraccion?.constancia">Constancia: {{ comprobante?.detraccion?.constancia }}</div>
+      <div *ngIf="comprobante?.detraccion?.periodo">Periodo: {{ comprobante?.detraccion?.periodo }}</div>
+    </div>
+
+    <div *ngIf="hasSunatData()" class="border-b border-dashed border-slate-300 py-2">
+      <div *ngIf="showSunatTitle" class="font-semibold">Datos SUNAT</div>
+      <div *ngIf="comprobante?.sunat?.hash">Hash: {{ comprobante?.sunat?.hash }}</div>
+      <div *ngIf="comprobante?.sunat?.codigo">C&oacute;digo SUNAT: {{ comprobante?.sunat?.codigo }}</div>
+      <div *ngIf="comprobante?.sunat?.mensaje">Mensaje SUNAT: {{ comprobante?.sunat?.mensaje }}</div>
+      <div *ngIf="comprobante?.sunat?.ticket">Ticket: {{ comprobante?.sunat?.ticket }}</div>
+      <div *ngIf="comprobante?.sunat?.fechaEnvio">F. env&iacute;o: {{ formatFecha(comprobante?.sunat?.fechaEnvio) }}</div>
+      <div *ngIf="comprobante?.sunat?.fechaRespuesta">F. respuesta: {{ formatFecha(comprobante?.sunat?.fechaRespuesta) }}</div>
+      <div *ngIf="showCpeStatus && comprobante?.sunat?.estadoCpe" class="mt-1">
+        Estado CPE:
+        <span class="ml-1 rounded px-1.5 py-0.5 text-[10px] font-semibold" [ngClass]="cpeEstadoClass(comprobante?.sunat?.estadoCpe)">
+          {{ cpeEstadoLabel(comprobante?.sunat?.estadoCpe) }}
+        </span>
+      </div>
+      <img *ngIf="toImageSrc(comprobante?.sunat?.qr) as qr" [src]="qr" alt="QR comprobante" class="mx-auto mt-2 h-28 w-28 object-contain" />
+    </div>
+
+    <div class="py-2">
+      <div *ngIf="comprobante?.leyendas?.length" class="mb-1">
+        <div class="font-semibold">Leyendas</div>
+        <div *ngFor="let leyenda of comprobante?.leyendas">- {{ leyenda }}</div>
+      </div>
+      <div *ngIf="comprobante?.observaciones?.length">
+        <div class="font-semibold">Observaciones</div>
+        <div *ngFor="let obs of comprobante?.observaciones">- {{ obs }}</div>
+      </div>
+      <div class="mt-2 border-t border-dashed border-slate-300 pt-1 text-center text-[10px] text-slate-600">
+        Representaci&oacute;n impresa de comprobante de pago electr&oacute;nico
+      </div>
+    </div>
+  </section>
+</div>
+

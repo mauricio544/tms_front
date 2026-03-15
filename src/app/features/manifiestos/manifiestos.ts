@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, inject } from '@angular/core';
+﻿import { Component, OnInit, inject, HostListener } from '@angular/core';
 import jsPDF from 'jspdf';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -16,21 +16,24 @@ import { Conductor } from '../../../../core/mapped';
 import { Personas } from '../../../../core/services/personas';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
 import { DetalleEnvio } from '../../../../core/services/detalle-envio';
-import { forkJoin, of } from 'rxjs';
-import { Router, RouterLink } from '@angular/router';
+import { forkJoin, of, catchError } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Utilitarios } from '../../../../core/services/utilitarios';
 import { Guias } from '../../../../core/services/guias';
 import { SerieComprobante as SerieComprobanteService } from '../../../../core/services/serie-comprobante';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Vehiculos } from '../../../../core/services/vehiculos';
 import {Utils} from '../../../../core/services/utils';
+import { GrtBuilderService, GrtDocument } from './grt-builder.service';
+import { GrtPreviewComponent } from '../../shared/grt-preview/grt-preview.component';
+import { GrrPreviewComponent } from '../../shared/grr-preview/grr-preview.component';
 
 export type FormManifiesto = { conductor_id: number | null; codigo_punto_origen: number | null; codigo_punto_destino: number | null; serie: string; numero: string; copiloto_id: number | null, turno: string | null, placa: string | null, fecha_traslado: string | null; vehiculo_id: number | null };
 
 @Component({
   selector: 'feature-manifiestos',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, RouterLink, Utils, NgIconComponent],
+  imports: [CommonModule, FormsModule, UiAlertComponent, UiConfirmComponent, RouterLink, Utils, NgIconComponent, GrtPreviewComponent, GrrPreviewComponent],
   providers: [provideIcons({ heroMapPin, heroTruck })],
   templateUrl: './manifiestos.html',
   styleUrl: './manifiestos.css',
@@ -48,7 +51,9 @@ export class ManifiestosFeature implements OnInit {
   private readonly serieSrv = inject(SerieComprobanteService);
   private readonly authSrv = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly vehiculosSrv = inject(Vehiculos);
+  private readonly grtBuilder = inject(GrtBuilderService);
   private readonly sanitizer = inject(DomSanitizer);
 
   // Datos
@@ -69,6 +74,11 @@ export class ManifiestosFeature implements OnInit {
 
   // Vista: 'cards' o 'grid'
   viewMode: 'cards' | 'grid' = 'cards';
+  // Estado base para detalle contextual (preparación para drawer)
+  selectedManifiestoId: number | null = null;
+  drawerOpen = false;
+  activeTab: 'resumen' | 'envios' | 'guias' | 'documento' | 'mapa' | 'historial' = 'resumen';
+  actionMenuOpenId: number | null = null;
 
   // Modal y guardado
   showModal = false;
@@ -167,6 +177,156 @@ export class ManifiestosFeature implements OnInit {
   get pageEnd(): number { return Math.min(this.page * this.pageSize, this.total); }
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
   onFilterChange() { this.page = 1; }
+  openDetailContext(item: Manifiesto, tab: 'resumen' | 'envios' | 'guias' | 'documento' | 'mapa' | 'historial' = 'resumen') {
+    const id = Number((item as any)?.id || 0);
+    if (!id) return;
+    this.selectedManifiestoId = id;
+    this.drawerOpen = true;
+    this.activeTab = tab;
+    this.syncDetailQueryParams();
+    if (tab === 'envios') this.loadEnviosForManifiesto(item);
+  }
+  closeDetailContext() {
+    this.drawerOpen = false;
+    this.showEnviosModal = false;
+    this.showGuiaModal = false;
+    this.showGuiaGeneradaModal = false;
+    this.syncDetailQueryParams();
+  }
+  setActiveTab(tab: 'resumen' | 'envios' | 'guias' | 'documento' | 'mapa' | 'historial') {
+    this.activeTab = tab;
+    this.syncDetailQueryParams();
+    if (tab === 'envios') this.loadEnviosForSelected();
+  }
+  toggleActionMenu(item: Manifiesto, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    const id = Number((item as any)?.id || 0);
+    if (!id) return;
+    this.actionMenuOpenId = this.actionMenuOpenId === id ? null : id;
+  }
+  closeActionMenu() { this.actionMenuOpenId = null; }
+  isActionMenuOpen(item: Manifiesto): boolean { return Number((item as any)?.id || 0) === this.actionMenuOpenId; }
+  @HostListener('document:click')
+  onDocumentClick() { this.closeActionMenu(); }
+  @HostListener('document:keydown.escape')
+  onEscapeKey() {
+    this.closeActionMenu();
+    if (this.showAddEnviosModal) { this.closeAddEnvios(); return; }
+    if (this.showGrtModal) { this.closeGrt(); return; }
+    if (this.showGeoModal) { this.closeGeo(); return; }
+    if (this.showModal) { this.closeModal(); return; }
+    if (this.drawerOpen) { this.closeDetailContext(); return; }
+  }
+  openEnviosContext(item: Manifiesto, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    this.openDetailContext(item, 'envios');
+    this.closeActionMenu();
+    this.verEnvios(item);
+  }
+  openAddEnviosContext(item: Manifiesto, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    this.openDetailContext(item, 'envios');
+    this.closeActionMenu();
+    this.anadirEnvio(item);
+  }
+  openGenerarManifiestoContext(item: Manifiesto, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    this.openDetailContext(item, 'documento');
+    this.closeActionMenu();
+    this.generarManifiesto(item);
+  }
+  openGuiaSunatContext(item: Manifiesto, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    this.openDetailContext(item, 'guias');
+    this.closeActionMenu();
+    this.generarGuiaSunat(item);
+  }
+  openGrtContext(item: Manifiesto, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    this.openDetailContext(item, 'guias');
+    this.closeActionMenu();
+    this.generarGRT(item);
+  }
+  openPublicLinkContext(item: Manifiesto, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    this.openDetailContext(item, 'documento');
+    this.closeActionMenu();
+    this.generarPublicLink(item);
+  }
+  canShowPublicLink(item: Manifiesto | null | undefined): boolean {
+    const userSedeId = this.getUserPuntoId();
+    if (userSedeId <= 0) return false;
+    const destinoId = Number((item as any)?.codigo_punto_destino || 0);
+    return destinoId > 0 && destinoId === userSedeId;
+  }
+  openEditContext(item: Manifiesto, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    this.openDetailContext(item, 'resumen');
+    this.closeActionMenu();
+    this.openEdit(item);
+  }
+  openGeoContext(item: Manifiesto, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    this.openDetailContext(item, 'mapa');
+    this.closeActionMenu();
+    this.openGeo(item);
+  }
+  askDeleteContext(item: Manifiesto, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    this.closeActionMenu();
+    this.askDelete(item);
+  }
+  get selectedManifiesto(): Manifiesto | null {
+    const id = Number(this.selectedManifiestoId || 0);
+    if (!id) return null;
+    return (this.lista_manifiestos || []).find((m: any) => Number((m as any).id) === id) || null;
+  }
+  get selectedSunatState(): { total: number; done: number; errors: number; running: boolean; guias: Array<{ envioId: number; guiaId: number; numero: string }> } | null {
+    const mid = Number(this.selectedManifiestoId || 0);
+    if (!mid) return null;
+    return this.sunatGenState[mid] || null;
+  }
+  private loadEnviosForSelected() {
+    const item = this.selectedManifiesto;
+    if (!item) return;
+    this.loadEnviosForManifiesto(item);
+  }
+  private loadEnviosForManifiesto(item: Manifiesto) {
+    const id = Number((item as any)?.id || 0);
+    if (!id) return;
+    this.enviosManifiestoId = id;
+    this.enviosConductorId = (item as any).conductor_id ?? null;
+    this.enviosOrigenId = this.safeOrigen(item as any);
+    this.enviosDestinoId = this.safeDestino(item as any);
+    this.enviosLoading = true;
+    this.enviosError = null;
+    this.enviosLista = [];
+    this.enviosSrv.getEnviosManifiesto(id).subscribe({
+      next: (res) => { this.enviosLista = res || []; this.enviosLoading = false; },
+      error: () => { this.enviosLoading = false; this.enviosError = 'No se pudieron cargar los envíos'; }
+    });
+  }
+  private syncDetailQueryParams() {
+    const queryParams: any = { ...this.route.snapshot.queryParams };
+    if (this.drawerOpen && this.selectedManifiestoId) {
+      queryParams.selected = this.selectedManifiestoId;
+      queryParams.tab = this.activeTab;
+    } else {
+      delete queryParams.selected;
+      delete queryParams.tab;
+    }
+    this.router.navigate([], { relativeTo: this.route, queryParams, replaceUrl: true });
+  }
+  private hydrateDetailFromQueryParams() {
+    const qp = this.route.snapshot.queryParamMap;
+    const selected = Number(qp.get('selected') || 0);
+    const tab = String(qp.get('tab') || '').toLowerCase();
+    const validTabs = ['resumen', 'envios', 'guias', 'documento', 'mapa', 'historial'];
+    if (!selected) return;
+    this.selectedManifiestoId = selected;
+    this.drawerOpen = true;
+    this.activeTab = (validTabs.includes(tab) ? tab : 'resumen') as any;
+  }
 
   newManifiesto: FormManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: '', vehiculo_id: null };
 
@@ -401,7 +561,11 @@ export class ManifiestosFeature implements OnInit {
       ? this.manifiestosSrv.getManifiestoPunto(puntoId)
       : this.manifiestosSrv.getManifiestos();
     source$.subscribe({
-      next: (response) => { this.lista_manifiestos = (response as any) || []; this.loading = false; },
+      next: (response) => {
+        this.lista_manifiestos = (response as any) || [];
+        this.loading = false;
+        if (this.drawerOpen && this.activeTab === 'envios') this.loadEnviosForSelected();
+      },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los manifiestos'; },
     });
   }
@@ -473,6 +637,7 @@ export class ManifiestosFeature implements OnInit {
 
 ngOnInit(): void {
     try { const saved = (localStorage.getItem('manifiestos.viewMode') || '').toLowerCase(); if (saved === 'grid' || saved === 'cards') this.viewMode = saved as any; } catch {}
+    this.hydrateDetailFromQueryParams();
     this.loadManifiestos();
     this.loadPuntos();
     this.loadConductores();
@@ -508,20 +673,8 @@ ngOnInit(): void {
 
   // Acciones tarjeta
   verEnvios(item: Manifiesto) { this.showGuiaModal = false; this.showAddEnviosModal = false;
-    const id = (item as any)?.id;
-    if (!id) return;
-    this.enviosManifiestoId = id as any;
-    this.enviosConductorId = (item as any).conductor_id ?? null;
-    this.enviosOrigenId = this.safeOrigen(item as any);
-    this.enviosDestinoId = this.safeDestino(item as any);
-    this.enviosLoading = true;
-    this.enviosError = null;
-    this.enviosLista = [];
     this.showEnviosModal = true;
-    this.enviosSrv.getEnviosManifiesto(Number(id)).subscribe({
-      next: (res) => { this.enviosLista = res || []; this.enviosLoading = false; },
-      error: () => { this.enviosLoading = false; this.enviosError = 'No se pudieron cargar los envíos'; }
-    });
+    this.loadEnviosForManifiesto(item);
   }
   closeEnvios() { this.showEnviosModal = false; }
 
@@ -567,6 +720,15 @@ ngOnInit(): void {
   guiaEstadoUpdating = false;
   guiaGenIsSunat = false;
   guiaGenTitle = '';
+  showGrtModal = false;
+  grtLoading = false;
+  grtError: string | null = null;
+  grtDoc: GrtDocument | null = null;
+  private showOnlyView(target: 'none' | 'manifiesto' | 'grr' | 'grt') {
+    this.showGuiaModal = target === 'manifiesto';
+    this.showGuiaGeneradaModal = target === 'grr';
+    this.showGrtModal = target === 'grt';
+  }
 
   sunatGenState: Record<number, { total: number; done: number; errors: number; running: boolean; guias: Array<{ envioId: number; guiaId: number; numero: string }> }> = {};
   sunatGuiasOpenId: number | null = null;
@@ -574,6 +736,7 @@ ngOnInit(): void {
   publicLinkError: Record<number, string | null> = {};
 
   generarManifiesto(item: Manifiesto) { this.showEnviosModal = false; this.showAddEnviosModal = false;
+    this.showOnlyView('manifiesto');
     const id = (item as any)?.id;
     if (!id) return;
     this.guiaManifiestoId = Number(id);
@@ -720,10 +883,9 @@ ngOnInit(): void {
   }
 
   generarGuiaSunat(item: Manifiesto) {
-    this.showGuiaModal = false;
+    this.showOnlyView('none');
     this.showEnviosModal = false;
     this.showAddEnviosModal = false;
-    this.showGuiaGeneradaModal = false;
     const id = (item as any)?.id;
     if (!id) return;
     this.guiaGenManifiestoId = Number(id);
@@ -773,6 +935,96 @@ ngOnInit(): void {
         this.guiaGenError = 'No se pudieron cargar las series Sunat.';
       }
     });
+  }
+
+  generarGRT(item: Manifiesto) {
+    const manifiestoId = Number((item as any)?.id || 0);
+    if (!manifiestoId) return;
+    this.showOnlyView('grt');
+    this.grtLoading = true;
+    this.grtError = null;
+    this.grtDoc = null;
+
+    this.enviosSrv.getEnviosManifiesto(manifiestoId).subscribe({
+      next: (envs: Envio[]) => {
+        const envios = (envs || []) as Envio[];
+        if (!envios.length) {
+          this.grtLoading = false;
+          this.grtError = 'No hay envíos asociados al manifiesto.';
+          return;
+        }
+        const detalleCalls = envios.map((e: any) => this.detEnvSrv.getDetallesEnvio(Number((e as any)?.id || 0)));
+        forkJoin({
+          detalleList: forkJoin(detalleCalls),
+          despachos: this.guiasSrv.getDespachoManifiesto(manifiestoId).pipe(catchError(() => of([] as any))),
+        }).subscribe({
+          next: ({ detalleList, despachos }) => {
+            const despacho = Array.isArray(despachos) ? (despachos[0] || null) : (despachos as any);
+            const detallePorEnvio: Record<number, any[]> = {};
+            envios.forEach((e: any, idx: number) => {
+              const eid = Number((e as any)?.id || 0);
+              detallePorEnvio[eid] = (detalleList?.[idx] || []) as any[];
+            });
+
+            if (!despacho?.id) {
+              this.grtDoc = this.grtBuilder.build({
+                manifiesto: item,
+                envios,
+                detallePorEnvio,
+                puntos: this.puntos || [],
+                personas: this.personas || [],
+                conductor: (this.conductores || []).find((c: any) => Number(c?.id || 0) === Number((item as any)?.conductor_id || 0)) || null,
+                despacho: null,
+                guia: null,
+                itemsDespacho: [],
+              });
+              this.grtLoading = false;
+              return;
+            }
+
+            forkJoin({
+              guias: this.guiasSrv.getGuiasByDespacho(Number((despacho as any).id)),
+              items: this.guiasSrv.getItemsDespacho(Number((despacho as any).id)),
+            }).subscribe({
+              next: ({ guias, items }) => {
+                const guia = (guias || [])[0] || null;
+                this.grtDoc = this.grtBuilder.build({
+                  manifiesto: item,
+                  envios,
+                  detallePorEnvio,
+                  puntos: this.puntos || [],
+                  personas: this.personas || [],
+                  conductor: (this.conductores || []).find((c: any) => Number(c?.id || 0) === Number((item as any)?.conductor_id || 0)) || null,
+                  despacho: (despacho as any) || null,
+                  guia: (guia as any) || null,
+                  itemsDespacho: (items || []) as any[],
+                });
+                this.grtLoading = false;
+              },
+              error: () => {
+                this.grtLoading = false;
+                this.grtError = 'No se pudieron consolidar guías/items del manifiesto.';
+              }
+            });
+          },
+          error: () => {
+            this.grtLoading = false;
+            this.grtError = 'No se pudo consolidar el manifiesto para la GRT.';
+          }
+        });
+      },
+      error: () => {
+        this.grtLoading = false;
+        this.grtError = 'No se pudieron cargar los envíos del manifiesto.';
+      }
+    });
+  }
+
+  closeGrt() {
+    this.showOnlyView('none');
+    this.grtLoading = false;
+    this.grtError = null;
+    this.grtDoc = null;
   }
 
   generarPublicLink(item: Manifiesto) {
@@ -1143,7 +1395,7 @@ ngOnInit(): void {
 
   envioDocumento(envio: Envio | null | undefined): string {
     if (!envio) return '-';
-    return String((envio as any)?.guia ?? (envio as any)?.id ?? '-');
+    return String((envio as any)?.guia ?? (envio as any)?.ticket_numero ?? '-');
   }
 
   envioUsuario(envio: Envio | null | undefined): string {
@@ -1168,7 +1420,8 @@ ngOnInit(): void {
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
+    const anio = year % 100 // d.getFullYear();
+    return `${day}/${month}/${anio}`;
   }
 
   formatFechaLarga(date: string | Date | null | undefined): string {
@@ -1506,12 +1759,12 @@ ngOnInit(): void {
   }
 
   verGuiaTrama(envioId: number) {
+    this.showOnlyView('grr');
     this.guiaGenLoading = true;
     this.guiaGenError = null;
     this.guiaDoc = null;
     this.guiaGenIsSunat = true;
     this.guiaGenTitle = 'Guía Sunat';
-    this.showGuiaGeneradaModal = true;
     this.guiasSrv.getTramaGuia(envioId).subscribe({
       next: (trama: GuiaTramaFinal) => {
         this.guiaGenLoading = false;
