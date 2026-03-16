@@ -40,4 +40,8 @@ export class Manifiestos {
   getManifiestoPunto(punto_id: number): Observable<Manifiesto[]> {
     return this.api.get(`/envios/manifiestos/por-punto?punto_id=${punto_id}`);
   }
+
+  getLastManifiesto(): Observable<any> {
+    return this.api.get('/envios/manifiestos/ultimo-id');
+  }
 }

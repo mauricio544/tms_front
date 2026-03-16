@@ -328,7 +328,7 @@ export class ManifiestosFeature implements OnInit {
     this.activeTab = (validTabs.includes(tab) ? tab : 'resumen') as any;
   }
 
-  newManifiesto: FormManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: '', vehiculo_id: null };
+  newManifiesto: FormManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: this.buildSerieBySede(), numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: '', vehiculo_id: null };
 
   private localDateInput(value?: string | Date | null): string {
     if (!value) {
@@ -346,11 +346,32 @@ export class ManifiestosFeature implements OnInit {
   }
 
   // Modal helpers
+  numeroAutoLoading = false;
+  private formatNumero6(value: number): string {
+    const n = Number(value || 0);
+    return String(Math.max(0, n)).padStart(6, '0');
+  }
+  private loadNextNumeroManifiesto() {
+    this.numeroAutoLoading = true;
+    this.manifiestosSrv.getLastManifiesto().subscribe({
+      next: (res: any) => {
+        const ultimoId = Number((res as any)?.ultimo_id || 0);
+        this.newManifiesto.numero = this.formatNumero6(ultimoId + 1);
+        this.numeroAutoLoading = false;
+      },
+      error: () => {
+        const fallback = Math.max(0, ...((this.lista_manifiestos || []).map((m: any) => Number((m as any)?.id || 0))));
+        this.newManifiesto.numero = this.formatNumero6(fallback + 1);
+        this.numeroAutoLoading = false;
+      }
+    });
+  }
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: '', numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: this.localDateInput(), vehiculo_id: null };
+    this.newManifiesto = { conductor_id: null, codigo_punto_origen: null, codigo_punto_destino: null, serie: this.buildSerieBySede(), numero: '' , copiloto_id: null, turno: '', placa: '', fecha_traslado: this.localDateInput(), vehiculo_id: null };
     this.applyDefaultOrigen();
+    this.loadNextNumeroManifiesto();
     this.saveError = null;
     this.showModal = true;
   }
@@ -373,6 +394,7 @@ export class ManifiestosFeature implements OnInit {
     if (this.newManifiesto.vehiculo_id) {
       this.onVehiculoChange(this.newManifiesto.vehiculo_id);
     }
+    this.numeroAutoLoading = false;
     console.log(this.newManifiesto);
     this.saveError = null;
     this.showModal = true;
@@ -434,6 +456,10 @@ export class ManifiestosFeature implements OnInit {
   submitManifiesto() {
     if (!this.isValidManifiesto) return;
     const m = this.newManifiesto;
+    const serieFinal = this.editing ? String(m.serie || '').trim() : this.buildSerieBySede();
+    const numeroFinal = this.editing
+      ? String(m.numero || '').trim()
+      : this.formatNumero6(Number(String(m.numero || '0').replace(/\D+/g, '')) || 0);
     const payload = {
       conductor_id: Number(m.conductor_id),
       copiloto_id: Number(m.copiloto_id),
@@ -443,8 +469,8 @@ export class ManifiestosFeature implements OnInit {
       vehiculo_id: m.vehiculo_id != null ? Number(m.vehiculo_id) : null,
       codigo_punto_origen: Number(m.codigo_punto_origen),
       codigo_punto_destino: Number(m.codigo_punto_destino),
-      serie: String(m.serie || '').trim(),
-      numero: String(m.numero || '').trim(),
+      serie: serieFinal,
+      numero: numeroFinal,
     };
     this.saving = true;
     this.saveError = null;
@@ -513,6 +539,11 @@ export class ManifiestosFeature implements OnInit {
         this.showNotif('No se pudieron cargar los envios', 'error');
       }
     });
+  }
+  private buildSerieBySede(): string {
+    const sedeId = this.getUserPuntoId();
+    if (sedeId > 0) return `MV${sedeId}`;
+    return 'MV';
   }
 
   askDelete(item: Manifiesto) {
@@ -751,6 +782,10 @@ ngOnInit(): void {
     this.guiaPlaca = (item as any).placa ?? null;
     this.guiaFechaLarga = this.formatFechaLarga(new Date());
     this.guiaFechaImpresion = this.formatFechaCorta(new Date());
+    this.guiaOperador = this.getLoggedUserLabel();
+    this.guiaSucursal = '';
+    this.guiaAgencia = '';
+    this.guiaNota = '';
     this.showGuiaModal = true;
     this.guiaLoading = true;
     this.guiaError = null;
@@ -1255,13 +1290,7 @@ ngOnInit(): void {
     setFont(8, false);
     addLine('OPERADOR: ' + (this.guiaOperador || '-'), marginX, y);
     y += 10;
-    addLine('SUCURSAL: ' + (this.guiaSucursal || '-'), marginX, y);
-    y += 10;
-    addLine('AGENCIA: ' + (this.guiaAgencia || '-'), marginX, y);
-    y += 10;
     addLine('FECHA IMPRESIÓN: ' + (this.guiaFechaImpresion || ''), marginX, y);
-    y += 10;
-    addLine('NOTA: ' + (this.guiaNota || '-'), marginX, y);
 
     y += 30;
     doc.line(marginX + 40, y, marginX + 220, y);
@@ -1400,7 +1429,7 @@ ngOnInit(): void {
 
   envioUsuario(envio: Envio | null | undefined): string {
     if (!envio) return '-';
-    return String((envio as any)?.usuario ?? '-');
+    return String((envio as any)?.usuario_crea ?? '-');
   }
 
   turnoLabel(turno: string | null | undefined): string {
@@ -1862,6 +1891,18 @@ ngOnInit(): void {
     } catch {
       return null;
     }
+  }
+  private getLoggedUserLabel(): string {
+    const me = this.getCurrentMe();
+    const fullName = String(
+      me?.nombre_completo ||
+      me?.full_name ||
+      me?.name ||
+      me?.username ||
+      me?.email ||
+      ''
+    ).trim();
+    return fullName || '-';
   }
 
   private getRoleNames(): string[] {

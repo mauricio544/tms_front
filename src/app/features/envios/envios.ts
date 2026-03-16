@@ -236,9 +236,10 @@ export class EnviosFeature implements OnInit {
     const razon = String(localStorage.getItem('razon_social') || '');
     const isFactura = tipoKey ? this.isFacturaTipo(tipoKey) : (this.tipoNombreById(Number(c.tipo_comprobante)).toLowerCase().includes("fact"));
             const row = (x: any) => {
-      const base = (Number(x.cantidad)||0) * (Number(x.precio_unitario)||0);
-      const igvL = isFactura ? base * 0.18 : 0;
-      const importe = base + igvL;
+      const lineTotal = (Number(x.cantidad)||0) * (Number(x.precio_unitario)||0);
+      const igvL = isFactura ? this.extractIgvFromTotal(lineTotal) : 0;
+      const base = isFactura ? this.baseFromTotal(lineTotal) : lineTotal;
+      const importe = lineTotal;
       return '<tr class="align-top">' +
         '<td class="border border-gray-300 px-2 py-1 text-center">' + String(x.numero_item||'') + '</td>' +
         '<td class="border border-gray-300 px-2 py-1 text-center">' + this.format2(x.cantidad) + '</td>' +
@@ -258,14 +259,16 @@ export class EnviosFeature implements OnInit {
     const compRows = (fallback || []).map((x, i) => {
       const cantidad = Number((x as any).cantidad) || 0;
       const v_unit = Number((x as any).precio_unitario) || 0;
-      const base = cantidad * v_unit;
-      const igv = isFactura ? +(base * 0.18).toFixed(2) : 0;
-      const importe = base + igv;
-      return { numero_item: (Number((x as any).numero_item) || (i+1)), cantidad, unidad: "NIU", descripcion: (x as any).descripcion, v_unit, igv, importe };
+      const lineTotal = cantidad * v_unit;
+      const igv = isFactura ? this.extractIgvFromTotal(lineTotal) : 0;
+      const base = isFactura ? this.baseFromTotal(lineTotal) : lineTotal;
+      const valorUnitario = cantidad > 0 ? +(base / cantidad).toFixed(6) : 0;
+      const importe = lineTotal;
+      return { numero_item: (Number((x as any).numero_item) || (i+1)), cantidad, unidad: "NIU", descripcion: (x as any).descripcion, v_unit: valorUnitario, igv, importe };
     });
-    const baseTotal = compRows.reduce((s,r)=>s + r.cantidad * r.v_unit, 0);
-    const igvTotal = isFactura ? +((baseTotal * 0.18).toFixed(2)) : 0;
-    const totalTotal = baseTotal + igvTotal;
+    const totalTotal = compRows.reduce((s,r)=>s + Number(r.importe || 0), 0);
+    const igvTotal = isFactura ? this.extractIgvFromTotal(totalTotal) : 0;
+    const baseTotal = isFactura ? this.baseFromTotal(totalTotal) : totalTotal;
     this.compRows = compRows;
     this.compTotals = { base: baseTotal, igv: igvTotal, total: totalTotal };
     this.compView = {
@@ -442,17 +445,19 @@ export class EnviosFeature implements OnInit {
     const items = (detalles || []).map((d, i) => {
       const cantidad = Number(d?.cantidad || 0);
       const precio = Number(d?.precio_unitario || 0);
-      const base = cantidad * precio;
-      const igv = isFactura ? +(base * 0.18).toFixed(2) : 0;
+      const lineTotal = cantidad * precio;
+      const igv = isFactura ? this.extractIgvFromTotal(lineTotal) : 0;
+      const base = isFactura ? this.baseFromTotal(lineTotal) : lineTotal;
+      const valorUnitario = cantidad > 0 ? +(base / cantidad).toFixed(6) : 0;
       return {
         numeroItem: Number(d?.numero_item || i + 1),
         descripcion: String(d?.descripcion || ''),
         cantidad,
         unidadMedida: 'NIU',
         precioUnitario: precio,
-        valorUnitario: precio,
+        valorUnitario: valorUnitario,
         igv,
-        totalLinea: base + igv,
+        totalLinea: lineTotal,
       };
     });
     const env: any = this.ticketEnvio || null;
@@ -511,7 +516,7 @@ export class EnviosFeature implements OnInit {
       } : undefined),
       items,
       totales: {
-        gravadas: Number(this.compTotals.base || 0),
+        gravadas: isFactura ? this.baseFromTotal(Number(this.compTotals.total || 0)) : Number(this.compTotals.base || 0),
         igv: Number(this.compTotals.igv || 0),
         total: Number(this.compTotals.total || 0),
       },
@@ -892,9 +897,12 @@ export class EnviosFeature implements OnInit {
   compDocNumber: string = '';
   compClienteId: number | null = null;
   compLookupLoading = false; compLookupError: string | null = null;
-  get compImpuesto(): number { const total = this.stagedSubtotal || 0; return this.compTipoNombre().toLowerCase().includes('fact') ? +(total * 0.18).toFixed(2) : 0; }
+  get compImpuesto(): number {
+    const total = this.stagedSubtotal || 0;
+    return this.compTipoNombre().toLowerCase().includes('fact') ? this.extractIgvFromTotal(total) : 0;
+  }
   get compTotal(): number { return this.stagedSubtotal || 0; }
-  get compTotalConImpuesto(): number { return this.compTipoNombre().toLowerCase().includes('fact') ? (this.compTotal + this.compImpuesto) : this.compTotal; }
+  get compTotalConImpuesto(): number { return this.compTotal; }
   compTipoNombre(): string {
     const t = this.compTipoSel || this.compTipos.find(x => Number(this.normalizeTipoComprobante((x as any).tipo_comprobante_sunat)) === Number(this.compTipoId)) || null;
     const tipo = t ? this.normalizeTipoComprobante((t as any).tipo_comprobante_sunat) : '';
@@ -910,6 +918,17 @@ export class EnviosFeature implements OnInit {
   }
   private isFacturaTipo(value: any): boolean {
     return this.normalizeTipoComprobante(value) === '01';
+  }
+  private extractIgvFromTotal(total: number): number {
+    const amount = Number(total || 0);
+    if (amount <= 0) return 0;
+    return +((amount * 18) / 118).toFixed(2);
+  }
+  private baseFromTotal(total: number): number {
+    const amount = Number(total || 0);
+    if (amount <= 0) return 0;
+    const igv = this.extractIgvFromTotal(amount);
+    return +(amount - igv).toFixed(2);
   }
   compTipoLabel(t: SerieComprobanteModel): string {
     const tipo = this.normalizeTipoComprobante((t as any).tipo_comprobante_sunat);
