@@ -138,6 +138,10 @@
             <label class="block text-sm text-slate-700">Placa (opcional)</label>
             <input type="text" [(ngModel)]="cabeceraForm.placa" (ngModelChange)="cabeceraForm.placa = $event.toUpperCase()" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           </div>
+          <div>
+            <label class="block text-sm text-slate-700">Vale de Gastos (opcional)</label>
+            <input type="text" [(ngModel)]="cabeceraForm.vale_gastos" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          </div>
         </div>
       </div>
 

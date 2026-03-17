@@ -2,7 +2,13 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import { Manifiesto, PublicLinkRequest, PublicLinkResponse, ManifiestoArrivedUpdate } from '../mapped';
+import {
+  Manifiesto,
+  PublicLinkRequest,
+  PublicLinkResponse,
+  ManifiestoArrivedUpdate,
+  ManifiestoWithEnviosRead
+} from '../mapped';
 
 @Injectable({
   providedIn: 'root',
@@ -43,5 +49,10 @@ export class Manifiestos {
 
   getLastManifiesto(): Observable<any> {
     return this.api.get('/envios/manifiestos/ultimo-id');
+  }
+  // para marcar la llegada de un manifiesto en tránsito
+  // sólo envíos y datos de un manifiesto en específico
+  getManifiestoTransito(manifiesto_id: number): Observable<ManifiestoWithEnviosRead> {
+    return this.api.get(`/envios/manifiestos/${manifiesto_id}/en-transito`);
   }
 }

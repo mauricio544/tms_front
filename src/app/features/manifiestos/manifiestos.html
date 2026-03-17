@@ -74,19 +74,6 @@
               (click)="toggleActionMenu(item, $event)">
               Más
             </button>
-            <div
-              *ngIf="isActionMenuOpen(item)"
-              class="absolute right-0 top-full z-20 mt-1 w-48 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
-              (click)="$event.stopPropagation()">
-              <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGenerarManifiestoContext(item, $event)">Generar Manifiesto</button>
-              <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGuiaSunatContext(item, $event)">Generar Guía Sunat</button>
-              <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGrtContext(item, $event)">Generar GRT</button>
-              <button *ngIf="canShowPublicLink(item)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[item.id]" (click)="openPublicLinkContext(item, $event)">{{ publicLinkLoading[item.id] ? 'Generando...' : 'Enlace público' }}</button>
-              <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openAddEnviosContext(item, $event)">Añadir Envío</button>
-              <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openEditContext(item, $event)">Editar</button>
-              <button *ngIf="hasGeo(item)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGeoContext(item, $event)">Ver mapa</button>
-              <button class="block w-full rounded px-2 py-1.5 text-left text-xs text-red-700 hover:bg-red-50" (click)="askDeleteContext(item, $event)">Eliminar</button>
-            </div>
           </div>
         </div>
       </div>
@@ -104,7 +91,7 @@
               <th class="px-3 py-2 text-left">Estado</th>
               <th class="px-3 py-2 text-left">Llegada</th>
               <th class="px-3 py-2 text-left">Geo</th>
-              <th class="px-3 py-2 text-left">Guía Sunat</th>
+              <!--<th class="px-3 py-2 text-left">Guía Sunat</th>-->
               <th class="px-3 py-2 text-left">Acciones</th>
             </tr>
           </thead>
@@ -131,7 +118,7 @@
                 <button *ngIf="hasGeo(item)" class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="openGeo(item)">Ver mapa</button>
                 <span *ngIf="!hasGeo(item)" class="text-slate-400">-</span>
               </td>
-              <td class="px-3 py-2">
+              <!--<td class="px-3 py-2">
                 <ng-container *ngIf="sunatGenState[item.id] as st">
                   <div class="flex items-center gap-2" *ngIf="st.running">
                     <div class="w-24 h-2 rounded-full bg-slate-200 overflow-hidden">
@@ -147,24 +134,11 @@
                   <span *ngIf="!st.running && !st.guias?.length" class="text-slate-400">-</span>
                 </ng-container>
                 <span *ngIf="!sunatGenState[item.id]" class="text-slate-400">-</span>
-              </td>
+              </td>-->
               <td class="px-3 py-2">
                 <div class="relative flex flex-wrap items-center gap-2">
                   <button class="rounded-md bg-[#21D0B2] px-2 py-1 text-xs text-white hover:bg-[#21D0B2]/90" (click)="openEnviosContext(item, $event)">Ver Envíos</button>
                   <button class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50" (click)="toggleActionMenu(item, $event)">Más</button>
-                  <div
-                    *ngIf="isActionMenuOpen(item)"
-                    class="absolute right-0 top-full z-20 mt-1 w-48 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
-                    (click)="$event.stopPropagation()">
-                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGenerarManifiestoContext(item, $event)">Generar Manifiesto</button>
-                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGuiaSunatContext(item, $event)">Generar Guía Sunat</button>
-                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGrtContext(item, $event)">Generar GRT</button>
-                    <button *ngIf="canShowPublicLink(item)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[item.id]" (click)="openPublicLinkContext(item, $event)">{{ publicLinkLoading[item.id] ? 'Generando...' : 'Enlace público' }}</button>
-                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openAddEnviosContext(item, $event)">Añadir Envío</button>
-                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openEditContext(item, $event)">Editar</button>
-                    <button *ngIf="hasGeo(item)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGeoContext(item, $event)">Ver mapa</button>
-                    <button class="block w-full rounded px-2 py-1.5 text-left text-xs text-red-700 hover:bg-red-50" (click)="askDeleteContext(item, $event)">Eliminar</button>
-                  </div>
                 </div>
               </td>
             </tr>
@@ -206,6 +180,22 @@
   <ng-template #empty>
     <div class="flex items-center justify-center rounded-md border border-dashed border-slate-300 bg-white py-16 text-slate-500">No hay manifiestos para mostrar.</div>
   </ng-template>
+
+  <div
+    *ngIf="actionMenuItem as menuItem"
+    class="fixed z-[1200] w-48 rounded-md border border-slate-200 bg-white p-1 shadow-xl"
+    [style.top.px]="actionMenuPos.top"
+    [style.left.px]="actionMenuPos.left"
+    (click)="$event.stopPropagation()">
+    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGenerarManifiestoContext(menuItem, $event)">Generar Manifiesto</button>
+    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGuiaSunatContext(menuItem, $event)">Generar Guía Sunat</button>
+    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGrtContext(menuItem, $event)">Generar GRT</button>
+    <button *ngIf="canShowPublicLink(menuItem)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[menuItem.id]" (click)="openPublicLinkContext(menuItem, $event)">{{ publicLinkLoading[menuItem.id] ? 'Generando...' : 'Enlace público' }}</button>
+    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openAddEnviosContext(menuItem, $event)">Añadir Envío</button>
+    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openEditContext(menuItem, $event)">Editar</button>
+    <button *ngIf="hasGeo(menuItem)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGeoContext(menuItem, $event)">Ver mapa</button>
+    <button class="block w-full rounded px-2 py-1.5 text-left text-xs text-red-700 hover:bg-red-50" (click)="askDeleteContext(menuItem, $event)">Eliminar</button>
+  </div>
 
   <!-- Drawer de detalle contextual -->
   <div *ngIf="drawerOpen" class="fixed inset-0 z-[950]">

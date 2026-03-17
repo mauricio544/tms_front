@@ -48,7 +48,6 @@
     <div class="border-b border-dashed border-slate-300 py-2">
       <div class="font-semibold">Resumen GRR asociadas</div>
       <div>Total envíos: {{ grt?.resumenGrr?.totalEnvios || 0 }}</div>
-      <div>Total GRR: {{ grt?.resumenGrr?.totalGrr || 0 }}</div>
       <div>Total bultos: {{ grt?.resumenGrr?.totalBultos || 0 }}</div>
       <div>Peso total (kg): {{ grt?.resumenGrr?.totalPesoKg || 0 }}</div>
       <div *ngIf="grt?.resumenGrr?.grrNumeros?.length">GRR: {{ grt?.resumenGrr?.grrNumeros?.join(', ') }}</div>

@@ -13,6 +13,8 @@ export interface UsuarioMe {
   username: string;
   is_active: boolean;
   person_id: number | null;
+  nombre: string;
+  apellido: string;
   permissions: string[];
   companies: Company[];
   sedes: Puntos[];
@@ -384,6 +386,8 @@ export interface Cabecera {
   autorizado:number;
   manifiesto_id: number;
   sede_id?: number;
+  vale_gastos?: string | number;
+  vale_gasto?: string | number;
 }
 
 export interface CabeceraCreate {
@@ -394,6 +398,8 @@ export interface CabeceraCreate {
   autorizado?:number;
   manifiesto_id?: number;
   sede_id?: number;
+  vale_gastos?: string | number;
+  vale_gasto?: string | number;
 }
 
 export interface Detalle {
@@ -429,6 +435,7 @@ export interface DetalleCreate {
 export interface MovimientoDetalleReporteRead {
   id: number;
   tipo_comprobante_sunat: string;
+  tipo_movimiento: string;
   numero_comprobante: string;
   descripcion: string;
   tipo_gasto?: number;
@@ -704,4 +711,6 @@ export interface EnviosDiariosResumenPorUsuarioRead {
   total_movimientos: number;
   total_monto_comprobantes: number;
   total_monto_movimientos: number;
+  total_monto_ingresos?: number;
+  total_monto_egresos?: number;
 }

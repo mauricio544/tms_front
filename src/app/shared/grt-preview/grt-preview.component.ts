@@ -9,20 +9,22 @@ import { GrtDocument } from '../../features/manifiestos/grt-builder.service';
   templateUrl: './grt-preview.component.html',
   styles: [`
     .thermal-80 {
-      width: 78mm;
+      width: 74mm;
       max-width: 100%;
     }
     @media print {
       @page {
         size: 80mm auto;
-        margin: 2mm;
+        margin: 2.5mm;
       }
       .no-print { display: none !important; }
       .thermal-80 {
-        width: 78mm !important;
+        width: 74mm !important;
         border: 0 !important;
         box-shadow: none !important;
       }
+      .thermal-80, .thermal-80 * { color: #000 !important; }
+      .thermal-80 img { image-rendering: crisp-edges; }
       * {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
@@ -42,23 +44,23 @@ export class GrtPreviewComponent {
     const win = window.open('', '_blank', 'width=420,height=800');
     if (!win) return;
     const style = `
-      @page { size: 80mm auto; margin: 2mm; }
-      html, body { width: 80mm; margin: 0; padding: 0; background: #fff; font-family: Arial, Helvetica, sans-serif; }
+      @page { size: 80mm auto; margin: 2.5mm; }
+      html, body { width: 80mm; margin: 0; padding: 0; background: #fff; font-family: Arial, Helvetica, sans-serif; color:#000; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .grt { width: 78mm; margin: 0 auto; color: #0f172a; font-size: 11px; line-height: 1.25; }
-      .head, .block { border-bottom: 1px dashed #cbd5e1; padding: 2mm 0; }
+      .grt { width: 74mm; margin: 0 auto; color: #000; font-size: 11px; line-height: 1.24; }
+      .head, .block { border-bottom: 0.5px solid #000; padding: 1.8mm 0; }
       .head { text-align: center; }
-      .logo { max-height: 16mm; max-width: 40mm; object-fit: contain; margin: 0 auto 1mm; display: block; }
+      .logo { max-height: 16mm; max-width: 40mm; object-fit: contain; margin: 0 auto 1mm; display: block; image-rendering: crisp-edges; }
       .title { font-weight: 700; letter-spacing: .2px; }
       .num { font-weight: 700; margin-top: .5mm; }
-      .st { font-size: 10px; color: #475569; margin-top: .5mm; }
+      .st { font-size: 10px; color: #000; margin-top: .5mm; }
       .ttl { font-weight: 700; margin-bottom: 1mm; }
       .row { margin: .5mm 0; word-break: break-word; }
-      .item { border-bottom: 1px dotted #cbd5e1; padding: 1mm 0; }
+      .item { border-bottom: 0.5px solid #000; padding: 1mm 0; }
       .item:last-child { border-bottom: 0; }
       .qr { text-align: center; margin-top: 1.5mm; }
-      .qr img { width: 24mm; height: 24mm; object-fit: contain; }
-      .foot { text-align: center; padding-top: 2mm; font-size: 10px; color: #64748b; }
+      .qr img { width: 30mm; height: 30mm; object-fit: contain; image-rendering: crisp-edges; }
+      .foot { text-align: center; padding-top: 2mm; font-size: 10px; color: #000; }
     `;
     const logo = this.companyLogoSrc();
     const qr = this.toImageSrc(this.grt?.sunat?.qr);
@@ -105,7 +107,6 @@ export class GrtPreviewComponent {
         <div class="block">
           <div class="ttl">Resumen GRR asociadas</div>
           <div class="row">Total envíos: ${this.e(this.grt?.resumenGrr?.totalEnvios || 0)}</div>
-          <div class="row">Total GRR: ${this.e(this.grt?.resumenGrr?.totalGrr || 0)}</div>
           <div class="row">Total bultos: ${this.e(this.grt?.resumenGrr?.totalBultos || 0)}</div>
           <div class="row">Peso total (kg): ${this.e(this.grt?.resumenGrr?.totalPesoKg || 0)}</div>
         </div>
@@ -126,7 +127,10 @@ export class GrtPreviewComponent {
     win.document.open();
     win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Imprimir GRT</title><style>${style}</style></head><body>${html}</body></html>`);
     win.document.close();
+    let printed = false;
     const doPrint = () => {
+      if (printed) return;
+      printed = true;
       try { win.focus(); } catch {}
       try { win.print(); } catch {}
       setTimeout(() => { try { win.close(); } catch {} }, 150);

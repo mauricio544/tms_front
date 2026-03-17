@@ -159,19 +159,19 @@ export class EnviosFeature implements OnInit {
     }).join('');
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Etiquetas Envio ${this.escHtml(ticket)}</title>
 <style>
-  @page { size: 80mm auto; margin: 2mm; }
-  html,body{width:80mm;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:11px;}
-  .sheet{width:78mm;margin:0 auto;display:flex;flex-direction:column;gap:2mm;}
-  .label{width:78mm;box-sizing:border-box;border:1px dashed #cbd5e1;border-radius:2mm;padding:2.5mm;break-inside:avoid;}
-  .title{font-size:12px;font-weight:700;line-height:1.2;}
-  .id{margin-top:1mm;font-size:10px;color:#475569;line-height:1.2;}
-  .sep{border-top:1px dashed #cbd5e1;margin:1.5mm 0;}
-  .row{display:flex;gap:2mm;font-size:11px;line-height:1.25;margin:0.8mm 0;}
-  .k{color:#64748b;min-width:18mm;}
+  @page { size: 80mm auto; margin: 2.5mm; }
+  html,body{width:80mm;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#000;font-size:11px;line-height:1.25;}
+  .sheet{width:74mm;margin:0 auto;display:flex;flex-direction:column;gap:1.5mm;}
+  .label{width:74mm;box-sizing:border-box;border:0.5px solid #000;border-radius:1mm;padding:2mm;break-inside:avoid;page-break-inside:avoid;}
+  .title{font-size:12px;font-weight:700;line-height:1.2;color:#000;}
+  .id{margin-top:1mm;font-size:10px;color:#000;line-height:1.2;}
+  .sep{border-top:1px solid #000;margin:1.3mm 0;}
+  .row{display:flex;gap:2mm;font-size:11px;line-height:1.22;margin:0.7mm 0;}
+  .k{color:#000;min-width:18mm;}
   .v{font-weight:600;word-break:break-word;flex:1;}
-  .qr-wrap{display:flex;justify-content:flex-end;margin-top:1.5mm;}
-  .qr-wrap img{width:26mm;height:26mm;object-fit:contain;}
-  @media print { .sheet{width:78mm;} .label{page-break-inside:avoid;} }
+  .qr-wrap{display:flex;justify-content:center;margin-top:1.2mm;}
+  .qr-wrap img{width:30mm;height:30mm;object-fit:contain;image-rendering:crisp-edges;}
+  @media print { .sheet{width:74mm;} .label{page-break-inside:avoid;} *{-webkit-print-color-adjust:exact; print-color-adjust:exact;} }
 </style>
 </head><body>
   <div class="sheet">${labels}</div>
@@ -711,21 +711,22 @@ export class EnviosFeature implements OnInit {
   <meta charset="utf-8"/>
   <title>Comprobante ${this.escHtml(v?.numero || '')}</title>
   <style>
-    @page { size: 80mm auto; margin: 3mm; }
-    html, body { width: 80mm; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; }
+    @page { size: 80mm auto; margin: 2.5mm; }
+    html, body { width: 80mm; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; line-height: 1.24; }
     .wrap { width: 74mm; margin: 0 auto; }
     .h { text-align: center; font-weight: 700; }
-    .muted { color: #333; font-size: 10px; }
-    .sep { border-top: 1px dashed #000; margin: 6px 0; }
+    .muted { color: #000; font-size: 10px; }
+    .sep { border-top: 1px solid #000; margin: 5px 0; }
     .row { margin: 2px 0; word-break: break-word; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    th, td { padding: 2px 0; border-bottom: 1px dotted #999; vertical-align: top; }
+    th, td { padding: 2px 0; border-bottom: 0.5px solid #000; vertical-align: top; }
     .r { text-align: right; white-space: nowrap; }
     .tot { margin-top: 4px; }
     .tot .line { display: flex; justify-content: space-between; }
-    .tot .final { font-weight: 700; font-size: 12px; border-top: 1px dashed #000; padding-top: 3px; margin-top: 3px; }
+    .tot .final { font-weight: 700; font-size: 12px; border-top: 1px solid #000; padding-top: 3px; margin-top: 3px; }
     .qr { margin-top: 6px; text-align: center; }
-    .qr img { width: 120px; height: 120px; object-fit: contain; }
+    .qr img { width: 30mm; height: 30mm; object-fit: contain; image-rendering: crisp-edges; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   </style>
 </head>
 <body>

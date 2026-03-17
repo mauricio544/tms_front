@@ -41,6 +41,7 @@ export class GastosFeature implements OnInit {
     return this.filtered.slice(start, start + this.pageSize);
   }
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
+  private syncPageBounds() { this.page = Math.min(Math.max(1, this.page), this.totalPages); }
   onFilterChange() { this.page = 1; }
 
   private todayIso(): string {
@@ -64,7 +65,7 @@ export class GastosFeature implements OnInit {
     const list = (this.detalles || []).slice().sort((a: any, b: any) => (b?.id ?? 0) - (a?.id ?? 0));
     if (!term) return list;
     return list.filter((d: any) => {
-      const txt = [d?.id, d?.tipo_comprobante_sunat, d?.numero_comprobante, d?.descripcion, d?.tipo_gasto, d?.cabecera_id, d?.monto]
+      const txt = [d?.id, d?.tipo_comprobante_sunat, d?.numero_comprobante, d?.descripcion, d?.cabecera?.vale_gastos, d?.cabecera?.vale_gasto, d?.vale_gastos, d?.vale_gasto, d?.tipo_gasto, d?.cabecera_id, d?.monto]
         .map(x => String(x ?? '')).join(' ').toLowerCase();
       return txt.includes(term);
     });
@@ -121,6 +122,7 @@ export class GastosFeature implements OnInit {
     source$.subscribe({
       next: (res) => {
         this.detalles = usePuntoEndpoint ? (res || []) : this.filterDetallesBySelectedDate(res || []);
+        this.syncPageBounds();
         this.loading = false;
       },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los movimientos'; }
@@ -130,7 +132,7 @@ export class GastosFeature implements OnInit {
   // Exportación CSV (todos los registros filtrados)
   exportCSV() {
     const rows = this.filtered;
-    const headers = ['ID','Tipo Comprobante','N° Comprobante','Descripción','Tipo Gasto','Monto','Cabecera ID'];
+    const headers = ['ID','Tipo Comprobante','N° Comprobante','Descripción','Vale de Gastos','Tipo Gasto','Monto','Cabecera ID'];
     const toCell = (v: any) => {
       const s = String(v ?? '');
       if (s.includes(';') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
@@ -141,6 +143,7 @@ export class GastosFeature implements OnInit {
       it?.tipo_comprobante_sunat,
       it?.numero_comprobante,
       it?.descripcion ?? '',
+      it?.cabecera?.vale_gastos ?? it?.cabecera?.vale_gasto ?? it?.vale_gastos ?? it?.vale_gasto ?? '',
       it?.tipo_gasto ?? '',
       it?.monto ?? '',
       it?.cabecera_id,
@@ -161,7 +164,7 @@ export class GastosFeature implements OnInit {
   showAddModal = false;
   savingAdd = false;
   addError: string | null = null;
-  cabeceraForm: Partial<CabeceraCreate> = { tipo_movimiento: 'I', monto: undefined as any } as any;
+  cabeceraForm: Partial<CabeceraCreate> = { tipo_movimiento: 'I', monto: undefined as any, vale_gastos: undefined as any } as any;
   detalleForm: Partial<DetalleCreate> = { tipo_comprobante_sunat: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
 
   get isValidAdd(): boolean {
@@ -180,7 +183,7 @@ export class GastosFeature implements OnInit {
     this.showAddModal = true;
     this.savingAdd = false;
     this.addError = null;
-    this.cabeceraForm = { tipo_movimiento: 'I', monto: undefined as any } as any;
+    this.cabeceraForm = { tipo_movimiento: 'I', monto: undefined as any, vale_gastos: undefined as any } as any;
     this.detalleForm = { tipo_comprobante_sunat: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
     this.selectedSerieId = this.seriesFiltered.length ? Number(this.seriesFiltered[0].id) : null;
     if (this.selectedSerieId) { this.onSerieChange(this.selectedSerieId); }
@@ -201,6 +204,7 @@ export class GastosFeature implements OnInit {
       sede_id: this.getUserSedeId() || undefined,
       persona_id: c.persona_id != null ? Number(c.persona_id) : undefined,
       placa: String(c.placa || '').trim() || undefined,
+      vale_gastos: c.vale_gastos != null && String(c.vale_gastos).trim() !== '' ? String(c.vale_gastos).trim() : undefined,
       autorizado: c.autorizado != null ? Number(c.autorizado) : undefined,
       manifiesto_id: c.manifiesto_id != null ? Number(c.manifiesto_id) : undefined,
     };
@@ -222,7 +226,9 @@ export class GastosFeature implements OnInit {
           next: () => {
             this.savingAdd = false;
             this.showAddModal = false;
-            this.load();
+            this.page = 1;
+            this.selectedDate = this.todayIso();
+            this.reloadAfterSave();
           },
           error: () => { this.savingAdd = false; this.addError = 'No se pudo crear el detalle'; }
         });
@@ -276,16 +282,34 @@ export class GastosFeature implements OnInit {
       this.loading = true; this.error = null;
       const param = 'fecha=' + encodeURIComponent(d);
       this.detalleSrv.getDetallesByFecha(param).subscribe({
-        next: (res) => { this.detalles = res || []; this.loading = false; },
+        next: (res) => { this.detalles = res || []; this.syncPageBounds(); this.loading = false; },
         error: () => { this.loading = false; this.error = 'No se pudieron cargar los movimientos por fecha'; }
       });
     }
 
-    clearDate() {
+  clearDate() {
       this.selectedDate = this.useDetallesPuntoEndpoint() ? this.todayIso() : null;
       this.page = 1;
       this.load();
     }
+
+  private reloadAfterSave() {
+    const fecha = this.selectedDate || this.todayIso();
+    this.loading = true;
+    this.error = null;
+    if (this.useDetallesPuntoEndpoint()) {
+      this.detalleSrv.getDetallesListFullPunto(this.getUserSedeId(), fecha).subscribe({
+        next: (res) => { this.detalles = res || []; this.syncPageBounds(); this.loading = false; },
+        error: () => { this.loading = false; this.error = 'No se pudieron cargar los movimientos'; }
+      });
+      return;
+    }
+    const param = 'fecha=' + encodeURIComponent(fecha);
+    this.detalleSrv.getDetallesByFecha(param).subscribe({
+      next: (res) => { this.detalles = res || []; this.syncPageBounds(); this.loading = false; },
+      error: () => { this.loading = false; this.error = 'No se pudieron cargar los movimientos'; }
+    });
+  }
 
   // Tipos comprobante (derivados de series por sede)
   tiposComprobante: Array<{ id: string; nombre: string }> = [];

@@ -24,6 +24,20 @@ export class LiquidacionesFeature implements OnInit {
   totalesLoading = false;
   totalesError: string | null = null;
 
+  get headerLogoSrc(): string | null {
+    try {
+      const raw = String(this.getCurrentMe()?.companies?.[0]?.logo || '').trim();
+      if (!raw || raw.toLowerCase() === 'null' || raw.toLowerCase() === 'undefined') return null;
+      if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image')) return raw;
+      if (raw.startsWith('/')) {
+        try { return `${window.location.origin}${raw}`; } catch { return raw; }
+      }
+      return `data:image/png;base64,${raw}`;
+    } catch {
+      return null;
+    }
+  }
+
   ngOnInit(): void {
     this.resolveRoleFlags();
     this.loadResumen();
@@ -73,6 +87,71 @@ export class LiquidacionesFeature implements OnInit {
     return list.reduce((sum, item) => sum + (Number((item as any)?.precio_total) || 0), 0);
   }
 
+  egresosMovimientos(list: any[] | null | undefined): any[] {
+    if (!Array.isArray(list)) return [];
+    return list.filter((m: any) => String(m?.tipo_movimiento || '').trim().toUpperCase() === 'E');
+  }
+
+  movimientosDetalleRows(list: any[] | null | undefined): Array<{ envio: any; movimiento: any; comprobantes: any[] }> {
+    if (!Array.isArray(list)) return [];
+    const rows: Array<{ envio: any; movimiento: any; comprobantes: any[] }> = [];
+    for (const item of list) {
+      const envio = item?.envio || {};
+      const comprobantes = Array.isArray(item?.comprobantes) ? item.comprobantes : [];
+      const movimientos = Array.isArray(item?.movimientos) ? item.movimientos : [];
+      const movs = movimientos.filter((m: any) => {
+        const t = String(m?.tipo_movimiento || '').trim().toUpperCase();
+        return t === 'I' || t === 'E';
+      });
+      for (const movimiento of movs) {
+        rows.push({ envio, movimiento, comprobantes });
+      }
+    }
+    return rows;
+  }
+
+  totalMovimientosDetalle(list: any[] | null | undefined): number {
+    return this.movimientosDetalleRows(list).length;
+  }
+
+  totalMovimientosIngresos(list: any[] | null | undefined): number {
+    return this.movimientosDetalleRows(list).reduce((sum, r: any) => {
+      const t = String(r?.movimiento?.tipo_movimiento || '').trim().toUpperCase();
+      return sum + (t === 'I' ? (Number(r?.movimiento?.monto) || 0) : 0);
+    }, 0);
+  }
+
+  totalMovimientosEgresos(list: any[] | null | undefined): number {
+    return this.movimientosDetalleRows(list).reduce((sum, r: any) => {
+      const t = String(r?.movimiento?.tipo_movimiento || '').trim().toUpperCase();
+      return sum + (t === 'E' ? (Number(r?.movimiento?.monto) || 0) : 0);
+    }, 0);
+  }
+
+  totalMovimientosNeto(list: any[] | null | undefined): number {
+    return this.totalMovimientosIngresos(list) - this.totalMovimientosEgresos(list);
+  }
+
+  countEgresosMovimientos(list: any[] | null | undefined): number {
+    return this.egresosMovimientos(list).length;
+  }
+
+  totalEgresosMovimientos(list: any[] | null | undefined): number {
+    return this.egresosMovimientos(list).reduce((sum, m: any) => sum + (Number(m?.monto) || 0), 0);
+  }
+
+  egresosLabels(list: any[] | null | undefined): string {
+    const egresos = this.egresosMovimientos(list);
+    if (!egresos.length) return '-';
+    return egresos.map((m: any) => {
+      const desc = String(m?.descripcion || '').trim();
+      const numero = String(m?.numero_comprobante || '').trim();
+      const monto = Number(m?.monto) || 0;
+      const id = String(m?.id || '').trim();
+      return `${desc || numero || id || 'Egreso'}: ${monto.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }).join(' | ');
+  }
+
   resumenTotalEnvios(): number {
     return (this.resumen || []).reduce((sum, row: any) => sum + (Number(row?.total_envios) || 0), 0);
   }
@@ -83,6 +162,30 @@ export class LiquidacionesFeature implements OnInit {
 
   resumenTotalMontoComprobantes(): number {
     return (this.resumen || []).reduce((sum, row: any) => sum + (Number(row?.total_monto_comprobantes) || 0), 0);
+  }
+
+  rowTotalIngresos(row: any): number {
+    return Number(row?.total_monto_ingresos) || 0;
+  }
+
+  rowTotalEgresos(row: any): number {
+    return Number(row?.total_monto_egresos) || 0;
+  }
+
+  rowTotalNeto(row: any): number {
+    return this.rowTotalIngresos(row) - this.rowTotalEgresos(row);
+  }
+
+  resumenTotalIngresos(): number {
+    return (this.resumen || []).reduce((sum, row: any) => sum + this.rowTotalIngresos(row), 0);
+  }
+
+  resumenTotalEgresos(): number {
+    return (this.resumen || []).reduce((sum, row: any) => sum + this.rowTotalEgresos(row), 0);
+  }
+
+  resumenTotalNeto(): number {
+    return this.resumenTotalIngresos() - this.resumenTotalEgresos();
   }
 
   totalesDetalleEnvios(list: any[] | null | undefined): number {
@@ -98,6 +201,16 @@ export class LiquidacionesFeature implements OnInit {
   totalesDetalleMontoComprobantes(list: any[] | null | undefined): number {
     if (!Array.isArray(list)) return 0;
     return list.reduce((sum, item) => sum + this.totalComprobantes(item?.comprobantes), 0);
+  }
+
+  totalesDetalleEgresos(list: any[] | null | undefined): number {
+    if (!Array.isArray(list)) return 0;
+    return list.reduce((sum, item) => sum + this.countEgresosMovimientos(item?.movimientos), 0);
+  }
+
+  totalesDetalleMontoEgresos(list: any[] | null | undefined): number {
+    if (!Array.isArray(list)) return 0;
+    return list.reduce((sum, item) => sum + this.totalEgresosMovimientos(item?.movimientos), 0);
   }
 
   comprobanteLabels(list: ComprobanteReporteRead[] | null | undefined): string {
@@ -134,7 +247,7 @@ export class LiquidacionesFeature implements OnInit {
 
   printGrillas(): void {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
-    if (this.isAdminSede || this.isOperario) {
+    if (this.isOperario) {
       this.printThermal80mm();
       return;
     }
@@ -148,6 +261,8 @@ export class LiquidacionesFeature implements OnInit {
 
     const now = new Date();
     const printedAt = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+    const logo = this.headerLogoSrc;
+    const printedBy = this.printUserLabel();
 
     printWindow.document.write(`
       <!doctype html>
@@ -157,17 +272,28 @@ export class LiquidacionesFeature implements OnInit {
           <title>Liquidaciones</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; color: #0f172a; }
+            .print-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 12px; }
+            .logo-wrap img { max-width: 130px; max-height: 40px; object-fit: contain; }
             h1 { margin: 0 0 6px 0; font-size: 22px; }
             h2 { margin: 24px 0 8px 0; font-size: 18px; }
-            p { margin: 0 0 12px 0; color: #475569; font-size: 12px; }
+            p { margin: 0 0 6px 0; color: #475569; font-size: 12px; }
             table { width: 100%; border-collapse: collapse; margin-top: 8px; }
             th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; font-size: 12px; vertical-align: top; }
             th { background: #f8fafc; font-weight: 600; }
+            @media print {
+              thead { display: table-row-group; }
+            }
           </style>
         </head>
         <body>
-          <h1>Liquidaciones</h1>
-          <p>Impreso: ${printedAt}</p>
+          <div class="print-head">
+            <div>
+              <h1>Liquidaciones</h1>
+              <p>Impreso: ${printedAt}</p>
+              <p>Usuario: ${printedBy}</p>
+            </div>
+            ${logo ? `<div class="logo-wrap"><img src="${logo}" alt="Logo compañía"></div>` : '<div></div>'}
+          </div>
           ${resumenGrid.outerHTML}
           ${totalesGrid.outerHTML}
         </body>
@@ -246,6 +372,17 @@ export class LiquidacionesFeature implements OnInit {
     return 'ADMIN';
   }
 
+  private printUserLabel(): string {
+    const me = this.getCurrentMe();
+    const fullName = [
+      String(me?.nombre || me?.persona?.nombre || '').trim(),
+      String(me?.apellido || me?.persona?.apellido || '').trim()
+    ].filter(Boolean).join(' ').trim();
+    const username = String(me?.username || me?.usuario || me?.email || '').trim();
+    if (fullName && username) return `${fullName} (${username})`;
+    return fullName || username || '-';
+  }
+
   private escHtml(value: any): string {
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -289,6 +426,7 @@ export class LiquidacionesFeature implements OnInit {
     if (!w) return;
     const now = new Date();
     const printedAt = `${now.toLocaleDateString('es-PE')} ${now.toLocaleTimeString('es-PE')}`;
+    const printedBy = this.printUserLabel();
     const fecha = this.fechaFiltro || 'TODAS';
     const logo = this.companyLogoSrc();
 
@@ -334,13 +472,13 @@ export class LiquidacionesFeature implements OnInit {
     html, body { width: 80mm; margin: 0; padding: 0; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.25; }
     .wrap { width: 74mm; margin: 0 auto; }
     .logo { text-align:center; margin-bottom: 4px; }
-    .logo img { max-width: 34mm; max-height: 16mm; object-fit: contain; }
+    .logo img { max-width: 34mm; max-height: 16mm; object-fit: contain; image-rendering: crisp-edges; }
     .title { text-align:center; font-weight:700; letter-spacing:.2px; }
     .meta { margin: 1px 0; font-size: 10px; }
-    .sep { border-top: 1px dashed #000; margin: 6px 0; }
+    .sep { border-top: 1px solid #000; margin: 6px 0; }
     .section { font-weight:700; margin: 2px 0 4px; }
-    .block { border-bottom: 1px dotted #999; padding: 3px 0; }
-    .sub { margin-top: 3px; padding-top: 3px; border-top: 1px dashed #bbb; }
+    .block { border-bottom: 0.5px solid #000; padding: 3px 0; }
+    .sub { margin-top: 3px; padding-top: 3px; border-top: 0.5px solid #000; }
     .row { margin: 1px 0; word-break: break-word; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   </style>
@@ -350,6 +488,7 @@ export class LiquidacionesFeature implements OnInit {
     ${logo ? `<div class="logo"><img src="${this.escHtml(logo)}" alt="Logo"></div>` : ''}
     <div class="title">LIQUIDACIONES</div>
     <div class="meta">Rol: ${this.escHtml(this.roleLabel())}</div>
+    <div class="meta">Usuario: ${this.escHtml(printedBy)}</div>
     <div class="meta">Fecha filtro: ${this.escHtml(fecha)}</div>
     <div class="meta">Impreso: ${this.escHtml(printedAt)}</div>
     <div class="sep"></div>

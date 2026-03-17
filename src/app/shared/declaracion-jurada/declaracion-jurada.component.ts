@@ -15,21 +15,27 @@ export interface DeclaracionJuradaData {
   templateUrl: './declaracion-jurada.component.html',
   styles: [`
     .thermal-80 {
-      width: 78mm;
+      width: 74mm;
       max-width: 100%;
     }
     @media print {
       @page {
         size: 80mm auto;
-        margin: 2mm;
+        margin: 2.5mm;
       }
       .thermal-80 {
-        width: 78mm !important;
+        width: 74mm !important;
         border: 0 !important;
         box-shadow: none !important;
       }
       .no-print {
         display: none !important;
+      }
+      .thermal-80, .thermal-80 * {
+        color: #000 !important;
+      }
+      .thermal-80 img {
+        image-rendering: crisp-edges;
       }
       * {
         -webkit-print-color-adjust: exact;
@@ -79,16 +85,22 @@ export class DeclaracionJuradaComponent {
     const baseHref = `${window.location.origin}/`;
     const printCss = `
       <style>
-        @page { size: 80mm auto; margin: 2mm; }
-        html, body { width: 80mm; margin: 0; padding: 0; background: #fff; }
+        @page { size: 80mm auto; margin: 2.5mm; }
+        html, body { width: 80mm; margin: 0; padding: 0; background: #fff; color:#000; }
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .thermal-80 { width: 74mm !important; max-width: 74mm !important; }
+        .thermal-80, .thermal-80 * { color: #000 !important; }
+        .thermal-80 img { image-rendering: crisp-edges; }
         .no-print { display: none !important; }
       </style>
     `;
     win.document.open();
     win.document.write(`<!doctype html><html><head><meta charset="utf-8"><base href="${baseHref}">${linkTags}${styleTags}${printCss}<title>Imprimir Declaración</title></head><body>${node.outerHTML}</body></html>`);
     win.document.close();
+    let printed = false;
     const doPrint = () => {
+      if (printed) return;
+      printed = true;
       try { win.focus(); } catch {}
       try { win.print(); } catch {}
       setTimeout(() => { try { win.close(); } catch {} }, 150);

@@ -23,6 +23,7 @@ import { SedesFeature } from './features/sedes/sedes';
 import { ReportesFeature } from './features/reportes/reportes';
 import { EnvioPublicComponent } from './public/envio-public/envio-public';
 import { ManifiestosPublicoComponent } from './public/manifiestos-publico/manifiestos-publico';
+import { ManifiestosPublicoIdComponent } from './public/manifiestos-publico-id/manifiestos-publico-id';
 import { EnvioTrackingPublicoComponent } from './public/envio-tracking-publico/envio-tracking-publico';
 import { EnvioTrackingBusquedaPublicoComponent } from './public/envio-tracking-busqueda-publico/envio-tracking-busqueda-publico';
 
@@ -32,6 +33,7 @@ export const routes: Routes = [
   { path: 'tracking/publico/buscar', component: EnvioTrackingBusquedaPublicoComponent },
   { path: 'tracking/publico/:token', component: EnvioTrackingPublicoComponent },
   { path: 'manifiestos/publico/:token', component: ManifiestosPublicoComponent },
+  { path: 'manifiestos/publico/id/:id', component: ManifiestosPublicoIdComponent },
   {
     path: '',
     component: LayoutComponent,

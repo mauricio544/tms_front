@@ -100,6 +100,16 @@ export class LayoutComponent {
     }
     return this.maestros;
   }
+  get funcionalidadesVisible(): NavItem[] {
+    if (this.isOperario) {
+      return this.funcionalidades.filter((f) =>
+        f.route !== '/reportes' &&
+        f.route !== '/comprobantes' &&
+        f.route !== '/gastos'
+      );
+    }
+    return this.funcionalidades;
+  }
 
   maestros: NavItem[] = [
     /*{ label: 'Clientes', route: '/clientes', icon: 'heroUsers' },*/

@@ -42,7 +42,7 @@
       <div>
         <h3 *ngIf="!isSidebarMini" class="px-2 text-xs font-semibold uppercase tracking-wide text-white/80">Funcionalidades</h3>
         <ul class="mt-2 space-y-1">
-          <li *ngFor="let item of funcionalidades">
+          <li *ngFor="let item of funcionalidadesVisible">
             <a [routerLink]="item.route" routerLinkActive="!bg-white/20 !text-white"
                [attr.title]="isSidebarMini ? item.label : null"
                class="flex items-center rounded-md px-2 py-2 text-sm text-white hover:bg-white/10 hover:text-white"
@@ -127,7 +127,7 @@
           <div>
             <h3 class="px-2 text-xs font-semibold uppercase tracking-wide text-white/80">Funcionalidades</h3>
             <ul class="mt-2 space-y-1">
-              <li *ngFor="let item of funcionalidades">
+              <li *ngFor="let item of funcionalidadesVisible">
                 <a [routerLink]="item.route" routerLinkActive="!bg-white/20 !text-white" (click)="closeMobileMenu()"
                    class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-white hover:bg-white/10 hover:text-white">
                   <ng-icon [name]="item.icon" size="18" class="text-white"></ng-icon>

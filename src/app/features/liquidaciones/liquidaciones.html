@@ -1,6 +1,9 @@
 <div class="p-6">
   <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
     <div>
+      <div *ngIf="headerLogoSrc as logo" class="mb-2">
+        <img [src]="logo" alt="Logo compañía" class="h-12 w-auto object-contain" />
+      </div>
       <h1 class="text-xl font-semibold text-slate-800">Liquidaciones</h1>
       <p class="mt-1 text-slate-600">Resumen diario por usuario.</p>
     </div>
@@ -53,6 +56,9 @@
         <th class="px-3 py-2 text-right">Total env&iacute;os</th>
         <th class="px-3 py-2 text-right">Total comprobantes</th>
         <th class="px-3 py-2 text-right">Monto comprobantes</th>
+        <th class="px-3 py-2 text-right">Total ingresos</th>
+        <th class="px-3 py-2 text-right">Total egresos</th>
+        <th class="px-3 py-2 text-right">Neto</th>
       </tr>
       </thead>
       <tbody class="divide-y divide-slate-100 text-sm text-slate-800">
@@ -62,15 +68,21 @@
         <td class="px-3 py-2 text-right">{{ row.total_envios }}</td>
         <td class="px-3 py-2 text-right">{{ row.total_comprobantes }}</td>
         <td class="px-3 py-2 text-right">{{ row.total_monto_comprobantes | number:'1.2-2' }}</td>
+        <td class="px-3 py-2 text-right">{{ rowTotalIngresos(row) | number:'1.2-2' }}</td>
+        <td class="px-3 py-2 text-right">{{ rowTotalEgresos(row) | number:'1.2-2' }}</td>
+        <td class="px-3 py-2 text-right">{{ rowTotalNeto(row) | number:'1.2-2' }}</td>
       </tr>
       <tr *ngIf="resumen?.length" class="bg-slate-50">
         <td class="px-3 py-2 font-semibold text-slate-700" colspan="2">Total</td>
         <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ resumenTotalEnvios() }}</td>
         <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ resumenTotalComprobantes() }}</td>
         <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ resumenTotalMontoComprobantes() | number:'1.2-2' }}</td>
+        <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ resumenTotalIngresos() | number:'1.2-2' }}</td>
+        <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ resumenTotalEgresos() | number:'1.2-2' }}</td>
+        <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ resumenTotalNeto() | number:'1.2-2' }}</td>
       </tr>
       <tr *ngIf="!resumen?.length">
-        <td class="px-3 py-4 text-center text-slate-500" colspan="5">Sin datos para mostrar.</td>
+        <td class="px-3 py-4 text-center text-slate-500" colspan="8">Sin datos para mostrar.</td>
       </tr>
       </tbody>
     </table>
@@ -115,28 +127,37 @@
                     <th class="px-2 py-1 text-left">Env&iacute;o</th>
                     <th class="px-2 py-1 text-left">Origen</th>
                     <th class="px-2 py-1 text-left">Destino</th>
-                    <th class="px-2 py-1 text-right">Comprobantes</th>
-                    <th class="px-2 py-1 text-right">Monto comprobantes</th>
-                    <th class="px-2 py-1 text-left">N&uacute;meros comprobantes</th>
+                    <th class="px-2 py-1 text-left">Tipo mov.</th>
+                    <th class="px-2 py-1 text-left">N° comprobante</th>
+                    <th class="px-2 py-1 text-left">Descripci&oacute;n</th>
+                    <th class="px-2 py-1 text-right">Monto</th>
+                    <th class="px-2 py-1 text-left">Fecha mov.</th>
+                    <th class="px-2 py-1 text-left">Usuario</th>
                   </tr>
                   </thead>
                   <tbody class="text-slate-800">
-                  <tr *ngFor="let e of row.envios" class="border-t border-slate-200">
-                    <td class="px-2 py-1">{{ e.envio?.id }}</td>
-                    <td class="px-2 py-1">{{ e.envio?.origen_nombre }}</td>
-                    <td class="px-2 py-1">{{ e.envio?.destino_nombre }}</td>
-                    <td class="px-2 py-1 text-right">{{ countComprobantes(e.comprobantes) }}</td>
-                    <td class="px-2 py-1 text-right">{{ totalComprobantes(e.comprobantes) | number:'1.2-2' }}</td>
-                    <td class="px-2 py-1 text-left">{{ comprobanteLabels(e.comprobantes) }}</td>
+                  <tr *ngFor="let d of movimientosDetalleRows(row.envios)" class="border-t border-slate-200">
+                    <td class="px-2 py-1">{{ d.envio?.id }}</td>
+                    <td class="px-2 py-1">{{ d.envio?.origen_nombre }}</td>
+                    <td class="px-2 py-1">{{ d.envio?.destino_nombre }}</td>
+                    <td class="px-2 py-1">{{ d.movimiento?.tipo_movimiento }}</td>
+                    <td class="px-2 py-1">{{ d.movimiento?.numero_comprobante || '-' }}</td>
+                    <td class="px-2 py-1">{{ d.movimiento?.descripcion || '-' }}</td>
+                    <td class="px-2 py-1 text-right">{{ d.movimiento?.monto | number:'1.2-2' }}</td>
+                    <td class="px-2 py-1">{{ d.movimiento?.fecha_creacion | date:'yyyy-MM-dd HH:mm' }}</td>
+                    <td class="px-2 py-1">{{ d.movimiento?.usuario_crea || '-' }}</td>
                   </tr>
-                  <tr *ngIf="row.envios?.length" class="bg-white/70">
+                  <tr *ngIf="movimientosDetalleRows(row.envios).length" class="bg-white/70">
                     <td class="px-2 py-1 font-semibold text-slate-700" colspan="3">Total</td>
-                    <td class="px-2 py-1 text-right font-semibold text-slate-700">{{ totalesDetalleComprobantes(row.envios) }}</td>
-                    <td class="px-2 py-1 text-right font-semibold text-slate-700">{{ totalesDetalleMontoComprobantes(row.envios) | number:'1.2-2' }}</td>
+                    <td class="px-2 py-1 text-right font-semibold text-slate-700">{{ totalMovimientosDetalle(row.envios) }}</td>
+                    <td class="px-2 py-1 text-right font-semibold text-emerald-700">{{ totalMovimientosIngresos(row.envios) | number:'1.2-2' }}</td>
+                    <td class="px-2 py-1 text-right font-semibold text-red-700">{{ totalMovimientosEgresos(row.envios) | number:'1.2-2' }}</td>
+                    <td class="px-2 py-1 text-right font-semibold text-slate-700">{{ totalMovimientosNeto(row.envios) | number:'1.2-2' }}</td>
+                    <td class="px-2 py-1 text-left font-semibold text-slate-700">-</td>
                     <td class="px-2 py-1 text-left font-semibold text-slate-700">-</td>
                   </tr>
-                  <tr *ngIf="!row.envios?.length">
-                    <td class="px-2 py-2 text-center text-slate-500" colspan="6">Sin detalle para mostrar.</td>
+                  <tr *ngIf="!movimientosDetalleRows(row.envios).length">
+                    <td class="px-2 py-2 text-center text-slate-500" colspan="8">Sin detalle para mostrar.</td>
                   </tr>
                   </tbody>
                 </table>

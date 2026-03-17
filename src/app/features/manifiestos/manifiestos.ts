@@ -11,7 +11,7 @@ import { Manifiestos } from '../../../../core/services/manifiestos';
 import { Envios } from '../../../../core/services/envios';
 import { Puntos } from '../../../../core/services/puntos';
 import { Conductores as ConductoresService } from '../../../../core/services/conductores';
-import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate, Vehiculo, SerieComprobante as SerieComprobanteModel, PublicLinkRequest, GuiaTramaFinal } from '../../../../core/mapped';
+import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate, Vehiculo, SerieComprobante as SerieComprobanteModel, GuiaTramaFinal } from '../../../../core/mapped';
 import { Conductor } from '../../../../core/mapped';
 import { Personas } from '../../../../core/services/personas';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
@@ -79,6 +79,7 @@ export class ManifiestosFeature implements OnInit {
   drawerOpen = false;
   activeTab: 'resumen' | 'envios' | 'guias' | 'documento' | 'mapa' | 'historial' = 'resumen';
   actionMenuOpenId: number | null = null;
+  actionMenuPos: { top: number; left: number } = { top: 0, left: 0 };
 
   // Modal y guardado
   showModal = false;
@@ -202,12 +203,39 @@ export class ManifiestosFeature implements OnInit {
     try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
     const id = Number((item as any)?.id || 0);
     if (!id) return;
-    this.actionMenuOpenId = this.actionMenuOpenId === id ? null : id;
+    if (this.actionMenuOpenId === id) {
+      this.actionMenuOpenId = null;
+      return;
+    }
+    this.actionMenuOpenId = id;
+    this.positionActionMenu(ev);
   }
   closeActionMenu() { this.actionMenuOpenId = null; }
   isActionMenuOpen(item: Manifiesto): boolean { return Number((item as any)?.id || 0) === this.actionMenuOpenId; }
+  get actionMenuItem(): Manifiesto | null {
+    const id = Number(this.actionMenuOpenId || 0);
+    if (!id) return null;
+    return (this.lista_manifiestos || []).find((m: any) => Number((m as any)?.id || 0) === id) || null;
+  }
+  private positionActionMenu(ev?: Event) {
+    const target = (ev?.currentTarget || ev?.target) as HTMLElement | null;
+    if (!target || typeof window === 'undefined') return;
+    const rect = target.getBoundingClientRect();
+    const menuWidth = 192; // w-48
+    const menuHeight = 280;
+    const vw = window.innerWidth || 1280;
+    const vh = window.innerHeight || 720;
+    const left = Math.max(8, Math.min(rect.right - menuWidth, vw - menuWidth - 8));
+    const openUp = rect.bottom + 8 + menuHeight > vh;
+    const top = openUp ? Math.max(8, rect.top - menuHeight - 8) : Math.max(8, rect.bottom + 6);
+    this.actionMenuPos = { top, left };
+  }
   @HostListener('document:click')
   onDocumentClick() { this.closeActionMenu(); }
+  @HostListener('window:resize')
+  onWindowResize() { this.closeActionMenu(); }
+  @HostListener('window:scroll')
+  onWindowScroll() { this.closeActionMenu(); }
   @HostListener('document:keydown.escape')
   onEscapeKey() {
     this.closeActionMenu();
@@ -1064,43 +1092,23 @@ ngOnInit(): void {
 
   generarPublicLink(item: Manifiesto) {
     const manifiestoId = Number((item as any)?.id || 0);
-    const conductorId = Number((item as any)?.conductor_id || 0);
-    if (!manifiestoId || !conductorId) {
-      this.showNotif('No se pudo generar enlace: manifiesto sin conductor', 'error');
+    if (!manifiestoId) {
+      this.showNotif('No se pudo abrir enlace: manifiesto inválido', 'error');
       return;
     }
     this.publicLinkLoading[manifiestoId] = true;
     this.publicLinkError[manifiestoId] = null;
-    const payload: PublicLinkRequest = { conductor_id: conductorId, expires_minutes: 60 };
-    this.manifiestosSrv.getPublicLink(payload).subscribe({
-      next: (res) => {
-        this.publicLinkLoading[manifiestoId] = false;
-        let token = String((res as any)?.token || '').trim();
-        if (!token) {
-          try {
-            const url = String((res as any)?.url || '').trim();
-            if (url) {
-              const parsed = new URL(url);
-              token = String(parsed.searchParams.get('token') || '').trim();
-            }
-          } catch {}
-        }
-        if (!token) {
-          this.publicLinkError[manifiestoId] = 'No se pudo obtener el token del enlace público';
-          return;
-        }
-        const url = this.router.serializeUrl(
-          this.router.createUrlTree(['manifiestos/publico', token], { queryParams: { conductor_id: conductorId } })
-        );
-        window.open(url, '_blank', 'noopener');
-        // this.router.navigate(['manifiestos/publico', token], { queryParams: { conductor_id: conductorId } });
-      },
-      error: () => {
-        this.publicLinkLoading[manifiestoId] = false;
-        this.publicLinkError[manifiestoId] = 'No se pudo generar el enlace público';
-        this.showNotif('No se pudo generar el enlace público', 'error');
-      }
-    });
+    try {
+      const url = this.router.serializeUrl(
+        this.router.createUrlTree(['manifiestos/publico/id', manifiestoId])
+      );
+      window.open(url, '_blank', 'noopener');
+    } catch {
+      this.publicLinkError[manifiestoId] = 'No se pudo abrir el enlace público';
+      this.showNotif('No se pudo abrir el enlace público', 'error');
+    } finally {
+      this.publicLinkLoading[manifiestoId] = false;
+    }
   }
 
   closeGuiaGenerada() { this.showGuiaGeneradaModal = false; }

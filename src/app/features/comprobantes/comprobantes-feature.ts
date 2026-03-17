@@ -433,15 +433,16 @@ export class ComprobantesFeature implements OnInit {
     const tracking = this.codigoSeguimiento(c);
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>${title}</title>
 <style>
-  @page { size: 80mm auto; margin: 2mm; }
-  html,body{width:80mm;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:11px}
-  .wrap{width:78mm;margin:0 auto;padding:1mm}
-  .c{text-align:center}.r{text-align:right}.muted{color:#64748b}
-  .sep{border-top:1px dashed #94a3b8;margin:6px 0}
-  .logo{display:block;max-height:16mm;max-width:40mm;margin:0 auto 4px;object-fit:contain}
+  @page { size: 80mm auto; margin: 2.5mm; }
+  html,body{width:80mm;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#000;font-size:11px;line-height:1.24}
+  .wrap{width:74mm;margin:0 auto;padding:1mm}
+  .c{text-align:center}.r{text-align:right}.muted{color:#000}
+  .sep{border-top:1px solid #000;margin:5px 0}
+  .logo{display:block;max-height:16mm;max-width:40mm;margin:0 auto 4px;object-fit:contain;image-rendering:crisp-edges}
   table{width:100%;border-collapse:collapse;font-size:10px}
-  th,td{padding:2px 0;border-bottom:1px dotted #cbd5e1;vertical-align:top}
+  th,td{padding:2px 0;border-bottom:0.5px solid #000;vertical-align:top}
   .tot{margin-top:6px}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 </head><body>
   <div class="wrap">
