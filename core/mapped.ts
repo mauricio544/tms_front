@@ -139,6 +139,8 @@ export interface Puntos {
   direccion: string;
   lat?: number;
   lng?: number;
+  ubigeo?: number;
+  telefono?: number;
 }
 
 export interface Manifiesto {
@@ -200,6 +202,7 @@ export interface Envio {
   id_tracking: string;
   usuario_crea: string;
   precio_envio?: number;
+  placa_vehiculo: string;
 }
 
 export interface EnvioCreate {
@@ -316,6 +319,7 @@ export interface ComprobanteReporteRead {
   precio_total: number;
   fecha_comprobante: string;
   estado_comprobante: string;
+  usuario_crea: string;
 }
 
 export interface DetalleComprobante {
@@ -333,6 +337,7 @@ export interface DetalleComprobanteCreate {
   cantidad: number;
   descripcion: number;
   precio_unitario: number;
+  valor_unitario: number;
   comprobante_id: number;
 }
 
@@ -351,6 +356,7 @@ export interface DetalleEnvioCreate {
   cantidad: number;
   descripcion: number;
   precio_unitario: number;
+  precio_total: number;
   envio_id: number;
 }
 
@@ -388,6 +394,7 @@ export interface Cabecera {
   sede_id?: number;
   vale_gastos?: string | number;
   vale_gasto?: string | number;
+  fecha_movimiento?: string;
 }
 
 export interface CabeceraCreate {
@@ -400,6 +407,7 @@ export interface CabeceraCreate {
   sede_id?: number;
   vale_gastos?: string | number;
   vale_gasto?: string | number;
+  fecha_movimiento?: string;
 }
 
 export interface Detalle {
@@ -685,9 +693,25 @@ export interface GuiaTramaFinal {
   items: DetalleEnvio[];
 }
 
+export interface GuiaSunatRead {
+  id: number;
+  guia_id: number;
+  ambiente: string;
+  hash: string;
+  qr: string;
+  sunat_cod: string;
+  sunat_msg: string;
+  ticket: string;
+  fecha_envio: string;
+  fecha_respuesta: string;
+}
+
 export interface EnvioReporteRead extends Envio {
+  usuario_crea: string;
   origen_nombre: string;
   destino_nombre: string;
+  monto_envio?: number;
+  monto_pendiente_cobro?: number;
 }
 
 export interface EnvioReporteRelacionesRead {
@@ -699,6 +723,8 @@ export interface EnvioReporteRelacionesRead {
 export interface EnviosDiariosAgrupadosRead {
   fecha_creacion: string;
   usuario_crea: string;
+  usuario_punto_id?: number;
+  usuario_punto_nombre: string;
   total_envios: number;
   envios: EnvioReporteRelacionesRead[]
 }
@@ -706,6 +732,8 @@ export interface EnviosDiariosAgrupadosRead {
 export interface EnviosDiariosResumenPorUsuarioRead {
   fecha_creacion: string;
   usuario_crea: string;
+  usuario_punto_id?: number;
+  usuario_punto_nombre: string;
   total_envios: number;
   total_comprobantes: number;
   total_movimientos: number;
@@ -713,4 +741,168 @@ export interface EnviosDiariosResumenPorUsuarioRead {
   total_monto_movimientos: number;
   total_monto_ingresos?: number;
   total_monto_egresos?: number;
+  total_monto_envios?: number;
+  total_monto_por_cobrar_destino?: number;
+  total_monto_cobrado?: number;
+  total_comprobantes_emitidos_usuario?: number;
+  total_monto_comprobantes_emitidos_usuario?: number;
+  total_envios_terceros_con_comprobante_emitido_usuario?: number;
+}
+
+export interface ManifiestoGuiaSunatEstadoRead {
+  guia_id: number;
+  despacho_id: number;
+  envio_id?: number;
+  numero_guia: string;
+  ambiente: string;
+  sunat_cod: string;
+  sunat_msg: string;
+  ticket: string;
+  estado: string;
+  fecha_envio: string;
+  fecha_respuesta: string;
+}
+
+export interface ManifiestoEnvioPendienteGuiaRead {
+  envio_id: number;
+  despacho_id?: number;
+  ticket_numero: string;
+  fecha_envio: string;
+  punto_origen_id?: number;
+  punto_destino_id?: number;
+  origen_nombre: string;
+  destino_nombre: string;
+  motivo: string;
+}
+
+export interface ManifiestoGuiasSunatResumenRead {
+  manifiesto_id: number;
+  total_envios: number;
+  total_despachos: number;
+  total_guias: number;
+  total_guias_emitidas: number;
+  total_envios_pendientes_guia: number;
+  total_guias_no_emitidas: number;
+  estados: Record<string, number>;
+  guias_emitidas: ManifiestoGuiaSunatEstadoRead[];
+  guias_no_emitidas: ManifiestoGuiaSunatEstadoRead[];
+  envios_pendientes_guia: ManifiestoEnvioPendienteGuiaRead[];
+}
+
+
+export interface CompaniaConfigRead {
+  id: number;
+  compania_id: number;
+  lema: string;
+  consideraciones: string;
+  condiciones: string;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////// BI Interfaces /////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export interface BIResumenResponse {
+  empresa_id: number; // cia_id
+  sede_id: number; // punto_id
+  fecha_desde: string;
+  fecha_hasta: string;
+  total_envios: number;
+  monto_total_envios: number;
+  monto_total_cobrado: number;
+  monto_total_por_cobrar: number;
+  total_clientes: number;
+  ingresos_netos: number;
+  total_conductores: number;
+  total_manifiestos: number;
+  total_envios_entregados: number;
+}
+
+export interface BIEnviosPorDiaItem {
+  fecha: string;
+  total_envios: number;
+  total_envios_cobrados: number;
+  total_envios_por_cobrar: number;
+  monto_total_envios: number;
+  monto_total_cobrado: number;
+  monto_total_por_cobrar: number;
+}
+
+export interface BIClienteTopItem {
+  cliente_id: number;
+  total_comprobantes: number;
+  monto_total: number;
+  monto_neto: number;
+  ticket_promedio: number;
+}
+
+export interface BIConductorRankingItem {
+  conductor_id: number;
+  total_manifiestos: number;
+  total_envios: number;
+  total_envios_entregados: number;
+  peso_total: number;
+  monto_total_envios: number;
+}
+
+export interface BIDashboardKpisResponse {
+  empresa_id: number;
+  sede_id?: number | null;
+  fecha_desde: string;
+  fecha_hasta: string;
+  total_envios: number;
+  envios_finalizados: number;
+  envios_pendientes: number;
+  envios_incidencia: number;
+  cumplimiento_pct: number;
+  costo_total: number;
+  ingreso_total: number;
+  ticket_promedio: number;
+}
+
+export interface BIDashboardTrendPoint {
+  fecha: string;
+  total_envios: number;
+}
+
+export interface BIDashboardDistribucionItem {
+  sede_id: number;
+  sede_nombre: string;
+  total_envios: number;
+}
+
+export interface BIDashboardRutaFinanzasItem {
+  ruta_id?: number | null;
+  ruta_nombre: string;
+  costo_total: number;
+  ingreso_total: number;
+}
+
+export interface BIDashboardTransporteItem {
+  unidad_id?: number | null;
+  unidad_label: string;
+  conductor_id?: number | null;
+  conductor_nombre?: string | null;
+  total_envios: number;
+}
+
+export interface BIDashboardTopClienteItem {
+  cliente_id: number;
+  cliente_nombre?: string | null;
+  total_envios: number;
+  monto_total: number;
+}
+
+export interface BIDashboardTopRutaItem {
+  ruta_id?: number | null;
+  ruta_nombre: string;
+  total_envios: number;
+  monto_total: number;
+}
+
+export interface BIDashboardAlertaItem {
+  tipo: string;
+  severidad: 'alta' | 'media' | 'baja';
+  total: number;
+  detalle?: string | null;
 }

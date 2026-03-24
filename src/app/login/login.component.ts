@@ -22,7 +22,7 @@ export class LoginComponent {
   form = this.fb.group({
     username: ['', [Validators.required]],
     password: ['', [Validators.required, Validators.minLength(6)]],
-    remember: [true],
+    remember: [{value: true, disabled: true}],
   });
 
   onSubmit() {

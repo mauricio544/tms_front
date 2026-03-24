@@ -1,0 +1,10 @@
+.dbi-page {
+  background:
+    radial-gradient(1100px 360px at 95% -15%, rgba(14, 165, 183, 0.16), transparent 60%),
+    radial-gradient(900px 300px at 5% -10%, rgba(15, 23, 42, 0.08), transparent 55%);
+}
+
+.dbi-hero {
+  background: linear-gradient(120deg, #0f172a 0%, #0b4f6c 45%, #0ea5b7 100%);
+  box-shadow: 0 20px 44px -24px rgba(11, 79, 108, 0.75);
+}

@@ -1,0 +1,22 @@
+<div *ngIf="points.length; else emptyState" class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+  <svg viewBox="0 0 100 100" class="h-48 w-full">
+    <polyline points="0,100 100,100" fill="none" stroke="#d1d5db" stroke-width="0.5"></polyline>
+    <polyline [attr.points]="polylinePoints" fill="none" [attr.stroke]="stroke" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+    <circle
+      *ngFor="let p of points; let i = index"
+      [attr.cx]="points.length === 1 ? 50 : (i / (points.length - 1)) * 100"
+      [attr.cy]="100 - ((p.value || 0) / maxY * 100)"
+      r="1"
+      fill="#0f172a">
+    </circle>
+  </svg>
+  <div class="mt-2 grid grid-cols-3 gap-2 text-[11px] text-slate-600 md:grid-cols-6">
+    <div *ngFor="let p of points.slice(-6)" class="rounded bg-white px-2 py-1">
+      <div class="font-medium text-slate-700">{{ p.label }}</div>
+      <div>{{ p.value }}</div>
+    </div>
+  </div>
+</div>
+<ng-template #emptyState>
+  <div class="rounded-lg border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">Sin datos para graficar.</div>
+</ng-template>

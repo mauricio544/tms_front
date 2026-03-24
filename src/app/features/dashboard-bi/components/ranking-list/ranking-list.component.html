@@ -1,0 +1,15 @@
+<div *ngIf="items.length; else emptyState" class="space-y-3">
+  <div *ngFor="let item of items; let i = index">
+    <div class="mb-1 flex items-center justify-between text-sm text-slate-700">
+      <span class="truncate pr-2">{{ i + 1 }}. {{ item.label }}</span>
+      <span class="font-medium">{{ item.value }}</span>
+    </div>
+    <div class="h-2 w-full rounded-full bg-slate-100">
+      <div class="h-2 rounded-full" [style.width.%]="pct(item.value)" [style.background]="color"></div>
+    </div>
+    <div *ngIf="item.helper" class="mt-1 text-xs text-slate-500">{{ item.helper }}</div>
+  </div>
+</div>
+<ng-template #emptyState>
+  <div class="rounded-lg border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">{{ emptyText }}</div>
+</ng-template>

@@ -39,7 +39,13 @@ export class Personas {
     return this.api.getService(this.newUrl);
   }
 
-  getPersonaComplete(query: string): Observable<PersonaListResponse> {
-    return this.api.get(`/personas/complete?${query}`);
+  getPersonaComplete(query: string | { tipo_documento?: string; nro_documento?: string; q?: string }): Observable<PersonaListResponse> {
+    const params = typeof query === 'string'
+      ? query
+      : Object.entries(query || {})
+          .filter(([, value]) => value != null && String(value).trim() !== '')
+          .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value).trim())}`)
+          .join('&');
+    return this.api.get(`/personas/complete?${params}`);
   }
 }

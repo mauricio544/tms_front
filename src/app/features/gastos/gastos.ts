@@ -164,7 +164,7 @@ export class GastosFeature implements OnInit {
   showAddModal = false;
   savingAdd = false;
   addError: string | null = null;
-  cabeceraForm: Partial<CabeceraCreate> = { tipo_movimiento: 'I', monto: undefined as any, vale_gastos: undefined as any } as any;
+  cabeceraForm: Partial<CabeceraCreate> = { tipo_movimiento: 'I', monto: undefined as any, vale_gastos: undefined as any, fecha_movimiento: this.todayIso() } as any;
   detalleForm: Partial<DetalleCreate> = { tipo_comprobante_sunat: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
 
   get isValidAdd(): boolean {
@@ -183,7 +183,7 @@ export class GastosFeature implements OnInit {
     this.showAddModal = true;
     this.savingAdd = false;
     this.addError = null;
-    this.cabeceraForm = { tipo_movimiento: 'I', monto: undefined as any, vale_gastos: undefined as any } as any;
+    this.cabeceraForm = { tipo_movimiento: 'I', monto: undefined as any, vale_gastos: undefined as any, fecha_movimiento: this.todayIso() } as any;
     this.detalleForm = { tipo_comprobante_sunat: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
     this.selectedSerieId = this.seriesFiltered.length ? Number(this.seriesFiltered[0].id) : null;
     if (this.selectedSerieId) { this.onSerieChange(this.selectedSerieId); }
@@ -207,6 +207,7 @@ export class GastosFeature implements OnInit {
       vale_gastos: c.vale_gastos != null && String(c.vale_gastos).trim() !== '' ? String(c.vale_gastos).trim() : undefined,
       autorizado: c.autorizado != null ? Number(c.autorizado) : undefined,
       manifiesto_id: c.manifiesto_id != null ? Number(c.manifiesto_id) : undefined,
+      fecha_movimiento: String(c.fecha_movimiento || '').trim() || this.todayIso(),
     };
     this.savingAdd = true;
     this.addError = null;

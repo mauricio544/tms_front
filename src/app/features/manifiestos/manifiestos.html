@@ -145,21 +145,55 @@
             <tr *ngIf="sunatGuiasOpenId === item.id" class="border-t border-slate-100 bg-slate-50/60">
               <td class="px-3 py-3" colspan="10">
                 <div class="rounded-md border border-slate-200 bg-white p-3">
-                  <div class="text-sm font-medium text-slate-700">Guías Sunat generadas</div>
+                  <div class="text-sm font-medium text-slate-700">Guías de remisión transportista generadas</div>
                   <div class="mt-2 grid gap-2 sm:grid-cols-2">
                     <div *ngFor="let g of sunatGenState[item.id]?.guias" class="rounded-md border border-slate-200 px-3 py-2 text-sm">
-                      <div class="text-slate-600">Envío {{ g.envioId }}</div>
+                      <div class="text-slate-600">Envío {{ g.envioTicket || g.envioId }}</div>
                       <div class="font-medium text-slate-800">{{ g.numero || '-' }}</div>
+                      <div class="mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium" [ngClass]="sunatEstadoClass(g.sunatCod)">
+                        {{ sunatEstadoLabel(g.sunatCod) }}
+                      </div>
+                      <div *ngIf="g.sunatMsg" class="mt-1 text-xs text-slate-500">{{ g.sunatMsg }}</div>
                       <div class="mt-2 flex items-center gap-2">
                         <button
                           class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50"
                           (click)="verGuiaTrama(g.envioId)">
                           Ver guía
                         </button>
+                        <button
+                          *ngIf="sunatEstadoByCod(g.sunatCod) !== 'aceptado'"
+                          class="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                          [disabled]="sunatRetryLoading[g.guiaId]"
+                          (click)="retryEmitSunatGuia(item.id, g.guiaId)">
+                          {{ sunatRetryLoading[g.guiaId] ? 'Reintentando...' : 'Reintentar emisión SUNAT' }}
+                        </button>
                       </div>
                     </div>
                   </div>
                   <div *ngIf="!sunatGenState[item.id]?.guias?.length" class="mt-2 text-sm text-slate-500">No hay guías para mostrar.</div>
+                  <div *ngIf="(sunatGenState[item.id]?.totalPendientesGuia ?? 0) > 0" class="mt-4 border-t border-slate-100 pt-3">
+                    <div class="text-sm font-medium text-slate-700">
+                      Envíos pendientes de guía ({{ sunatGenState[item.id]?.totalPendientesGuia ?? 0 }})
+                    </div>
+                    <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                      <div *ngFor="let p of (sunatGenState[item.id]?.pendingGuias || [])" class="rounded-md border border-amber-200 bg-amber-50/30 px-3 py-2 text-sm">
+                        <div class="font-medium text-slate-800">Envío {{ p.envioTicket || p.envioId }}</div>
+                        <div *ngIf="p.origenNombre || p.destinoNombre" class="mt-1 text-xs text-slate-600">{{ p.origenNombre || '-' }} → {{ p.destinoNombre || '-' }}</div>
+                        <div *ngIf="p.motivo" class="mt-1 text-xs text-amber-700">{{ p.motivo }}</div>
+                        <div class="mt-2">
+                          <button
+                            class="rounded-md border border-[#21D0B2] bg-[#21D0B2] px-2 py-1 text-xs text-white hover:bg-[#21D0B2]/90 disabled:opacity-50"
+                            [disabled]="sunatPendingCreateLoading[p.envioId] || (sunatGenState[item.id]?.running ?? false)"
+                            (click)="generarGuiaSunatPendiente(item, p.envioId)">
+                            {{ sunatPendingCreateLoading[p.envioId] ? 'Generando...' : 'Generar guía' }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div *ngIf="(sunatGenState[item.id]?.pendingGuias?.length ?? 0) === 0" class="mt-2 text-sm text-slate-500">
+                      No se recibió el detalle de envíos pendientes, pero el resumen reporta pendientes.
+                    </div>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -189,7 +223,7 @@
     (click)="$event.stopPropagation()">
     <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGenerarManifiestoContext(menuItem, $event)">Generar Manifiesto</button>
     <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGuiaSunatContext(menuItem, $event)">Generar Guía Sunat</button>
-    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGrtContext(menuItem, $event)">Generar GRT</button>
+    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGrtContext(menuItem, $event)">Generar Compilado Guías</button>
     <button *ngIf="canShowPublicLink(menuItem)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[menuItem.id]" (click)="openPublicLinkContext(menuItem, $event)">{{ publicLinkLoading[menuItem.id] ? 'Generando...' : 'Enlace público' }}</button>
     <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openAddEnviosContext(menuItem, $event)">Añadir Envío</button>
     <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openEditContext(menuItem, $event)">Editar</button>
@@ -253,27 +287,35 @@
                   <table class="min-w-max text-sm">
                     <thead class="bg-slate-50 text-left text-slate-600">
                     <tr>
-                      <th class="px-3 py-2">Guía</th>
+                      <th class="px-3 py-2">Cod. Envío</th>
                       <th class="px-3 py-2">Origen</th>
                       <th class="px-3 py-2">Destino</th>
                       <th class="px-3 py-2">Remitente</th>
                       <th class="px-3 py-2">Destinatario</th>
                       <th class="px-3 py-2">Peso</th>
                       <th class="px-3 py-2">Fecha</th>
+                      <th class="px-3 py-2">Acciones</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr *ngFor="let e of enviosLista" class="border-t border-slate-200">
-                      <td class="px-3 py-2">{{ e.id || '-' }}</td>
+                      <td class="px-3 py-2">{{ e.ticket_numero || '-' }}</td>
                       <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>
                       <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
                       <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
                       <td class="px-3 py-2">{{ personaLabelById(e.destinatario) || e.destinatario }}</td>
                       <td class="px-3 py-2">{{ e.peso }}</td>
                       <td class="px-3 py-2">{{ e.fecha_envio | ymd }}</td>
+                      <td class="px-3 py-2">
+                        <button
+                          class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 hover:bg-red-100"
+                          (click)="detachEnvioFromManifiesto(e)">
+                          Quitar
+                        </button>
+                      </td>
                     </tr>
                     <tr *ngIf="!enviosLista.length">
-                      <td colspan="7" class="px-3 py-6 text-center text-slate-500">No hay envíos para este manifiesto.</td>
+                      <td colspan="8" class="px-3 py-6 text-center text-slate-500">No hay envíos para este manifiesto.</td>
                     </tr>
                     </tbody>
                   </table>
@@ -283,7 +325,7 @@
               <div *ngSwitchCase="'guias'" class="space-y-3">
                 <div class="flex flex-wrap items-center gap-2">
                   <button class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm text-white hover:bg-[#21D0B2]/90" (click)="openGuiaSunatContext(sel, $event)">Generar guía Sunat</button>
-                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="openGrtContext(sel, $event)">Generar GRT</button>
+                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="openGrtContext(sel, $event)">Generar Compilado Guías</button>
                   <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="setActiveTab('documento')">Ver documento</button>
                 </div>
                 <div *ngIf="showGrtModal" class="rounded-md border border-slate-200 bg-white p-3">
@@ -317,17 +359,51 @@
                   </div>
                   <div class="grid gap-2 sm:grid-cols-2" *ngIf="st.guias?.length; else noGuiasSunat">
                     <div *ngFor="let g of st.guias" class="rounded-md border border-slate-200 px-3 py-2 text-sm">
-                      <div class="text-slate-600">Envío {{ g.envioId }}</div>
+                      <div class="text-slate-600">Envío {{ g.envioTicket || g.envioId }}</div>
                       <div class="font-medium text-slate-800">{{ g.numero || '-' }}</div>
-                      <button class="mt-2 rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="verGuiaTrama(g.envioId)">Ver guía</button>
+                      <div class="mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium" [ngClass]="sunatEstadoClass(g.sunatCod)">
+                        {{ sunatEstadoLabel(g.sunatCod) }}
+                      </div>
+                      <div *ngIf="g.sunatMsg" class="mt-1 text-xs text-slate-500">{{ g.sunatMsg }}</div>
+                      <div class="mt-2 flex flex-wrap items-center gap-2">
+                        <button class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50" (click)="verGuiaTrama(g.envioId)">Ver guía</button>
+                        <button
+                          *ngIf="sunatEstadoByCod(g.sunatCod) !== 'aceptado'"
+                          class="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                          [disabled]="sunatRetryLoading[g.guiaId]"
+                          (click)="retryEmitSunatGuia(sel.id, g.guiaId)">
+                          {{ sunatRetryLoading[g.guiaId] ? 'Reintentando...' : 'Reintentar emisión SUNAT' }}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <ng-template #noGuiasSunat>
                     <div class="text-sm text-slate-500">No hay guías generadas para este manifiesto.</div>
                   </ng-template>
+                  <div *ngIf="st.totalPendientesGuia > 0" class="mt-4 border-t border-slate-100 pt-3">
+                    <div class="text-sm font-medium text-slate-700">Envíos pendientes de guía ({{ st.totalPendientesGuia }})</div>
+                    <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                      <div *ngFor="let p of st.pendingGuias" class="rounded-md border border-amber-200 bg-amber-50/30 px-3 py-2 text-sm">
+                        <div class="font-medium text-slate-800">Envío {{ p.envioTicket || p.envioId }}</div>
+                        <div *ngIf="p.origenNombre || p.destinoNombre" class="mt-1 text-xs text-slate-600">{{ p.origenNombre || '-' }} → {{ p.destinoNombre || '-' }}</div>
+                        <div *ngIf="p.motivo" class="mt-1 text-xs text-amber-700">{{ p.motivo }}</div>
+                        <div class="mt-2">
+                          <button
+                            class="rounded-md border border-[#21D0B2] bg-[#21D0B2] px-2 py-1 text-xs text-white hover:bg-[#21D0B2]/90 disabled:opacity-50"
+                            [disabled]="sunatPendingCreateLoading[p.envioId] || st.running"
+                            (click)="generarGuiaSunatPendiente(sel, p.envioId)">
+                            {{ sunatPendingCreateLoading[p.envioId] ? 'Generando...' : 'Generar guía' }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div *ngIf="!st.pendingGuias?.length" class="mt-2 text-sm text-slate-500">
+                      No se recibió el detalle de envíos pendientes, pero el resumen reporta pendientes.
+                    </div>
+                  </div>
                 </div>
                 <div *ngIf="!selectedSunatState" class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                  Aún no se han generado guías Sunat para este manifiesto.
+                  Aún no se han generado guías de remisión transportista para este manifiesto.
                 </div>
               </div>
 
@@ -335,6 +411,7 @@
                 <div class="flex flex-wrap items-center gap-2">
                   <button class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm text-white hover:bg-[#21D0B2]/90" (click)="openGenerarManifiestoContext(sel, $event)">Cargar documento</button>
                   <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="printManifiestoInline()" [disabled]="guiaLoading || !!guiaError || !guiaRows.length">Imprimir</button>
+                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="printManifiestoThermal80mm()" [disabled]="guiaLoading || !!guiaError || !guiaRows.length">Imprimir 80mm</button>
                   <!--<button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="exportGuiaPDF()" [disabled]="guiaLoading || !!guiaError || !guiaRows.length">Exportar PDF</button>-->
                 </div>
                 <div *ngIf="guiaLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando documento.</div>
@@ -649,7 +726,7 @@
       <table class="min-w-max text-sm">
         <thead class="bg-slate-50 text-left text-slate-600">
           <tr>
-            <th class="px-3 py-2">Guía</th>
+            <th class="px-3 py-2">Ticket N°</th>
             <th class="px-3 py-2">Origen</th>
             <th class="px-3 py-2">Destino</th>
             <th class="px-3 py-2">Remitente</th>
@@ -661,7 +738,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let e of filteredAddEnvios" class="border-t border-slate-200">
-            <td class="px-3 py-2">{{ e.id || '-' }}</td>
+            <td class="px-3 py-2">{{ e.ticket_numero }}</td>
             <td class="px-3 py-2">{{ nameFrom(e.punto_origen_id) }}</td>
             <td class="px-3 py-2">{{ nameFrom(e.punto_destino_id) }}</td>
             <td class="px-3 py-2">{{ personaLabelById(e.remitente) || e.remitente }}</td>
@@ -690,6 +767,7 @@
       <h3 class="text-lg font-semibold text-slate-800">Doc. del Manifiesto {{ guiaSerie }}-{{ guiaNumero }}</h3>
       <div class="flex items-center gap-2">
         <button (click)="printManifiestoInline()" [disabled]="guiaLoading || !!guiaError" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Imprimir</button>
+        <button (click)="printManifiestoThermal80mm()" [disabled]="guiaLoading || !!guiaError || !guiaRows.length" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Imprimir 80mm</button>
         <button (click)="exportGuiaPDF()" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50">Exportar PDF</button>
         <button (click)="closeGuia()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:bg-slate-50">Ocultar</button>
       </div>

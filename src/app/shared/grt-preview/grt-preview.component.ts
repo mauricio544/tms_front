@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 import { GrtDocument } from '../../features/manifiestos/grt-builder.service';
 
@@ -66,7 +66,7 @@ export class GrtPreviewComponent {
     const qr = this.toImageSrc(this.grt?.sunat?.qr);
     const relacionados = (this.grt?.relacionados || []).map((r, i) => `
       <div class="item">
-        <div class="row"><b>${i + 1}. Envío #${this.e(r.envioId)}</b></div>
+        <div class="row"><b>${i + 1}. EnvÃ­o #${this.e(r.envioId)}</b></div>
         ${r.ticketNumero ? `<div class="row">Ticket: ${this.e(r.ticketNumero)}</div>` : ''}
         ${r.grrNumero ? `<div class="row">GRR: ${this.e(r.grrNumero)}</div>` : ''}
         ${r.remitente ? `<div class="row">Remitente: ${this.e(r.remitente)}</div>` : ''}
@@ -84,7 +84,8 @@ export class GrtPreviewComponent {
         </div>
         <div class="block">
           <div class="ttl">Datos generales</div>
-          <div class="row">F. emisión: ${this.e(this.formatDate(this.grt?.fechaEmision))}</div>
+          <div class="row">Número de Registro MTC:15178239CNG</div>
+          <div class="row">F. emisiÃ³n: ${this.e(this.formatDate(this.grt?.fechaEmision))}</div>
           <div class="row">F. traslado: ${this.e(this.formatDate(this.grt?.fechaTraslado))}</div>
           <div class="row">Manifiesto: ${this.e(this.grt?.manifiestoNumero || this.grt?.manifiestoId || '-')}</div>
         </div>
@@ -95,7 +96,7 @@ export class GrtPreviewComponent {
         </div>
         <div class="block">
           <div class="ttl">Transporte</div>
-          <div class="row">Vehículo: ${this.e(this.grt?.vehiculo?.placa || '-')}</div>
+          <div class="row">VehÃ­culo: ${this.e(this.grt?.vehiculo?.placa || '-')}</div>
           <div class="row">Conductor: ${this.e(this.grt?.conductor?.nombre || '-')}</div>
           ${this.grt?.conductor?.documento ? `<div class="row">Doc: ${this.e(this.grt?.conductor?.documento)}</div>` : ''}
         </div>
@@ -106,9 +107,10 @@ export class GrtPreviewComponent {
         </div>
         <div class="block">
           <div class="ttl">Resumen GRR asociadas</div>
-          <div class="row">Total envíos: ${this.e(this.grt?.resumenGrr?.totalEnvios || 0)}</div>
+          <div class="row">Total envÃ­os: ${this.e(this.grt?.resumenGrr?.totalEnvios || 0)}</div>
           <div class="row">Total bultos: ${this.e(this.grt?.resumenGrr?.totalBultos || 0)}</div>
           <div class="row">Peso total (kg): ${this.e(this.grt?.resumenGrr?.totalPesoKg || 0)}</div>
+          ${(this.grt?.resumenGrr?.grrNumeros || []).length ? `<div class="row">NÃºmeros guÃ­a: ${this.e((this.grt?.resumenGrr?.grrNumeros || []).join(', '))}</div>` : ''}
         </div>
         <div class="block">
           <div class="ttl">Documentos relacionados</div>
@@ -121,7 +123,7 @@ export class GrtPreviewComponent {
             ${qr ? `<div class="qr"><img src="${qr}" alt="QR"></div>` : ''}
           </div>
         ` : ''}
-        <div class="foot">Representación impresa de Guía de Remisión Transportista</div>
+        <div class="foot">RepresentaciÃ³n impresa de GuÃ­a de RemisiÃ³n Transportista</div>
       </div>
     `;
     win.document.open();
@@ -161,8 +163,56 @@ export class GrtPreviewComponent {
   toImageSrc(raw?: string): string | null {
     const value = String(raw || '').trim();
     if (!value) return null;
-    if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:image')) return value;
-    return `data:image/png;base64,${value}`;
+    if (value.startsWith('http://') || value.startsWith('https://')) return value;
+    const dataUrlBase64 = this.extractBase64FromDataUrl(value);
+    if (dataUrlBase64) {
+      if (this.isLikelyImageBase64(dataUrlBase64)) return value;
+      const decodedDataUrl = this.tryDecodeBase64(dataUrlBase64);
+      if (decodedDataUrl && this.isLikelyImageBinary(decodedDataUrl)) return value;
+      const qrPayloadFromDataUrl = (decodedDataUrl && this.isLikelyQrPayload(decodedDataUrl)) ? decodedDataUrl : dataUrlBase64;
+      return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrPayloadFromDataUrl)}`;
+    }
+    if (this.isLikelyImageBase64(value)) return `data:image/png;base64,${value}`;
+    const decoded = this.tryDecodeBase64(value);
+    if (decoded && this.isLikelyImageBinary(decoded)) return `data:image/png;base64,${value}`;
+    const qrPayload = (decoded && this.isLikelyQrPayload(decoded)) ? decoded : value;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrPayload)}`;
+  }
+
+  private extractBase64FromDataUrl(value: string): string | null {
+    const v = String(value || '').trim();
+    if (!v.startsWith('data:image')) return null;
+    const marker = 'base64,';
+    const idx = v.indexOf(marker);
+    if (idx < 0) return null;
+    return v.slice(idx + marker.length).trim();
+  }
+
+  private tryDecodeBase64(value: string): string | null {
+    try { return atob(value); } catch { return null; }
+  }
+
+  private isLikelyImageBase64(value: string): boolean {
+    const v = String(value || '').trim();
+    return v.startsWith('iVBORw0KGgo') || v.startsWith('/9j/') || v.startsWith('R0lGOD');
+  }
+
+  private isLikelyImageBinary(value: string): boolean {
+    if (!value) return false;
+    const c0 = value.charCodeAt(0);
+    const c1 = value.length > 1 ? value.charCodeAt(1) : -1;
+    const c2 = value.length > 2 ? value.charCodeAt(2) : -1;
+    const c3 = value.length > 3 ? value.charCodeAt(3) : -1;
+    // PNG: 89 50 4E 47
+    if (c0 === 0x89 && c1 === 0x50 && c2 === 0x4E && c3 === 0x47) return true;
+    // JPG: FF D8 FF
+    if (c0 === 0xFF && c1 === 0xD8 && c2 === 0xFF) return true;
+    return false;
+  }
+
+  private isLikelyQrPayload(value: string): boolean {
+    const v = String(value || '').trim();
+    return v.includes('|') || /^[\w\-.:/]+$/.test(v);
   }
 
   private e(value: any): string {
@@ -174,3 +224,4 @@ export class GrtPreviewComponent {
       .replace(/'/g, '&#39;');
   }
 }
+

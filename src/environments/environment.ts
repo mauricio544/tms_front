@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://tms.maudev.online/api', // FastAPI TMS
+  apiUrl: 'https://vigo.tmscargosoft.com/api', // FastAPI TMS
 };

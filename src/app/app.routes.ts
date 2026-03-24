@@ -21,6 +21,7 @@ import { GastosFeature } from './features/gastos/gastos';
 import { ComprobantesFeature } from './features/comprobantes/comprobantes-feature';
 import { SedesFeature } from './features/sedes/sedes';
 import { ReportesFeature } from './features/reportes/reportes';
+import { DashboardBiFeature } from './features/dashboard-bi/dashboard-bi';
 import { EnvioPublicComponent } from './public/envio-public/envio-public';
 import { ManifiestosPublicoComponent } from './public/manifiestos-publico/manifiestos-publico';
 import { ManifiestosPublicoIdComponent } from './public/manifiestos-publico-id/manifiestos-publico-id';
@@ -58,6 +59,7 @@ export const routes: Routes = [
       { path: 'gastos', component: GastosFeature, data: { breadcrumb: 'Movimientos' } },
       { path: 'comprobantes', component: ComprobantesFeature, data: { breadcrumb: 'Comprobantes' } },
       { path: 'reportes', component: ReportesFeature, data: { breadcrumb: 'Reportes' } },
+      { path: 'bi', component: DashboardBiFeature, data: { breadcrumb: 'BI Dashboard' } },
     ],
   },
   { path: '**', redirectTo: '' },

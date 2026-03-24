@@ -1,0 +1,159 @@
+<section class="dbi-page px-6 py-6">
+  <header class="dbi-hero rounded-2xl p-5 md:p-6">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-semibold text-white">Dashboard BI Gerencial</h1>
+        <p class="mt-1 text-sm text-cyan-100">Control operativo y financiero por empresa, sede y rango de fechas</p>
+      </div>
+      <div class="text-xs text-cyan-100">
+        <div>Modo desktop-first · SaaS</div>
+        <div>Filtros globales persistentes</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div class="grid gap-3 md:grid-cols-5">
+      <label class="space-y-1">
+        <span class="text-xs font-medium text-slate-600">Fecha desde</span>
+        <input type="date" [(ngModel)]="fechaDesde" class="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#0ea5b7] focus:outline-none focus:ring-1 focus:ring-[#0ea5b7]">
+      </label>
+      <label class="space-y-1">
+        <span class="text-xs font-medium text-slate-600">Fecha hasta</span>
+        <input type="date" [(ngModel)]="fechaHasta" class="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#0ea5b7] focus:outline-none focus:ring-1 focus:ring-[#0ea5b7]">
+      </label>
+      <label class="space-y-1 md:col-span-2">
+        <span class="text-xs font-medium text-slate-600">Sede / almacén</span>
+        <select [(ngModel)]="sedeId" class="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#0ea5b7] focus:outline-none focus:ring-1 focus:ring-[#0ea5b7]">
+          <option [ngValue]="null">Todas</option>
+          <option *ngFor="let s of sedesState.data" [ngValue]="s.id">{{ s.nombre }}</option>
+        </select>
+      </label>
+      <div class="flex items-end justify-end gap-2">
+        <button class="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-50" (click)="clearFilters()">Limpiar</button>
+        <button class="h-10 rounded-lg bg-[#0ea5b7] px-4 text-sm font-medium text-white hover:bg-[#0b8796]" (click)="applyFilters()">Aplicar</button>
+      </div>
+    </div>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <button class="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50" (click)="setQuickRange(7)">7 días</button>
+      <button class="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50" (click)="setQuickRange(30)">30 días</button>
+      <button class="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50" (click)="setQuickRange(90)">90 días</button>
+    </div>
+    <div *ngIf="globalError" class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ globalError }}</div>
+  </div>
+
+  <div class="mt-4 grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+    <!-- Columna lateral izquierda KPI -->
+    <aside class="space-y-3">
+      <bi-kpi-card title="Total de envíos" [value]="kpiTotalEnvios | number" tone="info"></bi-kpi-card>
+      <bi-kpi-card title="Envíos finalizados" [value]="kpiFinalizados | number" tone="good"></bi-kpi-card>
+      <bi-kpi-card title="Envíos pendientes" [value]="kpiPendientes | number" tone="warn"></bi-kpi-card>
+      <bi-kpi-card title="Anulados / incidencia" [value]="kpiIncidencia | number" tone="bad"></bi-kpi-card>
+      <bi-kpi-card title="% cumplimiento" [value]="(kpiCumplimiento | number:'1.1-1') + '%'" tone="info"></bi-kpi-card>
+      <bi-kpi-card title="Costo total" [value]="'S/ ' + (kpiCosto | number:'1.2-2')" tone="neutral"></bi-kpi-card>
+      <bi-kpi-card title="Ingreso total" [value]="'S/ ' + (kpiIngreso | number:'1.2-2')" tone="good"></bi-kpi-card>
+      <bi-kpi-card title="Ticket promedio" [value]="'S/ ' + (kpiTicket | number:'1.2-2')" tone="neutral"></bi-kpi-card>
+    </aside>
+
+    <div class="space-y-4">
+      <!-- Zona superior central -->
+      <section class="grid gap-4 xl:grid-cols-3">
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div class="text-sm font-semibold text-slate-800">Resumen costo / ingreso</div>
+          <div *ngIf="kpisState.loading" class="mt-3 text-sm text-slate-500">Cargando...</div>
+          <div *ngIf="kpisState.error" class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ kpisState.error }}</div>
+          <div *ngIf="!kpisState.loading && !kpisState.error" class="mt-3 space-y-3">
+            <div>
+              <div class="text-xs text-slate-500">Costo total</div>
+              <div class="text-2xl font-semibold text-slate-800">S/ {{ kpiCosto | number:'1.2-2' }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500">Ingreso total</div>
+              <div class="text-2xl font-semibold text-emerald-700">S/ {{ kpiIngreso | number:'1.2-2' }}</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:col-span-1">
+          <div class="mb-2 text-sm font-semibold text-slate-800">Envíos por fecha</div>
+          <div *ngIf="trendState.loading" class="text-sm text-slate-500">Cargando...</div>
+          <div *ngIf="trendState.error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ trendState.error }}</div>
+          <bi-line-chart *ngIf="!trendState.loading && !trendState.error" [points]="linePoints"></bi-line-chart>
+        </article>
+
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:col-span-1">
+          <div class="mb-2 text-sm font-semibold text-slate-800">Distribución por sede</div>
+          <div *ngIf="distribucionState.loading" class="text-sm text-slate-500">Cargando...</div>
+          <div *ngIf="distribucionState.error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ distribucionState.error }}</div>
+          <bi-donut-chart *ngIf="!distribucionState.loading && !distribucionState.error" [items]="donutItems"></bi-donut-chart>
+        </article>
+      </section>
+
+      <!-- Zona inferior -->
+      <section class="grid gap-4 xl:grid-cols-2">
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-slate-800">Costo / ingreso por ruta</h2>
+            <div class="inline-flex overflow-hidden rounded-md border border-slate-200 text-xs">
+              <button class="px-2 py-1" [class.bg-slate-100]="rutaMode==='ingreso'" (click)="rutaMode='ingreso'">Ingreso</button>
+              <button class="border-l border-slate-200 px-2 py-1" [class.bg-slate-100]="rutaMode==='costo'" (click)="rutaMode='costo'">Costo</button>
+            </div>
+          </div>
+          <div *ngIf="rutasFinanzasState.loading" class="text-sm text-slate-500">Cargando...</div>
+          <div *ngIf="rutasFinanzasState.error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ rutasFinanzasState.error }}</div>
+          <bi-ranking-list
+            *ngIf="!rutasFinanzasState.loading && !rutasFinanzasState.error"
+            [items]="rutasFinanzasRanking"
+            [color]="rutaMode==='ingreso' ? '#10b981' : '#f59e0b'"
+            emptyText="Sin datos de rutas">
+          </bi-ranking-list>
+        </article>
+
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 class="mb-3 text-sm font-semibold text-slate-800">Envíos por transporte / unidad / conductor</h2>
+          <div *ngIf="transporteState.loading" class="text-sm text-slate-500">Cargando...</div>
+          <div *ngIf="transporteState.error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ transporteState.error }}</div>
+          <bi-ranking-list
+            *ngIf="!transporteState.loading && !transporteState.error"
+            [items]="transporteRanking"
+            color="#0ea5b7"
+            emptyText="Sin datos de transporte">
+          </bi-ranking-list>
+        </article>
+      </section>
+
+      <section class="grid gap-4 xl:grid-cols-3">
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 class="mb-3 text-sm font-semibold text-slate-800">Top 5 clientes</h2>
+          <div *ngIf="topClientesState.loading" class="text-sm text-slate-500">Cargando...</div>
+          <div *ngIf="topClientesState.error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ topClientesState.error }}</div>
+          <bi-ranking-list
+            *ngIf="!topClientesState.loading && !topClientesState.error"
+            [items]="topClientesRanking"
+            color="#334155"
+            emptyText="Sin ranking de clientes">
+          </bi-ranking-list>
+        </article>
+
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 class="mb-3 text-sm font-semibold text-slate-800">Top 5 rutas</h2>
+          <div *ngIf="topRutasState.loading" class="text-sm text-slate-500">Cargando...</div>
+          <div *ngIf="topRutasState.error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ topRutasState.error }}</div>
+          <bi-ranking-list
+            *ngIf="!topRutasState.loading && !topRutasState.error"
+            [items]="topRutasRanking"
+            color="#0f766e"
+            emptyText="Sin ranking de rutas">
+          </bi-ranking-list>
+        </article>
+
+        <article class="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+          <h2 class="mb-3 text-sm font-semibold text-slate-800">Alertas operativas</h2>
+          <div *ngIf="alertasState.loading" class="text-sm text-slate-500">Cargando...</div>
+          <div *ngIf="alertasState.error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ alertasState.error }}</div>
+          <bi-alerts-list *ngIf="!alertasState.loading && !alertasState.error" [items]="alertasState.data"></bi-alerts-list>
+        </article>
+      </section>
+    </div>
+  </div>
+</section>

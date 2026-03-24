@@ -121,6 +121,10 @@
             <label class="block text-sm text-slate-700">Monto</label>
             <input type="number" [(ngModel)]="cabeceraForm.monto" min="0" step="0.01" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
           </div>
+          <div>
+            <label class="block text-sm text-slate-700">Fecha movimiento</label>
+            <input type="date" [(ngModel)]="cabeceraForm.fecha_movimiento" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+          </div>
           <div class="col-span-2 relative">
             <label class="block text-sm text-slate-700">Persona</label>
             <div class="mt-1 flex items-center gap-2">

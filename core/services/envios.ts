@@ -11,7 +11,7 @@ import {
   EnvioTrackingPublicLinkRequest,
   EnviosDiariosAgrupadosRead,
   EnviosDiariosResumenPorUsuarioRead,
-  EnvioListRead
+  EnvioListRead, CompaniaConfigRead
 } from '../mapped';
 import { AuthService } from './auth.service';
 
@@ -30,6 +30,14 @@ export class Envios {
 
   getEnviosDate(fecha: string): Observable<Envio[]> {
     return this.api.get(`/envios/?fecha=${fecha}`);
+  }
+
+  getEnviosExacto(ticket_numero: string): Observable<Envio[]> {
+    return this.api.get(`/envios/?ticket_numero=${ticket_numero}`);
+  }
+
+  getEnviosPuntos(origen_id: number, destino_id: number): Observable<Envio[]> {
+    return this.api.get(`/envios/por-origen-destino?origen_id=${origen_id}&destino_id=${destino_id}`)
   }
 
   getEnvio(id: number): Observable<Envio> {
@@ -112,5 +120,9 @@ export class Envios {
 
   getEnviosSedeDate(punto_id: number, fecha: string): Observable<Envio[]> {
     return this.api.get(`/envios/por-punto?punto_id=${punto_id}&fecha=${fecha}`);
+  }
+
+  getCondicionesCia(compania_id: number): Observable<CompaniaConfigRead> {
+    return this.api.get(`/envios/compania-config/${compania_id}`);
   }
 }

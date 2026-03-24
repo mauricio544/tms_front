@@ -1,7 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Envios } from '../../../../core/services/envios';
-import { EnviosDiariosResumenPorUsuarioRead, EnviosDiariosAgrupadosRead, ComprobanteReporteRead } from '../../../../core/mapped';
+import { Puntos as PuntosService } from '../../../../core/services/puntos';
+import { EnviosDiariosResumenPorUsuarioRead, EnviosDiariosAgrupadosRead, ComprobanteReporteRead, Puntos as PuntoModel } from '../../../../core/mapped';
 import { Observable } from 'rxjs';
 
 @Component({
@@ -13,11 +14,16 @@ import { Observable } from 'rxjs';
 })
 export class LiquidacionesFeature implements OnInit {
   private readonly enviosSrv = inject(Envios);
+  private readonly puntosSrv = inject(PuntosService);
   isOperario = false;
   isAdminSede = false;
   isAdmin = false;
   resumen: EnviosDiariosResumenPorUsuarioRead[] = [];
   totales: EnviosDiariosAgrupadosRead[] = [];
+  private resumenSource: EnviosDiariosResumenPorUsuarioRead[] = [];
+  private totalesSource: EnviosDiariosAgrupadosRead[] = [];
+  puntos: PuntoModel[] = [];
+  puntoFiltroId: number | null = null;
   fechaFiltro = '';
   loading = false;
   error: string | null = null;
@@ -40,6 +46,7 @@ export class LiquidacionesFeature implements OnInit {
 
   ngOnInit(): void {
     this.resolveRoleFlags();
+    if (this.isAdmin) this.loadPuntos();
     this.loadResumen();
     this.loadTotales();
   }
@@ -51,7 +58,8 @@ export class LiquidacionesFeature implements OnInit {
     this.getResumenSourceByRole(fecha).subscribe({
       next: (res) => {
         const list = (res || []) as EnviosDiariosResumenPorUsuarioRead[];
-        this.resumen = list.sort((a, b) => String(b.fecha_creacion).localeCompare(String(a.fecha_creacion)));
+        this.resumenSource = list.sort((a, b) => String(b.fecha_creacion).localeCompare(String(a.fecha_creacion)));
+        this.applyPuntoFilter();
         this.loading = false;
       },
       error: () => {
@@ -68,7 +76,8 @@ export class LiquidacionesFeature implements OnInit {
     this.getTotalesSourceByRole(fecha).subscribe({
       next: (res) => {
         const list = (res || []) as EnviosDiariosAgrupadosRead[];
-        this.totales = list.sort((a, b) => String(b.fecha_creacion).localeCompare(String(a.fecha_creacion)));
+        this.totalesSource = list.sort((a, b) => String(b.fecha_creacion).localeCompare(String(a.fecha_creacion)));
+        this.applyPuntoFilter();
         this.totalesLoading = false;
       },
       error: () => {
@@ -87,6 +96,15 @@ export class LiquidacionesFeature implements OnInit {
     return list.reduce((sum, item) => sum + (Number((item as any)?.precio_total) || 0), 0);
   }
 
+  private hasComprobantes(list: ComprobanteReporteRead[] | null | undefined): boolean {
+    return this.countComprobantes(list) > 0;
+  }
+
+  pendienteCobroDestino(envio: any, comprobantes?: ComprobanteReporteRead[] | null | undefined): number {
+    if (this.hasComprobantes(comprobantes)) return 0;
+    return Number(envio?.monto_pendiente_cobro) || 0;
+  }
+
   egresosMovimientos(list: any[] | null | undefined): any[] {
     if (!Array.isArray(list)) return [];
     return list.filter((m: any) => String(m?.tipo_movimiento || '').trim().toUpperCase() === 'E');
@@ -103,6 +121,11 @@ export class LiquidacionesFeature implements OnInit {
         const t = String(m?.tipo_movimiento || '').trim().toUpperCase();
         return t === 'I' || t === 'E';
       });
+      if (!movs.length) {
+        // Mantiene visible el envío aunque no tenga movimientos/comprobantes.
+        rows.push({ envio, movimiento: null, comprobantes });
+        continue;
+      }
       for (const movimiento of movs) {
         rows.push({ envio, movimiento, comprobantes });
       }
@@ -130,6 +153,16 @@ export class LiquidacionesFeature implements OnInit {
 
   totalMovimientosNeto(list: any[] | null | undefined): number {
     return this.totalMovimientosIngresos(list) - this.totalMovimientosEgresos(list);
+  }
+
+  detalleNumeroComprobante(row: { envio: any; movimiento: any; comprobantes: any[] } | null | undefined): string {
+    const envio = row?.envio || {};
+    const mov = row?.movimiento || {};
+    const pendiente = this.pendienteCobroDestino(envio, row?.comprobantes);
+    if (pendiente > 0) {
+      return String(envio?.ticket_numero || '-');
+    }
+    return String(mov?.numero_comprobante || '-');
   }
 
   countEgresosMovimientos(list: any[] | null | undefined): number {
@@ -176,6 +209,14 @@ export class LiquidacionesFeature implements OnInit {
     return this.rowTotalIngresos(row) - this.rowTotalEgresos(row);
   }
 
+  rowTotalPorCobrarDestino(row: any): number {
+    const envios = Array.isArray((row as any)?.envios) ? (row as any).envios : [];
+    if (envios.length) {
+      return envios.reduce((sum: number, item: any) => sum + this.pendienteCobroDestino(item?.envio, item?.comprobantes), 0);
+    }
+    return Number((row as any)?.total_monto_por_cobrar_destino) || 0;
+  }
+
   resumenTotalIngresos(): number {
     return (this.resumen || []).reduce((sum, row: any) => sum + this.rowTotalIngresos(row), 0);
   }
@@ -186,6 +227,10 @@ export class LiquidacionesFeature implements OnInit {
 
   resumenTotalNeto(): number {
     return this.resumenTotalIngresos() - this.resumenTotalEgresos();
+  }
+
+  resumenTotalPorCobrarDestino(): number {
+    return (this.resumen || []).reduce((sum, row: any) => sum + this.rowTotalPorCobrarDestino(row), 0);
   }
 
   totalesDetalleEnvios(list: any[] | null | undefined): number {
@@ -236,6 +281,12 @@ export class LiquidacionesFeature implements OnInit {
     this.loadTotales();
   }
 
+  onPuntoFiltroChange(value: string): void {
+    const id = Number(value || 0);
+    this.puntoFiltroId = id > 0 ? id : null;
+    this.applyPuntoFilter();
+  }
+
   private normalizeFechaValue(value: string): string {
     const v = String(value || '').trim();
     return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '';
@@ -243,6 +294,47 @@ export class LiquidacionesFeature implements OnInit {
 
   private normalizedFechaFiltro(): string | undefined {
     return this.fechaFiltro || undefined;
+  }
+
+  private loadPuntos(): void {
+    this.puntosSrv.getPuntos().subscribe({
+      next: (res) => { this.puntos = res || []; },
+      error: () => { this.puntos = []; }
+    });
+  }
+
+  private applyPuntoFilter(): void {
+    if (!this.isAdmin || !this.puntoFiltroId) {
+      this.resumen = [...(this.resumenSource || [])];
+      this.totales = [...(this.totalesSource || [])];
+      return;
+    }
+    const targetId = Number(this.puntoFiltroId || 0);
+    const targetNombre = this.puntoNombreById(targetId);
+    this.resumen = (this.resumenSource || []).filter((row: any) =>
+      this.matchesPunto(row?.usuario_punto_id, row?.usuario_punto_nombre, targetId, targetNombre)
+    );
+    this.totales = (this.totalesSource || []).filter((row: any) =>
+      this.matchesPunto(row?.usuario_punto_id, row?.usuario_punto_nombre, targetId, targetNombre)
+    );
+  }
+
+  private puntoNombreById(id: number): string {
+    const found = (this.puntos || []).find((p: any) => Number(p?.id || 0) === Number(id));
+    return String(found?.nombre || '').trim();
+  }
+
+  private matchesPunto(
+    rowPuntoId: any,
+    rowPuntoNombre: any,
+    targetId: number,
+    targetNombre: string
+  ): boolean {
+    const rid = Number(rowPuntoId || 0);
+    if (rid > 0 && rid === targetId) return true;
+    const rn = String(rowPuntoNombre || '').trim().toUpperCase();
+    const tn = String(targetNombre || '').trim().toUpperCase();
+    return !!rn && !!tn && rn === tn;
   }
 
   printGrillas(): void {
@@ -437,6 +529,7 @@ export class LiquidacionesFeature implements OnInit {
         <div class="row"><b>Envios:</b> ${Number(row?.total_envios || 0)}</div>
         <div class="row"><b>Comprob.:</b> ${Number(row?.total_comprobantes || 0)}</div>
         <div class="row"><b>Monto:</b> S/ ${this.formatMoney(row?.total_monto_comprobantes)}</div>
+        <div class="row"><b>Por cobrar destino:</b> S/ ${this.formatMoney(this.rowTotalPorCobrarDestino(row))}</div>
       </div>
     `).join('');
 
@@ -447,6 +540,7 @@ export class LiquidacionesFeature implements OnInit {
           <div class="row"><b>Envio:</b> ${this.escHtml(e?.envio?.id || '-')}</div>
           <div class="row"><b>Origen:</b> ${this.escHtml(e?.envio?.origen_nombre || '-')}</div>
           <div class="row"><b>Destino:</b> ${this.escHtml(e?.envio?.destino_nombre || '-')}</div>
+          <div class="row"><b>Pendiente cobro:</b> S/ ${this.formatMoney(this.pendienteCobroDestino(e?.envio, e?.comprobantes))}</div>
           <div class="row"><b>Comprob.:</b> ${this.countComprobantes(e?.comprobantes)}</div>
           <div class="row"><b>Monto:</b> S/ ${this.formatMoney(this.totalComprobantes(e?.comprobantes))}</div>
         </div>
@@ -498,6 +592,7 @@ export class LiquidacionesFeature implements OnInit {
       <div class="row"><b>Total envios:</b> ${this.resumenTotalEnvios()}</div>
       <div class="row"><b>Total comprobantes:</b> ${this.resumenTotalComprobantes()}</div>
       <div class="row"><b>Monto total:</b> S/ ${this.formatMoney(this.resumenTotalMontoComprobantes())}</div>
+      <div class="row"><b>Total por cobrar destino:</b> S/ ${this.formatMoney(this.resumenTotalPorCobrarDestino())}</div>
     </div>
     <div class="sep"></div>
     <div class="section">Totales por dia</div>

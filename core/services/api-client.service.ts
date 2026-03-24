@@ -1,7 +1,7 @@
 ﻿import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-// import { environment } from "../../src/environments/environment.development";
-import { environment } from "../../src/environments/environment"
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from "../../src/environments/environment.development";
+// import { environment } from "../../src/environments/environment"
 import {Observable} from 'rxjs';
 
 
@@ -10,8 +10,17 @@ export class ApiClientService {
   private http = inject(HttpClient);
   private baseUrl = environment.apiUrl;
 
-  get<T>(url: string) {
-    return this.http.get<T>(`${this.baseUrl}${url}`, { observe: 'body' as const });
+  get<T>(url: string, params?: Record<string, any>) {
+    let httpParams = new HttpParams();
+    if(params){
+      Object.keys(params).forEach(key=>{
+        const value = params[key];
+        if (value !== null && value !== undefined && value !== '') {
+          httpParams = httpParams.set(key, value);
+        }
+      })
+    }
+    return this.http.get<T>(`${this.baseUrl}${url}`, { params: httpParams, observe: 'body' as const });
   }
 
   post<T>(url: string, body?: unknown) {
@@ -22,7 +31,7 @@ export class ApiClientService {
     return this.http.put<T>(`${this.baseUrl}${url}`, body, { observe: 'body' as const });
   }
 
-  patch<T>(url: string, body: unknown) {
+  patch<T>(url: string, body: unknown){
     return this.http.patch<T>(`${this.baseUrl}${url}`, body, { observe: 'body' as const });
   }
 

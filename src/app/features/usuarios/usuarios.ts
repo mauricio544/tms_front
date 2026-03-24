@@ -39,8 +39,9 @@ export class UsuariosFeature implements OnInit {
   roles: Array<{ info: Rol; permisos: RolPermiso[]; selected: boolean }> = [];
   rolesLoading = false;
   rolesError: string | null = null;
-  pendingRoleIds: number[] = [];
+  pendingRoleIds: string[] = [];
   originalRoleCodes: string[] = [];
+  originalPuntoId: number | null = null;
   loading = false;
   error: string | null = null;
 
@@ -104,6 +105,7 @@ export class UsuariosFeature implements OnInit {
     this.newUser = { email: '', is_active: true, person_id: null, punto_id: null, password: '' , username: '' } as any;
     this.pendingRoleIds = [];
     this.originalRoleCodes = [];
+    this.originalPuntoId = null;
     this.resetRolesSelection();
     this.saveError = null;
     this.showModal = true;
@@ -116,9 +118,13 @@ export class UsuariosFeature implements OnInit {
     this.editingId = (item as any).id ?? null;
     const sedes = ((item as any).sedes || []) as any[];
     const puntoId = sedes.length ? Number((sedes[0] as any)?.id || 0) : null;
+    this.originalPuntoId = puntoId || null;
     this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, punto_id: puntoId || null, password: '', username: (item as any).username } as any;
-    this.pendingRoleIds = ((item as any).roles || []).map((r: any) => r);
-    this.originalRoleCodes = (this.pendingRoleIds || []).map((r: any) => String(r));
+    const rawRoles = ((item as any).roles || []) as any[];
+    this.pendingRoleIds = rawRoles
+      .map((r: any) => this.roleCodeFromAny(r))
+      .filter(Boolean);
+    this.originalRoleCodes = [...this.pendingRoleIds];
     this.applyRoleSelection();
     this.saveError = null;
     this.showModal = true;
@@ -169,8 +175,10 @@ export class UsuariosFeature implements OnInit {
       person_id: (this.newUser as any).person_id ?? null,
       is_active: (this.newUser as any).is_active,
       company_id: ciaId || null,
-      permission_type: tipoAcceso,
     };
+    if (!this.editing) {
+      payload.permission_type = tipoAcceso;
+    }
     if ((this.newUser.password || '').length >= 6) { payload.password = this.newUser.password; } else if (this.editing) { payload.password = null; }
     this.saving = true;
     this.saveError = null;
@@ -232,8 +240,10 @@ export class UsuariosFeature implements OnInit {
           });
         };
         if (wasEditing) {
-          if (createdId && this.newUser.punto_id) {
-            this.userSedeSvc.updateUsuarioSede({ usuario_id: createdId, punto_id: this.newUser.punto_id }).subscribe({
+          const newPunto = Number(this.newUser.punto_id || 0);
+          const oldPunto = Number(this.originalPuntoId || 0);
+          if (createdId && newPunto && newPunto !== oldPunto) {
+            this.userSedeSvc.updateUsuarioSede({ usuario_id: createdId, punto_id: newPunto }).subscribe({
               next: () => syncRoles(),
               error: () => { this.showNotif('Usuario actualizado, pero no se pudo actualizar la sede', 'error'); syncRoles(); },
             });
@@ -243,7 +253,7 @@ export class UsuariosFeature implements OnInit {
           return;
         }
         if (!wasEditing && createdId && this.newUser.punto_id) {
-          this.userSedeSvc.createUsuarioSede({ usuario_id: createdId, punto_id: this.newUser.punto_id }).subscribe({
+          this.userSedeSvc.createUsuarioSede({ usuario_id: createdId, punto_id: Number(this.newUser.punto_id) }).subscribe({
             next: () => assignRolesForCreate(),
             error: () => {
               this.showNotif('Usuario creado, pero no se pudo asignar el punto', 'error');
@@ -337,8 +347,8 @@ export class UsuariosFeature implements OnInit {
 
   applyRoleSelection() {
     if (!this.pendingRoleIds.length || !this.roles.length) return;
-    const selected = new Set(this.pendingRoleIds.map((r: any) => String(r)));
-    this.roles = (this.roles || []).map(r => ({ ...r, selected: selected.has(String(r.info.code || r.info.id)) }));
+    const selected = new Set(this.pendingRoleIds.map((r: any) => String(r || '').trim().toLowerCase()));
+    this.roles = (this.roles || []).map(r => ({ ...r, selected: selected.has(String(r.info.code || r.info.id || '').trim().toLowerCase()) }));
   }
 
   toggleRole(role: { info: Rol; permisos: RolPermiso[]; selected: boolean }, ev: Event) {
@@ -349,8 +359,12 @@ export class UsuariosFeature implements OnInit {
   hasSelectedRoles(): boolean {
     return (this.roles || []).some(r => r.selected);
   }
+
+  private roleCodeFromAny(value: any): string {
+    if (value == null) return '';
+    if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
+    return String(value?.code ?? value?.codigo ?? value?.name ?? value?.nombre ?? value?.id ?? '').trim();
+  }
 }
-
-
 
 

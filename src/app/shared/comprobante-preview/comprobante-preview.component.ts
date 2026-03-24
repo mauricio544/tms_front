@@ -4,6 +4,7 @@ import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 export interface ComprobantePreview {
   tipo: string;
   ambiente?: 'beta' | 'produccion';
+  creadoPor?: string;
   serie: string;
   numero: string;
   fechaEmision: string;
@@ -11,6 +12,9 @@ export interface ComprobantePreview {
   formaPago?: string;
   montoLetras?: string;
   logoUrl?: string;
+  lema?: string;
+  consideraciones?: string;
+  condiciones?: string;
   emisor: {
     razonSocial: string;
     nombreComercial?: string;
@@ -30,6 +34,8 @@ export interface ComprobantePreview {
     tracking?: string;
     origen?: string;
     destino?: string;
+    remitente?: string;
+    destinatario?: string;
   };
   items: Array<{
     numeroItem?: number;

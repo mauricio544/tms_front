@@ -23,7 +23,7 @@ import { ComprobantePreview, ComprobantePreviewComponent } from '../../shared/co
   providers: [provideIcons({ heroPrinter, heroDocumentText, heroDocumentArrowDown })],
 })
 export class ComprobantesFeature implements OnInit {
-  private readonly publicTrackingSearchUrl = 'https://tms.maudev.online/tracking/publico/buscar';
+  private readonly publicTrackingSearchUrl = 'https://vigo.tmscargosoft.com/tracking/publico/buscar';
   isOperario = false;
   private readonly comprobantesSrv = inject(Comprobantes);
   private readonly enviosSrv = inject(Envios);
@@ -156,8 +156,14 @@ export class ComprobantesFeature implements OnInit {
     return code === 'A';
   }
 
+  isAnulado(c: Comprobante | null): boolean {
+    const estado = String((c as any)?.estado_comprobante ?? '').trim().toUpperCase();
+    return estado === 'C';
+  }
+
   hasSunatPendientes(): boolean {
     return (this.lista || []).some(c => {
+      if (this.isAnulado(c)) return false;
       const code = String((c as any)?.estado_cpe ?? '').trim().toUpperCase();
       return code === '' || code === 'P';
     });
@@ -224,22 +230,22 @@ export class ComprobantesFeature implements OnInit {
   }
 
   printRow(c: Comprobante) {
-    if (this.isOperario) return;
+    if (this.isOperario || this.isAnulado(c)) return;
     this.selectForExport(c, () => this.printSelected());
   }
 
   exportCsvRow(c: Comprobante) {
-    if (this.isOperario) return;
+    if (this.isOperario || this.isAnulado(c)) return;
     this.selectForExport(c, () => this.exportSelectedCSV());
   }
 
   exportPdfRow(c: Comprobante) {
-    if (this.isOperario) return;
+    if (this.isOperario || this.isAnulado(c)) return;
     this.selectForExport(c, () => this.exportSelectedPDF());
   }
 
   generarSunatRow(c: Comprobante) {
-    if (this.isOperario) return;
+    if (this.isOperario || this.isAnulado(c)) return;
     this.select(c);
     this.generarSunat();
   }
@@ -416,7 +422,7 @@ export class ComprobantesFeature implements OnInit {
   printSelected() {
     if (this.isOperario) return;
     const c: any = this.selected; const d: any[] = (this.detalles || []);
-    if (!c) return;
+    if (!c || this.isAnulado(c as any)) return;
     const title = `Comprobante ${c.serie||'-'}-${c.numero||'-'}`;
     const isFactura = (this.tipoNombre(c.tipo_comprobante || 0).toLowerCase().includes('fact')) || Number(c.impuesto || 0) > 0;
     const rows = d.map(x => {
@@ -477,7 +483,7 @@ export class ComprobantesFeature implements OnInit {
   exportSelectedCSV() {
     if (this.isOperario) return;
     const c: any = this.selected; const d: any[] = (this.detalles || []);
-    if (!c) return;
+    if (!c || this.isAnulado(c as any)) return;
     const esc = (v:any)=> '"' + String(v ?? '').replace(/"/g,'""') + '"';
     const lines: string[] = [];
     lines.push('Comprobante,' + esc(`${c.serie||'-'}-${c.numero||'-'}`));
@@ -500,7 +506,7 @@ export class ComprobantesFeature implements OnInit {
   exportSelectedPDF() {
     if (this.isOperario) return;
     const c: any = this.selected; const d: any[] = (this.detalles || []);
-    if (!c) return;
+    if (!c || this.isAnulado(c as any)) return;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const marginX = 40, marginY = 40, line = 16; let y = marginY;
     const addLine = (text: string, bold=false) => { doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.text(text, marginX, y); y += line; };
@@ -576,7 +582,7 @@ export class ComprobantesFeature implements OnInit {
   generarSunat() {
     if (this.isOperario) return;
     const c: any = this.selected;
-    if (!c?.id || this.sunatLoading) return;
+    if (!c?.id || this.sunatLoading || this.isAnulado(c as any)) return;
     const codigo = '0';
     const mensaje = 'aceptado';
     this.sunatLoading = true;
@@ -598,7 +604,7 @@ export class ComprobantesFeature implements OnInit {
   enviarSunat() {
     if (this.isOperario) return;
     const c: any = this.selected;
-    if (!c?.id || this.sunatLoading) return;
+    if (!c?.id || this.sunatLoading || this.isAnulado(c as any)) return;
     const id = Number(c.id);
     this.sunatLoading = true;
     this.sunatError = null;
@@ -618,7 +624,7 @@ export class ComprobantesFeature implements OnInit {
   }
 
   enviarSunatRow(c: Comprobante) {
-    if (this.isOperario) return;
+    if (this.isOperario || this.isAnulado(c)) return;
     const id = Number((c as any)?.id || 0);
     if (!id || this.sunatLoading) return;
     this.sunatLoading = true;
@@ -642,6 +648,7 @@ export class ComprobantesFeature implements OnInit {
     if (this.isOperario) return;
     if (this.sunatBulkLoading) return;
     const pendientes = (this.lista || []).filter(c => {
+      if (this.isAnulado(c)) return false;
       const code = String((c as any)?.estado_cpe ?? '').trim().toUpperCase();
       return code === '' || code === 'P';
     });

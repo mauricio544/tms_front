@@ -56,18 +56,16 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('auth_user');
+    this.clearAuthStorage(localStorage);
+    this.clearAuthStorage(sessionStorage);
     localStorage.removeItem('cia_logo');
-    sessionStorage.removeItem('auth_token');
-    sessionStorage.removeItem('refresh_token');
-    sessionStorage.removeItem('auth_user');
     this.router.navigateByUrl('/');
   }
 
   getToken(): string | null {
-    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const localToken = this.getValidTokenFromStorage(localStorage);
+    if (localToken) return localToken;
+    return this.getValidTokenFromStorage(sessionStorage);
   }
 
   getUserLabel(): string | null {
@@ -128,5 +126,34 @@ export class AuthService {
 
   me() {
     return this.api.get<UsuarioMe>('/auth/me')
+  }
+
+  private clearAuthStorage(storage: Storage): void {
+    storage.removeItem('auth_token');
+    storage.removeItem('refresh_token');
+    storage.removeItem('auth_user');
+  }
+
+  private getValidTokenFromStorage(storage: Storage): string | null {
+    const token = storage.getItem('auth_token');
+    if (!token) return null;
+    if (this.isTokenExpired(token)) {
+      this.clearAuthStorage(storage);
+      return null;
+    }
+    return token;
+  }
+
+  private isTokenExpired(token: string): boolean {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+      const payload = JSON.parse(atob(parts[1] || '')) as { exp?: number };
+      if (typeof payload?.exp !== 'number') return false;
+      const now = Math.floor(Date.now() / 1000);
+      return now >= payload.exp;
+    } catch {
+      return false;
+    }
   }
 }

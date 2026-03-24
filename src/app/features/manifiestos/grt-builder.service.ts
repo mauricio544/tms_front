@@ -78,12 +78,13 @@ export interface BuildGrtInput {
   despacho?: DespachoRead | null;
   guia?: Guia | null;
   itemsDespacho?: ItemGuia[];
+  grrNumerosOverride?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class GrtBuilderService {
   build(input: BuildGrtInput): GrtDocument {
-    const { manifiesto, envios, detallePorEnvio, puntos, personas, conductor, despacho, guia, itemsDespacho } = input;
+    const { manifiesto, envios, detallePorEnvio, puntos, personas, conductor, despacho, guia, itemsDespacho, grrNumerosOverride } = input;
     const serie = String((guia as any)?.series || manifiesto?.serie || '').trim();
     const numero = String((guia as any)?.numero || manifiesto?.numero || '').trim();
     const fullNumber = String((guia as any)?.numero_completo || [serie, numero].filter(Boolean).join('-')).trim() || '-';
@@ -116,9 +117,12 @@ export class GrtBuilderService {
       };
     });
 
-    const grrNumeros = Array.from(
+    const grrNumerosDerived = Array.from(
       new Set(relacionados.map(r => String(r?.grrNumero || '').trim()).filter(Boolean))
     );
+    const grrNumeros = (grrNumerosOverride || []).length
+      ? Array.from(new Set((grrNumerosOverride || []).map((v) => String(v || '').trim()).filter(Boolean)))
+      : grrNumerosDerived;
     const totalBultos = relacionados.reduce((acc, r) => acc + (Number(r?.bultos || 0) || 0), 0);
     const totalPesoKg = Number(
       (itemsDespacho && itemsDespacho.length
@@ -227,4 +231,3 @@ export const GRT_MOCK: GrtDocument = {
   ],
   sunat: { hash: 'ABCDEF1234567890', qr: '' },
 };
-

@@ -7,7 +7,7 @@ import {
   PublicLinkRequest,
   PublicLinkResponse,
   ManifiestoArrivedUpdate,
-  ManifiestoWithEnviosRead
+  ManifiestoWithEnviosRead, ManifiestoGuiasSunatResumenRead
 } from '../mapped';
 
 @Injectable({
@@ -54,5 +54,10 @@ export class Manifiestos {
   // sólo envíos y datos de un manifiesto en específico
   getManifiestoTransito(manifiesto_id: number): Observable<ManifiestoWithEnviosRead> {
     return this.api.get(`/envios/manifiestos/${manifiesto_id}/en-transito`);
+  }
+
+  // Resumen manifiesto y generación de guías lista de emitidas y no emitidas
+  getManifiestoResumenGuias(manifiesto_id: number): Observable<ManifiestoGuiasSunatResumenRead> {
+    return this.api.get(`/envios/manifiestos/${manifiesto_id}/guias-sunat/resumen`)
   }
 }

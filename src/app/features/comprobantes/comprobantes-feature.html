@@ -77,6 +77,7 @@
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Tipo: {{ tipoNombre(c.tipo_comprobante_sunat) }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Forma: {{ formaNombre(c.forma_pago) }}</span>
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Total: {{ c.precio_total | number:'1.2-2' }}</span>
+          <span *ngIf="isAnulado(c)" class="inline-block rounded-full bg-red-100 px-2 py-0.5 font-medium text-red-700">Anulado/Cancelado</span>
         </div>
       </div>
     </div>
@@ -110,11 +111,12 @@
             <td class="px-3 py-2">{{ c.precio_total | number:"1.2-2" }}</td>
             <td class="px-3 py-2">
               <div class="flex items-center gap-2">
+                <span *ngIf="isAnulado(c)" class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Anulado/Cancelado</span>
                 <button
                   title="Imprimir"
                   aria-label="Imprimir"
                   (click)="$event.stopPropagation(); printRow(c)"
-                  [disabled]="isOperario"
+                  [disabled]="isOperario || isAnulado(c)"
                   class="rounded-md border border-slate-200 bg-white p-1.5 hover:bg-slate-50 disabled:opacity-50">
                   <ng-icon name="heroPrinter" size="16"></ng-icon>
                 </button>
@@ -122,7 +124,7 @@
                   title="Exportar CSV"
                   aria-label="Exportar CSV"
                   (click)="$event.stopPropagation(); exportCsvRow(c)"
-                  [disabled]="isOperario"
+                  [disabled]="isOperario || isAnulado(c)"
                   class="rounded-md border border-slate-200 bg-white p-1.5 hover:bg-slate-50 disabled:opacity-50">
                   <ng-icon name="heroDocumentText" size="16"></ng-icon>
                 </button>
@@ -130,7 +132,7 @@
                   title="Exportar PDF"
                   aria-label="Exportar PDF"
                   (click)="$event.stopPropagation(); exportPdfRow(c)"
-                  [disabled]="isOperario"
+                  [disabled]="isOperario || isAnulado(c)"
                   class="rounded-md border border-slate-200 bg-white p-1.5 hover:bg-slate-50 disabled:opacity-50">
                   <ng-icon name="heroDocumentArrowDown" size="16"></ng-icon>
                 </button>
@@ -142,7 +144,7 @@
                 </button>-->
                 <button
                   (click)="$event.stopPropagation(); enviarSunatRow(c)"
-                  [disabled]="isOperario || sunatLoading"
+                  [disabled]="isOperario || sunatLoading || isAnulado(c)"
                   class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50">
                   Enviar SUNAT
                 </button>
@@ -170,6 +172,7 @@
         <div>
           <div class="flex items-center gap-2">
             <div class="text-sm text-slate-600">Detalle de comprobante</div>
+            <span *ngIf="isAnulado(selected)" class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Anulado/Cancelado</span>
             <span *ngIf="sunatStatus === 'accepted'" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Aceptado</span>
             <span *ngIf="sunatStatus === 'pending'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Pendiente</span>
             <span *ngIf="sunatStatusLoading" class="text-xs text-slate-500">SUNAT...</span>
@@ -177,11 +180,11 @@
           <div class="text-lg font-semibold text-slate-800">{{ selected.serie }}-{{ selected.numero }}</div>
         </div>
         <div class="flex items-center gap-2">
-          <button (click)="printSelected()" [disabled]="isOperario" class="rounded-md bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50">Imprimir</button>
-          <button (click)="exportSelectedCSV()" [disabled]="isOperario" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Exportar CSV</button>
-          <button (click)="exportSelectedPDF()" [disabled]="isOperario" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Exportar PDF</button>
-          <button (click)="generarSunat()" [disabled]="isOperario || sunatLoading || sunatStatus === 'accepted'" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Generar SUNAT</button>
-          <button (click)="enviarSunat()" [disabled]="isOperario || sunatLoading" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Enviar SUNAT</button>
+          <button (click)="printSelected()" [disabled]="isOperario || isAnulado(selected)" class="rounded-md bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50">Imprimir</button>
+          <button (click)="exportSelectedCSV()" [disabled]="isOperario || isAnulado(selected)" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Exportar CSV</button>
+          <button (click)="exportSelectedPDF()" [disabled]="isOperario || isAnulado(selected)" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Exportar PDF</button>
+          <button (click)="generarSunat()" [disabled]="isOperario || sunatLoading || sunatStatus === 'accepted' || isAnulado(selected)" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Generar SUNAT</button>
+          <button (click)="enviarSunat()" [disabled]="isOperario || sunatLoading || isAnulado(selected)" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50">Enviar SUNAT</button>
           <button class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" (click)="selected=null; comprobantePreview=null">Cerrar</button>
         </div>
       </div>

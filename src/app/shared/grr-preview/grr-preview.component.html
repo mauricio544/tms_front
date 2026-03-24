@@ -4,19 +4,20 @@
       type="button"
       (click)="print()"
       class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
-      Imprimir guía
+      Imprimir guia
     </button>
   </div>
 
   <section class="thermal-80 mx-auto border border-slate-200 bg-white p-2 text-[11px] leading-tight text-slate-900 shadow-sm print:border-0 print:shadow-none">
     <header class="border-b border-dashed border-slate-300 pb-2 text-center">
       <img *ngIf="companyLogoSrc() as logo" [src]="logo" alt="Logo empresa" class="mx-auto mb-1 max-h-16 object-contain" />
-      <div class="font-semibold tracking-wide">GUÍA DE REMISIÓN REMITENTE</div>
+      <div class="font-semibold tracking-wide">GUIA DE REMISION TRANSPORTISTA</div>
       <div class="font-bold">{{ doc?.fullNumber || '-' }}</div>
     </header>
 
     <div class="border-b border-dashed border-slate-300 py-2">
       <div class="font-semibold">Datos generales</div>
+      <div>Número de Registro MTC:15178239CNG</div>
       <div>Emitida: {{ doc?.issuedAt || '-' }}</div>
       <div>Inicio traslado: {{ doc?.startDatetime || '-' }}</div>
       <div>Empresa: {{ doc?.companyName || '-' }}</div>
@@ -25,13 +26,15 @@
 
     <div class="border-b border-dashed border-slate-300 py-2">
       <div class="font-semibold">Ruta</div>
-      <div>Origen: {{ doc?.originAddress || '-' }}</div>
-      <div>Destino: {{ doc?.destAddress || '-' }}</div>
+      <div>Origen: {{ doc?.originName || '-' }}</div>
+      <div>Dirección origen: {{ doc?.originAddress || '-' }}</div>
+      <div>Destino: {{ doc?.destName || '-' }}</div>
+      <div>Dirección destino: {{ doc?.destAddress || '-' }}</div>
     </div>
 
     <div class="border-b border-dashed border-slate-300 py-2">
       <div class="font-semibold">Transporte</div>
-      <div>Vehículo: {{ doc?.vehiclePlate || '-' }}</div>
+      <div>Vehiculo: {{ doc?.vehiclePlate || '-' }}</div>
       <div>Conductor: {{ doc?.driverName || '-' }}</div>
       <div>Doc: {{ doc?.driverDocType || '' }} {{ doc?.driverDocNumber || '' }}</div>
       <div>Licencia: {{ doc?.driverLicense || '-' }}</div>
@@ -52,12 +55,11 @@
     <div *ngIf="doc?.hashSha256 || doc?.qrDataUrl" class="border-b border-dashed border-slate-300 py-2">
       <div class="font-semibold">Trazabilidad</div>
       <div *ngIf="doc?.hashSha256">Hash: {{ doc?.hashSha256 }}</div>
-      <img *ngIf="toImageSrc(doc?.qrDataUrl) as qr" [src]="qr" alt="QR guía" class="mx-auto mt-2 h-24 w-24 object-contain" />
+      <img *ngIf="toImageSrc(doc?.qrDataUrl) as qr" [src]="qr" alt="QR guia" class="mx-auto mt-2 h-24 w-24 object-contain" />
     </div>
 
     <div class="pt-2 text-center text-[10px] text-slate-600">
-      Representación impresa de guía remitente
+      Representacion impresa de guia de remision transportista
     </div>
   </section>
 </div>
-

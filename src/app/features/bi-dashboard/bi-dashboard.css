@@ -1,0 +1,27 @@
+.bi-page {
+  background:
+    radial-gradient(900px 300px at 90% -10%, rgba(0, 166, 199, 0.16), transparent 60%),
+    radial-gradient(700px 240px at 0% -20%, rgba(0, 95, 115, 0.12), transparent 55%);
+}
+
+.bi-hero {
+  background:
+    linear-gradient(120deg, #0f172a 0%, #023047 45%, #005f73 100%);
+  box-shadow: 0 18px 40px -24px rgba(2, 48, 71, 0.75);
+}
+
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  right: -24px;
+  top: -24px;
+  width: 90px;
+  height: 90px;
+  border-radius: 9999px;
+  background: rgba(0, 166, 199, 0.08);
+}

@@ -18,6 +18,7 @@
 
     <div class="border-b border-dashed border-slate-300 py-2">
       <div class="font-semibold">Datos generales</div>
+      <div>Número de Registro MTC:15178239CNG</div>
       <div>F. emisión: {{ formatDate(grt?.fechaEmision) }}</div>
       <div>F. traslado: {{ formatDate(grt?.fechaTraslado) }}</div>
       <div>Manifiesto: {{ grt?.manifiestoNumero || grt?.manifiestoId || '-' }}</div>
@@ -50,7 +51,7 @@
       <div>Total envíos: {{ grt?.resumenGrr?.totalEnvios || 0 }}</div>
       <div>Total bultos: {{ grt?.resumenGrr?.totalBultos || 0 }}</div>
       <div>Peso total (kg): {{ grt?.resumenGrr?.totalPesoKg || 0 }}</div>
-      <div *ngIf="grt?.resumenGrr?.grrNumeros?.length">GRR: {{ grt?.resumenGrr?.grrNumeros?.join(', ') }}</div>
+      <div *ngIf="grt?.resumenGrr?.grrNumeros?.length">Números guía: {{ grt?.resumenGrr?.grrNumeros?.join(', ') }}</div>
     </div>
 
     <div class="border-b border-dashed border-slate-300 py-2">

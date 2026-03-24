@@ -1,6 +1,15 @@
 import {inject, Injectable} from '@angular/core';
 import { ApiClientService } from './api-client.service';
-import { DespachoRead, DespachoCreate, Guia, GuiaCreate, ItemGuia, ItemGuiaCreate, GuiaTramaFinal } from '../mapped';
+import {
+  DespachoRead,
+  DespachoCreate,
+  Guia,
+  GuiaCreate,
+  ItemGuia,
+  ItemGuiaCreate,
+  GuiaTramaFinal,
+  GuiaSunatRead
+} from '../mapped';
 import {Observable} from 'rxjs';
 
 @Injectable({
@@ -55,5 +64,10 @@ export class Guias {
 
   getTramaGuia(envio_id: number): Observable<GuiaTramaFinal> {
     return this.api.get(`/guias/remision/${envio_id}/trama`);
+  }
+
+  // generación de guías a nivel tributario, envío de datos de gurt a SUNAT
+  sunatSendGuia(guia_id: number): Observable<GuiaSunatRead> {
+    return this.api.post(`/guias/guias/${guia_id}/emitir-sunat`);
   }
 }

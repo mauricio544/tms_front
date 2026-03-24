@@ -1,0 +1,15 @@
+<article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+  <div class="text-[11px] uppercase tracking-wide text-slate-500">{{ title }}</div>
+  <div
+    class="mt-1 text-3xl font-semibold"
+    [ngClass]="{
+      'text-slate-800': tone === 'neutral',
+      'text-emerald-700': tone === 'good',
+      'text-amber-700': tone === 'warn',
+      'text-rose-700': tone === 'bad',
+      'text-cyan-700': tone === 'info'
+    }">
+    {{ value ?? '-' }}
+  </div>
+  <div *ngIf="hint" class="mt-1 text-xs text-slate-500">{{ hint }}</div>
+</article>
