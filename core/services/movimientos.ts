@@ -30,4 +30,9 @@ export class Movimientos {
   deleteMovimientos(id: number): Observable<any> {
     return this.api.delete(`/envios/movimientos/cabecera/${id}`);
   }
+
+  // deactive cabecera y detalle (en backend MovimientoCabecera y MovimientoDetalle)
+  deeactiveMovimiento(cabecera_id: number): Observable<Cabecera> {
+    return this.api.post(`/envios/movimientos/cabecera/deactive/${cabecera_id}`);
+  }
 }

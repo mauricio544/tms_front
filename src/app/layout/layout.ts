@@ -129,7 +129,7 @@ export class LayoutComponent {
     { label: 'Liquidaciones', route: '/liquidaciones', icon: 'heroDocumentCheck' },
     { label: 'Movimientos', route: '/gastos', icon: 'heroCreditCard' },
     { label: 'Reportes', route: '/reportes', icon: 'heroChartBar' },
-    /*{ label: 'BI Dashboard', route: '/bi', icon: 'heroChartBar' },*/
+    { label: 'BI Dashboard', route: '/bi', icon: 'heroChartBar' },
     { label: 'Comprobantes', route: '/comprobantes', icon: 'heroTicket' },
   ];
 

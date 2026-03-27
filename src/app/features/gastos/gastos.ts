@@ -6,11 +6,12 @@ import { Movimientos } from '../../../../core/services/movimientos';
 import { Personas } from '../../../../core/services/personas';
 import { SerieComprobante as SerieComprobanteService } from '../../../../core/services/serie-comprobante';
 import { DetalleFull as Detalle, CabeceraCreate, DetalleCreate, Persona, SerieComprobante as SerieComprobanteModel } from '../../../../core/mapped';
+import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
 
 @Component({
   selector: 'feature-gastos',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, UiConfirmComponent],
   templateUrl: './gastos.html',
   styleUrl: './gastos.css',
 })
@@ -57,7 +58,7 @@ export class GastosFeature implements OnInit {
     }
     this.onDateChange();
     this.loadPersonas();
-    this.loadSeries();
+    this.initTiposComprobante();
   }
 
   get filtered(): Detalle[] {
@@ -89,6 +90,9 @@ export class GastosFeature implements OnInit {
     const c = String(code ?? '').trim();
     if (c === '01') return 'Factura';
     if (c === '03') return 'Boleta';
+    if (c === '07') return 'Recibo de caja';
+    if (c === '08') return 'Recibo por honorarios';
+    if (c === '10') return 'Otros';
     return c || '-';
   }
 
@@ -164,8 +168,13 @@ export class GastosFeature implements OnInit {
   showAddModal = false;
   savingAdd = false;
   addError: string | null = null;
-  cabeceraForm: Partial<CabeceraCreate> = { tipo_movimiento: 'I', monto: undefined as any, vale_gastos: undefined as any, fecha_movimiento: this.todayIso() } as any;
+  cabeceraForm: Partial<CabeceraCreate> = { tipo_movimiento: 'E', monto: undefined as any, vale_gastos: undefined as any, fecha_movimiento: this.todayIso() } as any;
   detalleForm: Partial<DetalleCreate> = { tipo_comprobante_sunat: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
+  deactivatingCabeceraId: number | null = null;
+  confirmOpen = false;
+  confirmTitle = 'Confirmar desactivación';
+  confirmMessage = '';
+  pendingDeeactiveCabeceraId: number | null = null;
 
   get isValidAdd(): boolean {
     const c: any = this.cabeceraForm;
@@ -183,7 +192,7 @@ export class GastosFeature implements OnInit {
     this.showAddModal = true;
     this.savingAdd = false;
     this.addError = null;
-    this.cabeceraForm = { tipo_movimiento: 'I', monto: undefined as any, vale_gastos: undefined as any, fecha_movimiento: this.todayIso() } as any;
+    this.cabeceraForm = { tipo_movimiento: 'E', monto: undefined as any, vale_gastos: undefined as any, fecha_movimiento: this.todayIso() } as any;
     this.detalleForm = { tipo_comprobante_sunat: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
     this.selectedSerieId = this.seriesFiltered.length ? Number(this.seriesFiltered[0].id) : null;
     if (this.selectedSerieId) { this.onSerieChange(this.selectedSerieId); }
@@ -312,7 +321,7 @@ export class GastosFeature implements OnInit {
     });
   }
 
-  // Tipos comprobante (derivados de series por sede)
+  // Tipos comprobante (fuente fija)
   tiposComprobante: Array<{ id: string; nombre: string }> = [];
 
   // Series comprobante
@@ -321,6 +330,16 @@ export class GastosFeature implements OnInit {
   seriesLoading = false;
   seriesError: string | null = null;
   selectedSerieId: number | null = null;
+
+  private initTiposComprobante(): void {
+    this.tiposComprobante = [
+      { id: '03', nombre: 'BOLETA' },
+      { id: '01', nombre: 'FACTURA' },
+      { id: '07', nombre: 'RECIBO DE CAJA' },
+      { id: '08', nombre: 'RECIBO POR HONORARIOS' },
+      { id: '10', nombre: 'OTROS' },
+    ];
+  }
 
   private getUserSedeId(): number {
     try {
@@ -430,8 +449,56 @@ export class GastosFeature implements OnInit {
       return current.getTime() === target.getTime();
     });
   }
-}
 
+  cabeceraId(it: any): number {
+    return Number(it?.cabecera?.id || it?.cabecera_id || 0);
+  }
+
+  canDeeactive(it: any): boolean {
+    return !this.isOperario && this.cabeceraId(it) > 0;
+  }
+
+  deeactiveMovimientoRow(it: any): void {
+    const cabeceraId = this.cabeceraId(it);
+    if (this.isOperario) return;
+    if (!cabeceraId) {
+      this.error = 'No se encontró id de cabecera para desactivar';
+      return;
+    }
+    this.pendingDeeactiveCabeceraId = cabeceraId;
+    this.confirmMessage = `¿Desactivar movimiento?`;
+    this.confirmOpen = true;
+  }
+
+  onCancelDeeactiveMovimiento(): void {
+    this.confirmOpen = false;
+    this.pendingDeeactiveCabeceraId = null;
+  }
+
+  onConfirmDeeactiveMovimiento(): void {
+    const cabeceraId = Number(this.pendingDeeactiveCabeceraId || 0);
+    if (!cabeceraId) {
+      this.error = 'No se encontró id de cabecera para desactivar';
+      this.onCancelDeeactiveMovimiento();
+      return;
+    }
+    this.confirmOpen = false;
+    this.deactivatingCabeceraId = cabeceraId;
+    this.movimientosSrv.deeactiveMovimiento(cabeceraId).subscribe({
+      next: () => {
+        this.deactivatingCabeceraId = null;
+        this.pendingDeeactiveCabeceraId = null;
+        this.page = 1;
+        this.load();
+      },
+      error: () => {
+        this.deactivatingCabeceraId = null;
+        this.pendingDeeactiveCabeceraId = null;
+        this.error = 'No se pudo desactivar el movimiento';
+      }
+    });
+  }
+}
 
 
 

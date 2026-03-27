@@ -13,6 +13,7 @@ import { Observable } from 'rxjs';
   styleUrl: './liquidaciones.css',
 })
 export class LiquidacionesFeature implements OnInit {
+  private readonly totalNetoGeneralKey = '__total_neto__';
   private readonly enviosSrv = inject(Envios);
   private readonly puntosSrv = inject(PuntosService);
   isOperario = false;
@@ -20,8 +21,11 @@ export class LiquidacionesFeature implements OnInit {
   isAdmin = false;
   resumen: EnviosDiariosResumenPorUsuarioRead[] = [];
   totales: EnviosDiariosAgrupadosRead[] = [];
+  totalesGenerales: any[] = [];
   private resumenSource: EnviosDiariosResumenPorUsuarioRead[] = [];
   private totalesSource: EnviosDiariosAgrupadosRead[] = [];
+  private totalesGeneralesSource: any[] = [];
+  totalesGeneralesColumns: string[] = [];
   puntos: PuntoModel[] = [];
   puntoFiltroId: number | null = null;
   fechaFiltro = '';
@@ -29,6 +33,8 @@ export class LiquidacionesFeature implements OnInit {
   error: string | null = null;
   totalesLoading = false;
   totalesError: string | null = null;
+  totalesGeneralesLoading = false;
+  totalesGeneralesError: string | null = null;
 
   get headerLogoSrc(): string | null {
     try {
@@ -49,6 +55,7 @@ export class LiquidacionesFeature implements OnInit {
     if (this.isAdmin) this.loadPuntos();
     this.loadResumen();
     this.loadTotales();
+    if (this.isAdmin) this.loadTotalesGenerales();
   }
 
   loadResumen() {
@@ -100,9 +107,41 @@ export class LiquidacionesFeature implements OnInit {
     return this.countComprobantes(list) > 0;
   }
 
+  private toBoolean(value: any): boolean {
+    if (typeof value === 'boolean') return value;
+    const raw = String(value ?? '').trim().toLowerCase();
+    return raw === 'true' || raw === '1' || raw === 'si' || raw === 'yes';
+  }
+
+  private isNoCajaInformativo(envio: any): boolean {
+    const afectaCaja = this.toBoolean(envio?.afecta_caja);
+    const esInformativo = this.toBoolean(envio?.es_informativo);
+    return !afectaCaja && esInformativo;
+  }
+
+  isDetalleInformativoDestino(row: { envio: any; movimiento: any; comprobantes: any[] } | null | undefined): boolean {
+    const envio = row?.envio || {};
+    return this.isNoCajaInformativo(envio) && this.toBoolean(envio?.pago_destino);
+  }
+
+  private montoPendienteDestino(envio: any): number {
+    const pendiente = Number(envio?.monto_pendiente_cobro);
+    if (Number.isFinite(pendiente) && pendiente > 0) return pendiente;
+    const informativo = Number(envio?.ingreso_informativo_no_contable);
+    if (Number.isFinite(informativo) && informativo > 0) return informativo;
+    const referencial = Number(envio?.monto_referencial_envio);
+    if (Number.isFinite(referencial) && referencial > 0) return referencial;
+    const envioMonto = Number(envio?.monto_envio);
+    if (Number.isFinite(envioMonto) && envioMonto > 0) return envioMonto;
+    return 0;
+  }
+
   pendienteCobroDestino(envio: any, comprobantes?: ComprobanteReporteRead[] | null | undefined): number {
+    if (this.toBoolean(envio?.pago_destino)) {
+      return this.montoPendienteDestino(envio);
+    }
     if (this.hasComprobantes(comprobantes)) return 0;
-    return Number(envio?.monto_pendiente_cobro) || 0;
+    return this.montoPendienteDestino(envio);
   }
 
   egresosMovimientos(list: any[] | null | undefined): any[] {
@@ -139,6 +178,7 @@ export class LiquidacionesFeature implements OnInit {
 
   totalMovimientosIngresos(list: any[] | null | undefined): number {
     return this.movimientosDetalleRows(list).reduce((sum, r: any) => {
+      if (this.isNoCajaInformativo(r?.envio)) return sum;
       const t = String(r?.movimiento?.tipo_movimiento || '').trim().toUpperCase();
       return sum + (t === 'I' ? (Number(r?.movimiento?.monto) || 0) : 0);
     }, 0);
@@ -146,6 +186,7 @@ export class LiquidacionesFeature implements OnInit {
 
   totalMovimientosEgresos(list: any[] | null | undefined): number {
     return this.movimientosDetalleRows(list).reduce((sum, r: any) => {
+      if (this.isNoCajaInformativo(r?.envio)) return sum;
       const t = String(r?.movimiento?.tipo_movimiento || '').trim().toUpperCase();
       return sum + (t === 'E' ? (Number(r?.movimiento?.monto) || 0) : 0);
     }, 0);
@@ -190,18 +231,36 @@ export class LiquidacionesFeature implements OnInit {
   }
 
   resumenTotalComprobantes(): number {
-    return (this.resumen || []).reduce((sum, row: any) => sum + (Number(row?.total_comprobantes) || 0), 0);
+    return (this.resumen || []).reduce((sum, row: any) => sum + this.rowTotalComprobantes(row), 0);
   }
 
   resumenTotalMontoComprobantes(): number {
-    return (this.resumen || []).reduce((sum, row: any) => sum + (Number(row?.total_monto_comprobantes) || 0), 0);
+    return (this.resumen || []).reduce((sum, row: any) => sum + this.rowTotalMontoComprobantes(row), 0);
+  }
+
+  rowTotalComprobantes(row: any): number {
+    const current = Number(row?.total_comprobantes_emitidos_usuario);
+    if (Number.isFinite(current) && current >= 0) return current;
+    return Number(row?.total_comprobantes) || 0;
+  }
+
+  rowTotalMontoComprobantes(row: any): number {
+    const current = Number(row?.total_monto_comprobantes_emitidos_usuario);
+    if (Number.isFinite(current)) return current;
+    return Number(row?.total_monto_comprobantes) || 0;
   }
 
   rowTotalIngresos(row: any): number {
+    const current = Number(row?.ingreso_real_caja);
+    if (Number.isFinite(current)) return current;
+    const legacyReal = Number(row?.total_ingresos_reales);
+    if (Number.isFinite(legacyReal)) return legacyReal;
     return Number(row?.total_monto_ingresos) || 0;
   }
 
   rowTotalEgresos(row: any): number {
+    const current = Number(row?.total_egresos_reales);
+    if (Number.isFinite(current)) return current;
     return Number(row?.total_monto_egresos) || 0;
   }
 
@@ -210,6 +269,8 @@ export class LiquidacionesFeature implements OnInit {
   }
 
   rowTotalPorCobrarDestino(row: any): number {
+    const current = Number((row as any)?.ingreso_informativo_no_contable);
+    if (Number.isFinite(current)) return current;
     const envios = Array.isArray((row as any)?.envios) ? (row as any).envios : [];
     if (envios.length) {
       return envios.reduce((sum: number, item: any) => sum + this.pendienteCobroDestino(item?.envio, item?.comprobantes), 0);
@@ -273,12 +334,14 @@ export class LiquidacionesFeature implements OnInit {
     this.fechaFiltro = this.normalizeFechaValue(value);
     this.loadResumen();
     this.loadTotales();
+    if (this.isAdmin) this.loadTotalesGenerales();
   }
 
   clearFechaFiltro(): void {
     this.fechaFiltro = '';
     this.loadResumen();
     this.loadTotales();
+    if (this.isAdmin) this.loadTotalesGenerales();
   }
 
   onPuntoFiltroChange(value: string): void {
@@ -296,6 +359,16 @@ export class LiquidacionesFeature implements OnInit {
     return this.fechaFiltro || undefined;
   }
 
+  private fechaFiltroOrToday(): string {
+    const fecha = this.normalizedFechaFiltro();
+    if (fecha) return fecha;
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   private loadPuntos(): void {
     this.puntosSrv.getPuntos().subscribe({
       next: (res) => { this.puntos = res || []; },
@@ -307,6 +380,7 @@ export class LiquidacionesFeature implements OnInit {
     if (!this.isAdmin || !this.puntoFiltroId) {
       this.resumen = [...(this.resumenSource || [])];
       this.totales = [...(this.totalesSource || [])];
+      this.totalesGenerales = [...(this.totalesGeneralesSource || [])];
       return;
     }
     const targetId = Number(this.puntoFiltroId || 0);
@@ -316,6 +390,9 @@ export class LiquidacionesFeature implements OnInit {
     );
     this.totales = (this.totalesSource || []).filter((row: any) =>
       this.matchesPunto(row?.usuario_punto_id, row?.usuario_punto_nombre, targetId, targetNombre)
+    );
+    this.totalesGenerales = (this.totalesGeneralesSource || []).filter((row: any) =>
+      this.matchesPunto(row?.sede_id, row?.sede_nombre, targetId, targetNombre)
     );
   }
 
@@ -400,6 +477,190 @@ export class LiquidacionesFeature implements OnInit {
     }, 300);
   }
 
+  loadTotalesGenerales(): void {
+    if (!this.isAdmin) return;
+    this.totalesGeneralesLoading = true;
+    this.totalesGeneralesError = null;
+    const fecha = this.fechaFiltroOrToday();
+    this.enviosSrv.getTotalesGenerales(fecha).subscribe({
+      next: (res: any) => {
+        const rows = this.normalizeTotalesGeneralesRows(res);
+        this.totalesGeneralesSource = rows;
+        this.totalesGeneralesColumns = this.resolveTotalesGeneralesColumns(rows);
+        this.applyPuntoFilter();
+        this.totalesGeneralesLoading = false;
+      },
+      error: () => {
+        this.totalesGeneralesLoading = false;
+        this.totalesGeneralesError = 'No se pudo cargar la grilla de totales generales';
+      }
+    });
+  }
+
+  printTotalesGenerales(): void {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    const generalesGrid = document.getElementById('liquidaciones-generales-grid');
+    if (!generalesGrid) return;
+
+    const printWindow = window.open('', '_blank', 'width=1200,height=800');
+    if (!printWindow) return;
+
+    const now = new Date();
+    const printedAt = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+    const logo = this.headerLogoSrc;
+    const printedBy = this.printUserLabel();
+    const fecha = this.fechaFiltroOrToday();
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html lang="es">
+        <head>
+          <meta charset="utf-8" />
+          <title>Liquidaciones - Totales generales</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; color: #0f172a; }
+            .print-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 12px; }
+            .logo-wrap img { max-width: 130px; max-height: 40px; object-fit: contain; }
+            h1 { margin: 0 0 6px 0; font-size: 22px; }
+            p { margin: 0 0 6px 0; color: #475569; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+            th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; font-size: 12px; vertical-align: top; }
+            th { background: #f8fafc; font-weight: 600; }
+          </style>
+        </head>
+        <body>
+          <div class="print-head">
+            <div>
+              <h1>Liquidaciones - Totales generales</h1>
+              <p>Fecha filtro: ${fecha}</p>
+              <p>Impreso: ${printedAt}</p>
+              <p>Usuario: ${printedBy}</p>
+            </div>
+            ${logo ? `<div class="logo-wrap"><img src="${logo}" alt="Logo compaÃ±Ã­a"></div>` : '<div></div>'}
+          </div>
+          ${generalesGrid.outerHTML}
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
+  }
+
+  formatGeneralCell(key: string, value: any, row?: any): string {
+    if (key === this.totalNetoGeneralKey) {
+      const neto = this.generalTotalNetoValue(row);
+      return neto.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    if (value == null) return '-';
+    const k = String(key || '').toLowerCase().trim();
+    if (k === 'fecha_creacion') {
+      const s = String(value || '').trim();
+      return s ? s.slice(0, 10) : '-';
+    }
+    const n = Number(value);
+    if (Number.isFinite(n) && this.isGeneralNumericColumn(k)) {
+      if (this.isGeneralMoneyColumn(k) || !Number.isInteger(n)) {
+        return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      return n.toLocaleString('es-PE');
+    }
+    return String(value);
+  }
+
+  generalColumnLabel(key: string): string {
+    const k = String(key || '').trim().toLowerCase();
+    if (k === 'fecha_creacion') return 'Fecha';
+    if (k === 'sede_nombre') return 'Sede';
+    if (k === 'total_envios') return 'Cantidad envíos';
+    if (k === 'total_comprobantes') return 'Cantidad comprobantes';
+    if (k === 'total_movimientos_sin_comprobante' || k === 'total_movimiento_sin_comprobante') return 'Cantidad ingresos/egresos';
+    if (k === 'total_monto_comprobantes') return 'Total comprobantes';
+    if (k === 'total_monto_movimientos_sin_comprobante' || k === 'total_monto_movimiento_sin_comprobante') return 'Total ingresos/egresos';
+    if (k === 'total_monto_envios_pago_destino' || k === 'total_pagos_destino') return 'Total pagos destino';
+    if (k === this.totalNetoGeneralKey) return 'Total Neto';
+    return String(key || '');
+  }
+
+  isGeneralNumericColumn(key: string): boolean {
+    const k = String(key || '').trim().toLowerCase();
+    return k === this.totalNetoGeneralKey || k.startsWith('total_') || k.includes('monto') || k.includes('pago_destino') || k.includes('pagos_destino');
+  }
+
+  private isGeneralMoneyColumn(key: string): boolean {
+    const k = String(key || '').trim().toLowerCase();
+    return k.includes('monto') || k.includes('pago_destino') || k.includes('pagos_destino');
+  }
+
+  isGeneralTotalComprobantesColumn(key: string): boolean {
+    return String(key || '').trim().toLowerCase() === 'total_monto_comprobantes';
+  }
+
+  isGeneralIngresosEgresosColumn(key: string): boolean {
+    const k = String(key || '').trim().toLowerCase();
+    return k === 'total_monto_movimientos_sin_comprobante' || k === 'total_monto_movimiento_sin_comprobante';
+  }
+
+  generalHeaderClass(key: string): string {
+    if (this.isGeneralTotalComprobantesColumn(key)) return 'bg-emerald-100 text-emerald-800';
+    if (this.isGeneralIngresosEgresosColumn(key)) return 'bg-emerald-50 text-emerald-700';
+    if (String(key || '').trim().toLowerCase() === this.totalNetoGeneralKey) return 'bg-slate-100 text-slate-800';
+    return '';
+  }
+
+  generalCellClass(key: string, row: any): string {
+    if (this.isGeneralTotalComprobantesColumn(key)) return 'bg-emerald-100 text-emerald-800 font-semibold';
+    if (this.isGeneralIngresosEgresosColumn(key)) {
+      const v = this.generalIngresosEgresosValue(row);
+      if (v > 0) return 'bg-emerald-50 text-emerald-700 font-semibold';
+      if (v < 0) return 'bg-red-50 text-red-700 font-semibold';
+      return 'bg-slate-50 text-slate-700 font-semibold';
+    }
+    if (String(key || '').trim().toLowerCase() === this.totalNetoGeneralKey) return 'font-semibold';
+    return '';
+  }
+
+  generalTotalCellValue(key: string, colIndex: number): string {
+    const k = String(key || '').trim().toLowerCase();
+    if (colIndex === 0) return 'Total';
+    if (!this.isGeneralNumericColumn(k)) return '-';
+    const total = (this.totalesGenerales || []).reduce((sum: number, row: any) => sum + this.generalNumericValueByKey(row, k), 0);
+    if (k === this.totalNetoGeneralKey || this.isGeneralMoneyColumn(k) || !Number.isInteger(total)) {
+      return total.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return total.toLocaleString('es-PE');
+  }
+
+  private generalMontoComprobantesValue(row: any): number {
+    const n = Number((row as any)?.total_monto_comprobantes);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  private generalIngresosEgresosValue(row: any): number {
+    const a = Number((row as any)?.total_monto_movimientos_sin_comprobante);
+    if (Number.isFinite(a)) return a;
+    const b = Number((row as any)?.total_monto_movimiento_sin_comprobante);
+    if (Number.isFinite(b)) return b;
+    return 0;
+  }
+
+  private generalTotalNetoValue(row: any): number {
+    return this.generalMontoComprobantesValue(row) + this.generalIngresosEgresosValue(row);
+  }
+
+  private generalNumericValueByKey(row: any, key: string): number {
+    const k = String(key || '').trim().toLowerCase();
+    if (k === this.totalNetoGeneralKey) return this.generalTotalNetoValue(row);
+    if (k === 'total_monto_comprobantes') return this.generalMontoComprobantesValue(row);
+    if (k === 'total_monto_movimientos_sin_comprobante' || k === 'total_monto_movimiento_sin_comprobante') return this.generalIngresosEgresosValue(row);
+    const n = Number((row as any)?.[k]);
+    return Number.isFinite(n) ? n : 0;
+  }
+
   private getResumenSourceByRole(fecha?: string): Observable<EnviosDiariosResumenPorUsuarioRead[]> {
     if (this.isAdminSede) {
       return this.enviosSrv.getEnviosResumenByFechaSede(fecha, this.getUserSedeId() || undefined);
@@ -464,6 +725,53 @@ export class LiquidacionesFeature implements OnInit {
     return 'ADMIN';
   }
 
+  private normalizeTotalesGeneralesRows(response: any): any[] {
+    if (Array.isArray(response)) return response;
+    if (response && typeof response === 'object') {
+      const data = (response as any)?.data;
+      if (Array.isArray(data)) return data;
+      return [response];
+    }
+    return [];
+  }
+
+  private resolveTotalesGeneralesColumns(rows: any[]): string[] {
+    if (!rows.length) return [];
+    const keys = new Set<string>();
+    rows.forEach((row: any) => {
+      if (!row || typeof row !== 'object') return;
+      Object.keys(row).forEach((k) => {
+        const key = String(k || '').trim();
+        if (!key || key === 'sede_id') return;
+        const value = row[k];
+        const isDictionary = value !== null && typeof value === 'object';
+        if (!isDictionary) keys.add(key);
+      });
+    });
+    const order = [
+      'fecha_creacion',
+      'sede_nombre',
+      'total_envios',
+      'total_comprobantes',
+      'total_movimientos_sin_comprobante',
+      'total_movimiento_sin_comprobante',
+      'total_monto_comprobantes',
+      'total_monto_movimientos_sin_comprobante',
+      'total_monto_movimiento_sin_comprobante',
+      'total_monto_envios_pago_destino',
+      'total_pagos_destino',
+    ];
+    const ordered = order.filter((k) => keys.has(k));
+    const rest = Array.from(keys).filter((k) => !ordered.includes(k));
+    const result = [...ordered, ...rest];
+    const hasComprobantesMonto = result.includes('total_monto_comprobantes');
+    const hasIngresosEgresosMonto = result.includes('total_monto_movimientos_sin_comprobante') || result.includes('total_monto_movimiento_sin_comprobante');
+    if ((hasComprobantesMonto || hasIngresosEgresosMonto) && !result.includes(this.totalNetoGeneralKey)) {
+      result.push(this.totalNetoGeneralKey);
+    }
+    return result;
+  }
+
   private printUserLabel(): string {
     const me = this.getCurrentMe();
     const fullName = [
@@ -524,12 +832,15 @@ export class LiquidacionesFeature implements OnInit {
 
     const resumenRows = (this.resumen || []).map((row: any) => `
       <div class="block">
-        <div class="row"><b>Fecha:</b> ${this.escHtml(this.formatIsoDate(row?.fecha_creacion))}</div>
-        <div class="row"><b>Usuario:</b> ${this.escHtml(row?.usuario_crea || '-')}</div>
-        <div class="row"><b>Envios:</b> ${Number(row?.total_envios || 0)}</div>
-        <div class="row"><b>Comprob.:</b> ${Number(row?.total_comprobantes || 0)}</div>
-        <div class="row"><b>Monto:</b> S/ ${this.formatMoney(row?.total_monto_comprobantes)}</div>
-        <div class="row"><b>Por cobrar destino:</b> S/ ${this.formatMoney(this.rowTotalPorCobrarDestino(row))}</div>
+        <div class="row2"><span class="muted">Fecha</span><span>${this.escHtml(this.formatIsoDate(row?.fecha_creacion))}</span></div>
+        <div class="row2"><span class="muted">Usuario</span><span>${this.escHtml(row?.usuario_crea || '-')}</span></div>
+        <div class="row2"><span class="muted">Envios</span><span>${Number(row?.total_envios || 0)}</span></div>
+        <div class="row2"><span class="muted">Comprob.</span><span>${this.rowTotalComprobantes(row)}</span></div>
+        <div class="row2"><span class="muted">Monto comp.</span><span>S/ ${this.formatMoney(this.rowTotalMontoComprobantes(row))}</span></div>
+        <div class="row2"><span class="muted">Pend. destino</span><span>S/ ${this.formatMoney(this.rowTotalPorCobrarDestino(row))}</span></div>
+        <div class="row2"><span class="muted">Ingresos</span><span>S/ ${this.formatMoney(this.rowTotalIngresos(row))}</span></div>
+        <div class="row2"><span class="muted">Egresos</span><span>S/ ${this.formatMoney(this.rowTotalEgresos(row))}</span></div>
+        <div class="row2 strong"><span>Neto</span><span>S/ ${this.formatMoney(this.rowTotalNeto(row))}</span></div>
       </div>
     `).join('');
 
@@ -537,20 +848,20 @@ export class LiquidacionesFeature implements OnInit {
       const envios = Array.isArray(row?.envios) ? row.envios : [];
       const enviosHtml = envios.map((e: any) => `
         <div class="sub">
-          <div class="row"><b>Envio:</b> ${this.escHtml(e?.envio?.id || '-')}</div>
-          <div class="row"><b>Origen:</b> ${this.escHtml(e?.envio?.origen_nombre || '-')}</div>
-          <div class="row"><b>Destino:</b> ${this.escHtml(e?.envio?.destino_nombre || '-')}</div>
-          <div class="row"><b>Pendiente cobro:</b> S/ ${this.formatMoney(this.pendienteCobroDestino(e?.envio, e?.comprobantes))}</div>
-          <div class="row"><b>Comprob.:</b> ${this.countComprobantes(e?.comprobantes)}</div>
-          <div class="row"><b>Monto:</b> S/ ${this.formatMoney(this.totalComprobantes(e?.comprobantes))}</div>
+          <div class="row2"><span class="muted">Envio</span><span>#${this.escHtml(e?.envio?.id || '-')}</span></div>
+          <div class="row2"><span class="muted">Ticket</span><span>${this.escHtml(e?.envio?.ticket_numero || '-')}</span></div>
+          <div class="row2"><span class="muted">Ruta</span><span>${this.escHtml(e?.envio?.origen_nombre || '-')} -> ${this.escHtml(e?.envio?.destino_nombre || '-')}</span></div>
+          <div class="row2"><span class="muted">Pend. destino</span><span>S/ ${this.formatMoney(this.pendienteCobroDestino(e?.envio, e?.comprobantes))}</span></div>
+          <div class="row2"><span class="muted">Comprob.</span><span>${this.countComprobantes(e?.comprobantes)}</span></div>
+          <div class="row2"><span class="muted">Monto comp.</span><span>S/ ${this.formatMoney(this.totalComprobantes(e?.comprobantes))}</span></div>
         </div>
       `).join('');
 
       return `
         <div class="block">
-          <div class="row"><b>Fecha:</b> ${this.escHtml(this.formatIsoDate(row?.fecha_creacion))}</div>
-          <div class="row"><b>Usuario:</b> ${this.escHtml(row?.usuario_crea || '-')}</div>
-          <div class="row"><b>Total envios:</b> ${Number(row?.total_envios || 0)}</div>
+          <div class="row2"><span class="muted">Fecha</span><span>${this.escHtml(this.formatIsoDate(row?.fecha_creacion))}</span></div>
+          <div class="row2"><span class="muted">Usuario</span><span>${this.escHtml(row?.usuario_crea || '-')}</span></div>
+          <div class="row2"><span class="muted">Total envios</span><span>${Number(row?.total_envios || 0)}</span></div>
           ${enviosHtml || '<div class="sub">Sin detalle de envios.</div>'}
         </div>
       `;
@@ -574,6 +885,12 @@ export class LiquidacionesFeature implements OnInit {
     .block { border-bottom: 0.5px solid #000; padding: 3px 0; }
     .sub { margin-top: 3px; padding-top: 3px; border-top: 0.5px solid #000; }
     .row { margin: 1px 0; word-break: break-word; }
+    .row2 { margin: 1px 0; display:flex; align-items:flex-start; justify-content:space-between; gap:6px; word-break: break-word; }
+    .row2 > span:first-child { flex: 0 0 auto; }
+    .row2 > span:last-child { flex: 1 1 auto; text-align:right; }
+    .muted { color:#333; }
+    .strong { font-weight:700; }
+    .kpis { border: 1px dashed #000; padding: 4px; margin: 4px 0 6px; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   </style>
 </head>
@@ -585,15 +902,18 @@ export class LiquidacionesFeature implements OnInit {
     <div class="meta">Usuario: ${this.escHtml(printedBy)}</div>
     <div class="meta">Fecha filtro: ${this.escHtml(fecha)}</div>
     <div class="meta">Impreso: ${this.escHtml(printedAt)}</div>
+    <div class="kpis">
+      <div class="row2"><span><b>Total envios</b></span><span><b>${this.resumenTotalEnvios()}</b></span></div>
+      <div class="row2"><span><b>Total comprob.</b></span><span><b>${this.resumenTotalComprobantes()}</b></span></div>
+      <div class="row2"><span><b>Monto comp.</b></span><span><b>S/ ${this.formatMoney(this.resumenTotalMontoComprobantes())}</b></span></div>
+      <div class="row2"><span><b>Por cobrar</b></span><span><b>S/ ${this.formatMoney(this.resumenTotalPorCobrarDestino())}</b></span></div>
+      <div class="row2"><span><b>Ingresos</b></span><span><b>S/ ${this.formatMoney(this.resumenTotalIngresos())}</b></span></div>
+      <div class="row2"><span><b>Egresos</b></span><span><b>S/ ${this.formatMoney(this.resumenTotalEgresos())}</b></span></div>
+      <div class="row2"><span><b>Neto</b></span><span><b>S/ ${this.formatMoney(this.resumenTotalNeto())}</b></span></div>
+    </div>
     <div class="sep"></div>
     <div class="section">Resumen</div>
     ${resumenRows || '<div class="block">Sin datos para mostrar.</div>'}
-    <div class="block">
-      <div class="row"><b>Total envios:</b> ${this.resumenTotalEnvios()}</div>
-      <div class="row"><b>Total comprobantes:</b> ${this.resumenTotalComprobantes()}</div>
-      <div class="row"><b>Monto total:</b> S/ ${this.formatMoney(this.resumenTotalMontoComprobantes())}</div>
-      <div class="row"><b>Total por cobrar destino:</b> S/ ${this.formatMoney(this.resumenTotalPorCobrarDestino())}</div>
-    </div>
     <div class="sep"></div>
     <div class="section">Totales por dia</div>
     ${totalesRows || '<div class="block">Sin datos para mostrar.</div>'}

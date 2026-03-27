@@ -66,6 +66,46 @@ export class UsuariosFeature implements OnInit {
   editing = false;
   editingId: number | null = null;
   newUser = { email: '', is_active: true, person_id: null, punto_id: null, password: '', username: '' } as { email: string; is_active: boolean; person_id: number | null; punto_id: number | null; password: string; username: string };
+  personQuery = '';
+  showPersonOptions = false;
+
+  personLabel(p: Persona): string {
+    const razon = String((p as any)?.razon_social || '').trim();
+    const nombre = String((p as any)?.nombre || '').trim();
+    const apellido = String((p as any)?.apellido || '').trim();
+    const base = razon || [nombre, apellido].filter(Boolean).join(' ');
+    const doc = String((p as any)?.nro_documento || '').trim();
+    return [base, doc].filter(Boolean).join(' - ').toUpperCase();
+  }
+
+  get filteredPersonas(): Persona[] {
+    const q = String(this.personQuery || '').trim().toLowerCase();
+    const list = this.personas || [];
+    if (!q) return list.slice(0, 10);
+    return list.filter((p: Persona) => this.personLabel(p).toLowerCase().includes(q)).slice(0, 10);
+  }
+
+  selectPersona(p: Persona): void {
+    this.newUser.person_id = Number((p as any)?.id || 0) || null;
+    this.personQuery = this.personLabel(p);
+    this.showPersonOptions = false;
+  }
+
+  clearPersona(): void {
+    this.newUser.person_id = null;
+    this.personQuery = '';
+    this.showPersonOptions = false;
+  }
+
+  private syncPersonQueryFromId(): void {
+    const personId = Number((this.newUser as any)?.person_id || 0);
+    if (!personId) {
+      this.personQuery = '';
+      return;
+    }
+    const found = (this.personas || []).find((p: any) => Number((p as any)?.id || 0) === personId);
+    this.personQuery = found ? this.personLabel(found) : '';
+  }
 
   get isValidUser(): boolean {
     const username = !!(this.newUser.username|| '').trim();
@@ -79,7 +119,7 @@ export class UsuariosFeature implements OnInit {
   get filteredUsuarios(): Usuario[] {
     const term = this.search.trim().toLowerCase();
     return (this.lista_usuarios || []).filter((u) => {
-      const okTerm = !term || (u.email || '').toLowerCase().includes(term);
+      const okTerm = !term || String((u as any).username || '').toLowerCase().includes(term);
       const okStatus =
         this.status === 'all' ||
         (this.status === 'active' && (u as any).is_active) ||
@@ -103,6 +143,8 @@ export class UsuariosFeature implements OnInit {
     this.editing = false;
     this.editingId = null;
     this.newUser = { email: '', is_active: true, person_id: null, punto_id: null, password: '' , username: '' } as any;
+    this.personQuery = '';
+    this.showPersonOptions = false;
     this.pendingRoleIds = [];
     this.originalRoleCodes = [];
     this.originalPuntoId = null;
@@ -120,6 +162,8 @@ export class UsuariosFeature implements OnInit {
     const puntoId = sedes.length ? Number((sedes[0] as any)?.id || 0) : null;
     this.originalPuntoId = puntoId || null;
     this.newUser = { email: (item as any).email, is_active: (item as any).is_active, person_id: (item as any).person_id, punto_id: puntoId || null, password: '', username: (item as any).username } as any;
+    this.syncPersonQueryFromId();
+    this.showPersonOptions = false;
     const rawRoles = ((item as any).roles || []) as any[];
     this.pendingRoleIds = rawRoles
       .map((r: any) => this.roleCodeFromAny(r))
@@ -169,6 +213,7 @@ export class UsuariosFeature implements OnInit {
     if (!this.isValidUser) return;
     const ciaId = Number(localStorage.getItem('cia_id') || 0);
     const tipoAcceso = this.hasSelectedRoles() ? 'user_write' : 'user_read';
+    const selectedRoleId = this.getSelectedRoleId();
     const payload: any = {
       email: null,
       username: this.newUser.username,
@@ -179,6 +224,7 @@ export class UsuariosFeature implements OnInit {
     if (!this.editing) {
       payload.permission_type = tipoAcceso;
     }
+    payload.role_id = selectedRoleId;
     if ((this.newUser.password || '').length >= 6) { payload.password = this.newUser.password; } else if (this.editing) { payload.password = null; }
     this.saving = true;
     this.saveError = null;
@@ -296,7 +342,7 @@ export class UsuariosFeature implements OnInit {
 
   loadPersonas() {
     this.personasSvc.getPersonas().subscribe({
-      next: (res) => { this.personas = res || []; },
+      next: (res) => { this.personas = res || []; this.syncPersonQueryFromId(); },
       error: () => { this.personas = []; },
     });
   }
@@ -347,17 +393,26 @@ export class UsuariosFeature implements OnInit {
 
   applyRoleSelection() {
     if (!this.pendingRoleIds.length || !this.roles.length) return;
-    const selected = new Set(this.pendingRoleIds.map((r: any) => String(r || '').trim().toLowerCase()));
-    this.roles = (this.roles || []).map(r => ({ ...r, selected: selected.has(String(r.info.code || r.info.id || '').trim().toLowerCase()) }));
+    const selected = String(this.pendingRoleIds[0] || '').trim().toLowerCase();
+    this.roles = (this.roles || []).map(r => ({ ...r, selected: String(r.info.code || r.info.id || '').trim().toLowerCase() === selected }));
   }
 
-  toggleRole(role: { info: Rol; permisos: RolPermiso[]; selected: boolean }, ev: Event) {
-    const checked = (ev.target as HTMLInputElement).checked;
-    role.selected = checked;
+  selectSingleRole(role: { info: Rol; permisos: RolPermiso[]; selected: boolean }) {
+    const key = String(role.info.code || role.info.id || '').trim().toLowerCase();
+    this.roles = (this.roles || []).map((r) => ({
+      ...r,
+      selected: String(r.info.code || r.info.id || '').trim().toLowerCase() === key,
+    }));
   }
 
   hasSelectedRoles(): boolean {
     return (this.roles || []).some(r => r.selected);
+  }
+
+  private getSelectedRoleId(): number | null {
+    const selected = (this.roles || []).find((r) => r.selected);
+    const id = Number(selected?.info?.id || 0);
+    return id || null;
   }
 
   private roleCodeFromAny(value: any): string {
@@ -365,6 +420,14 @@ export class UsuariosFeature implements OnInit {
     if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
     return String(value?.code ?? value?.codigo ?? value?.name ?? value?.nombre ?? value?.id ?? '').trim();
   }
+
+  getUserRoleName(item: any): string {
+    const roles = Array.isArray(item?.roles) ? item.roles : [];
+    if (!roles.length) return '-';
+    const role = roles[0];
+    if (typeof role === 'string' || typeof role === 'number') {
+      return String(role).trim() || '-';
+    }
+    return String(role?.nombre ?? role?.name ?? role?.code ?? role?.codigo ?? role?.id ?? '-').trim() || '-';
+  }
 }
-
-

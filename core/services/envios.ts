@@ -11,7 +11,7 @@ import {
   EnvioTrackingPublicLinkRequest,
   EnviosDiariosAgrupadosRead,
   EnviosDiariosResumenPorUsuarioRead,
-  EnvioListRead, CompaniaConfigRead
+  EnvioListRead, CompaniaConfigRead, ResumenSedeDetalleRead
 } from '../mapped';
 import { AuthService } from './auth.service';
 
@@ -124,5 +124,15 @@ export class Envios {
 
   getCondicionesCia(compania_id: number): Observable<CompaniaConfigRead> {
     return this.api.get(`/envios/compania-config/${compania_id}`);
+  }
+
+  //envios con pago destino
+  getEnviosPagosDestino(fecha_inicio: string, fecha_fin: string): Observable<Envio[]> {
+    return this.api.get(`/envios/pago-destino/rango?fecha_inicio=${fecha_inicio}&fecha_fin=${fecha_fin}`);
+  }
+
+  //totales resumen agrupado por sede
+  getTotalesGenerales(fecha: string): Observable<ResumenSedeDetalleRead> {
+    return this.api.get(`/envios/reporte-envios-dia-resumen/detalle-por-sede?fecha=${fecha}`);
   }
 }

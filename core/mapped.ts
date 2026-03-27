@@ -203,6 +203,20 @@ export interface Envio {
   usuario_crea: string;
   precio_envio?: number;
   placa_vehiculo: string;
+  pago_destino?: boolean;
+  guia_referencia?: string;
+  origen_nombre?: string;
+  destino_nombre?: string;
+  monto_envio?: number | string;
+  monto_pendiente_cobro?: number | string;
+  afecta_caja?: boolean;
+  es_informativo?: boolean;
+  estado_pago_destino?: string;
+  usuario_cobrador_id?: number;
+  fecha_cobro_destino?: string;
+  monto_referencial_envio?: number | string;
+  ingreso_real_caja?: number | string;
+  ingreso_informativo_no_contable?: number | string;
 }
 
 export interface EnvioCreate {
@@ -223,6 +237,8 @@ export interface EnvioCreate {
   ticket_numero: string;
   estado_whatsapp: string;
   estado_envio: string;
+  pago_destino?: boolean;
+  guia_referencia?: string;
 }
 
 export interface Comprobante {
@@ -712,6 +728,14 @@ export interface EnvioReporteRead extends Envio {
   destino_nombre: string;
   monto_envio?: number;
   monto_pendiente_cobro?: number;
+  afecta_caja?: boolean;
+  es_informativo?: boolean;
+  estado_pago_destino: string;
+  usuario_cobrador_id?: number;
+  fecha_cobro_destino?: string;
+  monto_referencial_envio?: number;
+  ingreso_real_caja?: number;
+  ingreso_informativo_no_contable?: number;
 }
 
 export interface EnvioReporteRelacionesRead {
@@ -744,6 +768,13 @@ export interface EnviosDiariosResumenPorUsuarioRead {
   total_monto_envios?: number;
   total_monto_por_cobrar_destino?: number;
   total_monto_cobrado?: number;
+  total_ingresos_reales?: number;
+  total_egresos_reales?: number;
+  neto_caja_real?: number;
+  monto_envios_pago_destino_informativo?: number;
+  monto_envios_pago_destino_cobrados?: number;
+  ingreso_real_caja?: number;
+  ingreso_informativo_no_contable?: number;
   total_comprobantes_emitidos_usuario?: number;
   total_monto_comprobantes_emitidos_usuario?: number;
   total_envios_terceros_con_comprobante_emitido_usuario?: number;
@@ -905,4 +936,20 @@ export interface BIDashboardAlertaItem {
   severidad: 'alta' | 'media' | 'baja';
   total: number;
   detalle?: string | null;
+}
+
+
+export interface ResumenSedeDetalleRead {
+  fecha_creacion: string;
+  sede_id: number;
+  sede_nombre: string;
+  total_envios: number;
+  total_comprobantes: number;
+  total_movimientos_sin_comprobante: number;
+  total_monto_comprobantes?: number;
+  total_monto_movimientos_sin_comprobante?: number;
+  total_monto_envios_pago_destino?: number;
+  envios: EnvioReporteRead[] | [];
+  comprobantes: ComprobanteReporteRead[] | [];
+  movimientos_sin_comprobante: MovimientoDetalleReporteRead[] | []
 }

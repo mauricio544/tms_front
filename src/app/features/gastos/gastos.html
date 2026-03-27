@@ -18,6 +18,16 @@
   </div>
 </div>
 
+<ui-confirm
+  [show]="confirmOpen"
+  [title]="confirmTitle"
+  [message]="confirmMessage"
+  [confirmText]="'Anular'"
+  [type]="'danger'"
+  (confirm)="onConfirmDeeactiveMovimiento()"
+  (cancel)="onCancelDeeactiveMovimiento()">
+</ui-confirm>
+
 <div class="px-6 pb-6">
   <div *ngIf="loading" class="rounded-md border border-slate-200 bg-white p-6 text-slate-600">Cargando…</div>
   <div *ngIf="error" class="rounded-md border border-red-200 bg-red-50 p-6 text-red-700">{{ error }}</div>
@@ -49,6 +59,7 @@
           <th class="px-3 py-2">Descripción</th>
           <th class="px-3 py-2">Tipo</th>
           <th class="px-3 py-2 text-right">Monto</th>
+          <th class="px-3 py-2 text-right">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -66,14 +77,23 @@
           <td class="px-3 py-2 text-right font-medium" [ngClass]="{ 'text-emerald-700': tipoMovimientoCode(it) === 'I', 'text-red-700': tipoMovimientoCode(it) === 'E' }">
             {{ (((tipoMovimientoCode(it) === 'E' ? -1 : 1) * montoMovimiento(it))) | number:'1.2-2' }}
           </td>
+          <td class="px-3 py-2 text-right">
+            <button
+              type="button"
+              (click)="deeactiveMovimientoRow(it)"
+              [disabled]="!canDeeactive(it) || deactivatingCabeceraId === cabeceraId(it)"
+              class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50">
+              {{ deactivatingCabeceraId === cabeceraId(it) ? 'Anulando...' : 'Anular' }}
+            </button>
+          </td>
         </tr>
         <tr *ngIf="!filtered.length">
-          <td colspan="6" class="px-3 py-6 text-center text-slate-500">No hay movimientos para mostrar.</td>
+          <td colspan="7" class="px-3 py-6 text-center text-slate-500">No hay movimientos para mostrar.</td>
         </tr>
       </tbody>
       <tfoot>
         <tr class="border-t bg-slate-50">
-          <td class="px-3 py-2 text-right text-slate-700" colspan="5">Total</td>
+          <td class="px-3 py-2 text-right text-slate-700" colspan="6">Total</td>
           <td class="px-3 py-2 text-right font-semibold" [ngClass]="{ 'text-emerald-700': totalNeto >= 0, 'text-red-700': totalNeto < 0 }">{{ totalNeto | number:'1.2-2' }}</td>
         </tr>
       </tfoot>

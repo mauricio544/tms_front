@@ -34,8 +34,10 @@ export interface ComprobantePreview {
     tracking?: string;
     origen?: string;
     destino?: string;
+    destinoDireccion?: string;
     remitente?: string;
     destinatario?: string;
+    guiaReferencia?: string;
   };
   items: Array<{
     numeroItem?: number;
@@ -226,7 +228,7 @@ export class ComprobantePreviewComponent {
 
   hasReferencia(): boolean {
     const r = this.comprobante?.referencia;
-    return !!(r?.envioId || r?.tracking || r?.origen || r?.destino);
+    return !!(r?.envioId || r?.tracking || r?.origen || r?.destino || r?.destinoDireccion || r?.guiaReferencia);
   }
 
   hasSunatData(): boolean {

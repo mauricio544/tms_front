@@ -59,6 +59,7 @@
 
         <div class="mt-2 flex items-center gap-2 text-xs text-slate-600">
           <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Usuario</span>
+          <span class="inline-block rounded bg-slate-100 px-2 py-0.5">Rol: {{ getUserRoleName(item) }}</span>
           <!--<span class="inline-block rounded bg-slate-100 px-2 py-0.5">Email verificado</span>-->
         </div>
 
@@ -119,15 +120,29 @@
                    class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
             <div class="text-xs text-red-600" *ngIf="newUser.password && newUser.password.length < 6">Mínimo 6 caracteres</div>
           </div>
-          <div>
+          <div class="relative">
             <label class="block text-sm text-slate-700">Persona</label>
-            <select [(ngModel)]="newUser.person_id"
-                    class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" required>
-              <option [ngValue]="null">Sin persona</option>
-              <option *ngFor="let p of personas" [ngValue]="p.id">
-                {{ (p.razon_social ?? '').toUpperCase()  || ((p.nombre ?? '').toUpperCase() + ' ' + ((p.apellido ?? '').toUpperCase() || '')) }}
-              </option>
-            </select>
+            <div class="mt-1 flex items-center gap-2">
+              <input
+                type="text"
+                [(ngModel)]="personQuery"
+                (focus)="showPersonOptions = true"
+                (input)="showPersonOptions = true"
+                placeholder="Buscar persona"
+                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+              <button type="button" (click)="clearPersona()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Limpiar</button>
+            </div>
+            <div class="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow"
+                 *ngIf="showPersonOptions">
+              <button
+                *ngFor="let p of filteredPersonas"
+                type="button"
+                (click)="selectPersona(p)"
+                class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50">
+                {{ personLabel(p) }}
+              </button>
+              <div *ngIf="!filteredPersonas.length" class="px-3 py-2 text-sm text-slate-500">Sin resultados</div>
+            </div>
           </div>
           <div>
             <label class="block text-sm text-slate-700">Punto</label>
@@ -151,7 +166,7 @@
           <div class="mt-2 max-h-72 overflow-y-auto space-y-3 pr-1" *ngIf="!rolesLoading && roles?.length">
             <div *ngFor="let r of roles" class="rounded-md border border-slate-200 bg-slate-50 p-3">
               <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <input type="checkbox" [checked]="r.selected" (change)="toggleRole(r, $event)" class="h-4 w-4 accent-[#2F455C]" />
+                <input type="radio" name="usuario_rol" [checked]="r.selected" (change)="selectSingleRole(r)" class="h-4 w-4 accent-[#2F455C]" />
                 {{ r.info.nombre }}
               </label>
               <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm text-slate-700" *ngIf="r.selected">

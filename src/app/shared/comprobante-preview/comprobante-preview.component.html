@@ -20,7 +20,7 @@
         {{ comprobante?.emisor?.telefono || '' }} <span *ngIf="comprobante?.emisor?.telefono && comprobante?.emisor?.correo">|</span> {{ comprobante?.emisor?.correo || '' }}
       </div>
       <div class="mt-1 font-semibold tracking-wide">{{ resolveTituloDocumento(comprobante?.tipo) }}</div>
-      <div class="font-bold">{{ buildSerieNumero() }}</div>
+      <div class="text-[16px] font-bold">{{ buildSerieNumero() }}</div>
       <div *ngIf="comprobante?.ambiente === 'beta'" class="mt-1 inline-block rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">ENTORNO DE PRUEBA</div>
     </header>
 
@@ -45,6 +45,8 @@
       <div *ngIf="comprobante?.referencia?.tracking"><strong>C&oacute;digo de seguimiento: {{ comprobante?.referencia?.tracking }}</strong></div>
       <div *ngIf="comprobante?.referencia?.origen" class="text-[13px]"><span class="font-semibold">Origen:</span> {{ comprobante?.referencia?.origen }}</div>
       <div *ngIf="comprobante?.referencia?.destino" class="text-[13px]"><span class="font-semibold">Destino:</span> {{ comprobante?.referencia?.destino }}</div>
+      <div *ngIf="comprobante?.referencia?.destinoDireccion"><span class="font-semibold">Dirección destino:</span> {{ comprobante?.referencia?.destinoDireccion }}</div>
+      <div *ngIf="comprobante?.referencia?.guiaReferencia"><strong>Guía de remisión de referencia: {{ comprobante?.referencia?.guiaReferencia }}</strong></div>
       <div *ngIf="comprobante?.referencia?.remitente">Remitente: {{ comprobante?.referencia?.remitente }}</div>
       <div *ngIf="comprobante?.referencia?.destinatario">Destinatario: {{ comprobante?.referencia?.destinatario }}</div>
     </div>

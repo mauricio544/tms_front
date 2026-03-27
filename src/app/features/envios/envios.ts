@@ -81,6 +81,13 @@ export class EnviosFeature implements OnInit {
   // Filtros y paginación
   search = '';
   fechaFiltro = '';
+  pagosDestinoPreset: 'last7' | 'lastMonth' | 'custom' = 'last7';
+  pagosDestinoInicio = '';
+  pagosDestinoFin = '';
+  pagosDestino: Envio[] = [];
+  pagosDestinoLoading = false;
+  pagosDestinoError: string | null = null;
+  showPagosDestinoPanel = false;
   private exactSearchTimer: any = null;
   private exactSearchInFlight = false;
   private exactSearchTried = new Set<string>();
@@ -611,11 +618,14 @@ export class EnviosFeature implements OnInit {
         tracking: codigoSeguimiento,
         origen: this.getPuntoNombre(refEnv?.punto_origen_id),
         destino: this.getPuntoNombre(refEnv?.punto_destino_id),
+        destinoDireccion: this.getPuntoDireccion(refEnv?.punto_destino_id),
         remitente: this.personaLabelById(refEnv?.remitente) || String(refEnv?.remitente || ''),
         destinatario: this.personaLabelById(refEnv?.destinatario) || String(refEnv?.destinatario || ''),
+        guiaReferencia: String(refEnv?.guia_referencia || c?.guia_referencia || c?.envio_guia_referencia || '').trim(),
       } : ((ticketNumero || codigoSeguimiento) ? {
         envioId: codigoEnvio,
         tracking: codigoSeguimiento,
+        guiaReferencia: String(c?.guia_referencia || c?.envio_guia_referencia || '').trim(),
       } : undefined),
       items,
       totales: {
@@ -688,6 +698,7 @@ export class EnviosFeature implements OnInit {
     const creadoPor = String(env?.usuario_crea || '').trim();
     const origen = this.getPuntoNombre(env?.punto_origen_id);
     const destino = this.getPuntoNombre(env?.punto_destino_id);
+    const destinoDireccion = this.getPuntoDireccion(env?.punto_destino_id);
     const fecha = this.utilSrv.formatFecha(env?.fecha_envio || '');
     const trackingCode = String(env?.id_tracking || '').trim();
     const qrData = String(this.publicTrackingUrl || '').trim() || trackingCode || String(env?.ticket_numero || '').trim();
@@ -726,6 +737,7 @@ export class EnviosFeature implements OnInit {
     .sep { border-top: 1px dashed #000; margin: 6px 0; }
     .row { margin: 2px 0; word-break: break-word; }
     .row-lg { font-size: 12.5px; }
+    .row-ticket { font-size: 16px; font-weight: 700; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; }
     th, td { padding: 2px 0; border-bottom: 1px dotted #999; vertical-align: top; }
     .r { text-align: right; white-space: nowrap; }
@@ -739,11 +751,12 @@ export class EnviosFeature implements OnInit {
     ${logo ? `<div class="logo"><img src="${this.escHtml(logo)}" alt="Logo"/></div>` : ''}
     ${lema ? `<div class="row muted" style="text-align:center;">${this.escHtml(lema)}</div>` : ''}
     <div class="h">TICKET DE ENVIO</div>
-    <div class="row row-lg"><b>Ticket:</b> ${this.escHtml(env?.ticket_numero || '-')}</div>
+    <div class="row row-ticket"><b>Ticket:</b> ${this.escHtml(env?.ticket_numero || '-')}</div>
     <div class="row">Remitente: ${this.escHtml(remitente)}</div>
     <div class="row">Destinatario: ${this.escHtml(destinatario)}</div>
     <div class="row row-lg"><b>Origen:</b> ${this.escHtml(origen)}</div>
     <div class="row row-lg"><b>Destino:</b> ${this.escHtml(destino)}</div>
+    <div class="row"><b>Dirección destino:</b> ${this.escHtml(destinoDireccion)}</div>
     <div class="row">Fecha envio: ${this.escHtml(fecha || '-')}</div>
     ${creadoPor ? `<div class="row"><b>Creado por:</b> ${this.escHtml(creadoPor)}</div>` : ''}
     <div class="sep"></div>
@@ -807,8 +820,10 @@ export class EnviosFeature implements OnInit {
     const trackingCode = String(preview?.referencia?.tracking || '').trim();
     const origen = String(preview?.referencia?.origen || '').trim();
     const destino = String(preview?.referencia?.destino || '').trim();
+    const destinoDireccion = String(preview?.referencia?.destinoDireccion || '').trim();
     const remitente = String(preview?.referencia?.remitente || '').trim();
     const destinatario = String(preview?.referencia?.destinatario || '').trim();
+    const guiaReferencia = String(preview?.referencia?.guiaReferencia || '').trim();
     const creadoPor = String(preview?.creadoPor || '').trim();
     const logo = this.companyLogoSrc();
     const lema = String(preview?.lema || this.companiaLema || '').trim();
@@ -840,6 +855,7 @@ export class EnviosFeature implements OnInit {
     .logo { text-align:center; margin: 0 0 4px; }
     .logo img { max-width: 34mm; max-height: 16mm; object-fit: contain; }
     .h { text-align: center; font-weight: 700; }
+    .hnum { font-size: 16px; }
     .muted { color: #000; font-size: 10px; }
     .sep { border-top: 1px solid #000; margin: 5px 0; }
     .row { margin: 2px 0; word-break: break-word; }
@@ -860,7 +876,7 @@ export class EnviosFeature implements OnInit {
     ${logo ? `<div class="logo"><img src="${this.escHtml(logo)}" alt="Logo"/></div>` : ''}
     ${lema ? `<div class="row muted" style="text-align:center;">${this.escHtml(lema)}</div>` : ''}
     <div class="h">${this.escHtml(v?.docTitle || 'Comprobante')}</div>
-    <div class="h">${this.escHtml(v?.numero || '-')}</div>
+    <div class="h hnum">${this.escHtml(v?.numero || '-')}</div>
     <div class="sep"></div>
     <div class="row"><b>RUC:</b> ${this.escHtml(v?.ruc || '-')}</div>
     <div class="row"><b>Empresa:</b> ${this.escHtml(v?.razon || '-')}</div>
@@ -871,6 +887,8 @@ export class EnviosFeature implements OnInit {
     ${destinatario ? `<div class="row"><b>Destinatario:</b> ${this.escHtml(destinatario)}</div>` : ''}
     ${origen ? `<div class="row row-lg"><b>Origen:</b> ${this.escHtml(origen)}</div>` : ''}
     ${destino ? `<div class="row row-lg"><b>Destino:</b> ${this.escHtml(destino)}</div>` : ''}
+    ${destinoDireccion ? `<div class="row"><b>Dirección destino:</b> ${this.escHtml(destinoDireccion)}</div>` : ''}
+    ${guiaReferencia ? `<div class="row"><b>Guía de remisión de referencia:</b> <b>${this.escHtml(guiaReferencia)}</b></div>` : ''}
     ${creadoPor ? `<div class="row"><b>Creado por:</b> ${this.escHtml(creadoPor)}</div>` : ''}
     <div class="row"><b>F. Emisión:</b> ${this.escHtml(v?.fechaEmision || '-')}</div>
     <div class="row"><b>F. Pago:</b> ${this.escHtml(v?.fechaPago || '-')}</div>
@@ -981,6 +999,9 @@ export class EnviosFeature implements OnInit {
   } as any;
   destinatarioCelular = '';
   confirmClaveRecojo = '';
+  tieneGuiaReferencia = false;
+  guiaReferenciaSerie = '';
+  guiaReferenciaNumero = '';
 
   // Detalle de envío (creación)
   stagedDetalles: Array<{ cantidad: number; descripcion: any; precio_unitario: number; precio_total: number }> = [];
@@ -1035,6 +1056,38 @@ export class EnviosFeature implements OnInit {
   }
   removeDetalle(i: number) { this.stagedDetalles.splice(i, 1); }
 
+  onTieneGuiaReferenciaChange(checked: boolean) {
+    if (checked) return;
+    this.guiaReferenciaSerie = '';
+    this.guiaReferenciaNumero = '';
+  }
+  private applyGuiaReferenciaToForm(guiaReferencia: any) {
+    const raw = String(guiaReferencia || '').trim();
+    if (!raw) {
+      this.tieneGuiaReferencia = false;
+      this.guiaReferenciaSerie = '';
+      this.guiaReferenciaNumero = '';
+      return;
+    }
+    const idx = raw.indexOf('-');
+    if (idx < 0) {
+      this.tieneGuiaReferencia = true;
+      this.guiaReferenciaSerie = raw;
+      this.guiaReferenciaNumero = '';
+      return;
+    }
+    this.tieneGuiaReferencia = true;
+    this.guiaReferenciaSerie = raw.slice(0, idx).trim();
+    this.guiaReferenciaNumero = raw.slice(idx + 1).trim();
+  }
+  private buildGuiaReferenciaForPayload() {
+    if (!this.tieneGuiaReferencia) return null;
+    const serie = String(this.guiaReferenciaSerie || '').trim();
+    const numero = String(this.guiaReferenciaNumero || '').trim();
+    if (!serie || !numero) return null;
+    return `${serie}-${numero}`;
+  }
+
   // Personas (autocomplete)
   personas: Persona[] = [];
   personasLoading = false;
@@ -1055,6 +1108,8 @@ export class EnviosFeature implements OnInit {
   destinatarioApellido: string = '';
   remLookupLoading = false; remLookupError: string | null = null;
   destLookupLoading = false; destLookupError: string | null = null;
+  private specialDocNotFoundRem = false;
+  private specialDocNotFoundDest = false;
   remitenteCredito: PersonaListItemResponse | null = null;
   remitenteCreditoLoading = false;
   remitenteCreditoError: string | null = null;
@@ -1214,6 +1269,11 @@ export class EnviosFeature implements OnInit {
     const p = (this.puntos || []).find(x => (x as any).id === Number(id));
     return p ? (p as any).nombre.toUpperCase() : (id != null ? String(id) : '-');
   }
+  getPuntoDireccion(id: number | null | undefined): string {
+    const p = (this.puntos || []).find(x => (x as any).id === Number(id));
+    const dir = String((p as any)?.direccion || '').trim();
+    return dir || '-';
+  }
 
   // Lista filtrada y paginaciÃ³n
   get filteredEnvios(): Envio[] {
@@ -1259,6 +1319,113 @@ export class EnviosFeature implements OnInit {
     if (!this.fechaFiltro) return;
     this.fechaFiltro = '';
     this.onFechaFilterChange();
+  }
+
+  isAdminUser(): boolean {
+    try {
+      const roles = this.getRoleNames();
+      const hasAdminRole = roles.some((r) => {
+        const v = String(r || '').toLowerCase().trim();
+        if (!v) return false;
+        if (v === 'admin' || v === 'super_admin' || v === 'administrador') return true;
+        if (v.includes('admin') && !v.includes('sede')) return true;
+        return false;
+      });
+      if (hasAdminRole) return true;
+      const me = this.getCurrentMe() as any;
+      if (me?.is_superuser || me?.superuser || me?.is_admin || me?.admin) return true;
+      // Fallback funcional: en este módulo admin = no operario/admin_sede
+      return !this.useSedeEndpointByRole();
+    } catch {
+      return false;
+    }
+  }
+
+  private ymdFromDate(value: Date): string {
+    const yyyy = value.getFullYear();
+    const mm = String(value.getMonth() + 1).padStart(2, '0');
+    const dd = String(value.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  private initPagosDestinoControl(): void {
+    if (!this.isAdminUser()) return;
+    this.applyPagosDestinoPreset(this.pagosDestinoPreset, false);
+    this.loadPagosDestino();
+  }
+
+  onPagosDestinoPresetChange(value: string): void {
+    const preset = (value === 'lastMonth' || value === 'custom') ? value : 'last7';
+    this.applyPagosDestinoPreset(preset as any, true);
+  }
+
+  private applyPagosDestinoPreset(preset: 'last7' | 'lastMonth' | 'custom', autoLoad: boolean): void {
+    this.pagosDestinoPreset = preset;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (preset === 'last7') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 6);
+      this.pagosDestinoInicio = this.ymdFromDate(start);
+      this.pagosDestinoFin = this.ymdFromDate(today);
+      if (autoLoad) this.loadPagosDestino();
+      return;
+    }
+    if (preset === 'lastMonth') {
+      const firstCurrent = new Date(today.getFullYear(), today.getMonth(), 1);
+      const firstPrev = new Date(firstCurrent.getFullYear(), firstCurrent.getMonth() - 1, 1);
+      const lastPrev = new Date(firstCurrent.getFullYear(), firstCurrent.getMonth(), 0);
+      this.pagosDestinoInicio = this.ymdFromDate(firstPrev);
+      this.pagosDestinoFin = this.ymdFromDate(lastPrev);
+      if (autoLoad) this.loadPagosDestino();
+      return;
+    }
+    if (!this.pagosDestinoInicio) this.pagosDestinoInicio = this.ymdFromDate(today);
+    if (!this.pagosDestinoFin) this.pagosDestinoFin = this.ymdFromDate(today);
+  }
+
+  onPagosDestinoInicioChange(value: string): void {
+    this.pagosDestinoInicio = /^\d{4}-\d{2}-\d{2}$/.test(String(value || '').trim()) ? String(value || '').trim() : '';
+  }
+
+  onPagosDestinoFinChange(value: string): void {
+    this.pagosDestinoFin = /^\d{4}-\d{2}-\d{2}$/.test(String(value || '').trim()) ? String(value || '').trim() : '';
+  }
+
+  get pagosDestinoRangeValid(): boolean {
+    if (!this.pagosDestinoInicio || !this.pagosDestinoFin) return false;
+    return this.pagosDestinoInicio <= this.pagosDestinoFin;
+  }
+
+  loadPagosDestino(): void {
+    if (!this.isAdminUser()) return;
+    if (!this.pagosDestinoRangeValid) {
+      this.pagosDestinoError = 'Seleccione un rango de fechas válido';
+      this.pagosDestino = [];
+      return;
+    }
+    this.pagosDestinoLoading = true;
+    this.pagosDestinoError = null;
+    this.enviosSrv.getEnviosPagosDestino(this.pagosDestinoInicio, this.pagosDestinoFin).subscribe({
+      next: (res: Envio[]) => {
+        const list = (res || []) as Envio[];
+        this.pagosDestino = list.sort((a: any, b: any) => String((b as any)?.fecha_cobro_destino || '').localeCompare(String((a as any)?.fecha_cobro_destino || '')));
+        this.pagosDestinoLoading = false;
+      },
+      error: () => {
+        this.pagosDestino = [];
+        this.pagosDestinoLoading = false;
+        this.pagosDestinoError = 'No se pudo cargar pagos destino por rango';
+      }
+    });
+  }
+
+  togglePagosDestinoPanel(): void {
+    if (!this.isAdminUser()) return;
+    this.showPagosDestinoPanel = !this.showPagosDestinoPanel;
+    if (this.showPagosDestinoPanel && !this.pagosDestino.length && !this.pagosDestinoLoading) {
+      this.loadPagosDestino();
+    }
   }
   private scheduleExactSearchFallback() {
     try {
@@ -1338,6 +1505,12 @@ export class EnviosFeature implements OnInit {
   personaLabelById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? this.personaLabel(p) : null; }
   personaCelularById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? String((p as any).celular || '') : null; }
   private resetRemitenteCredito() { this.remitenteCredito = null; this.remitenteCreditoLoading = false; this.remitenteCreditoError = null; }
+  private hasCreditoFields(item: any): boolean {
+    if (!item || typeof item !== 'object') return false;
+    return Object.prototype.hasOwnProperty.call(item, 'tiene_credito')
+      || Object.prototype.hasOwnProperty.call(item, 'limite_credito')
+      || Object.prototype.hasOwnProperty.call(item, 'fecha_credito');
+  }
   private loadRemitenteCreditoByDoc(nro: string) {
     const doc = String(nro || '').trim();
     if (!doc) { this.resetRemitenteCredito(); return; }
@@ -1347,12 +1520,19 @@ export class EnviosFeature implements OnInit {
     this.personasSrv.getPersonaComplete(query).subscribe({
       next: (res: any) => {
         const item = (res?.items || [])[0] || null;
-        this.remitenteCredito = item;
+        this.remitenteCredito = this.hasCreditoFields(item) ? item : null;
+        this.remitenteCreditoError = null;
         this.remitenteCreditoLoading = false;
       },
-      error: () => {
+      error: (err: any) => {
         this.remitenteCreditoLoading = false;
         this.remitenteCredito = null;
+        const status = Number((err as any)?.status || 0);
+        // Si no existe data de crédito, ocultar mensaje de error.
+        if (status === 404 || status === 400 || status === 422) {
+          this.remitenteCreditoError = null;
+          return;
+        }
         this.remitenteCreditoError = 'No se pudo validar el crédito del remitente';
       }
     });
@@ -1444,16 +1624,30 @@ export class EnviosFeature implements OnInit {
 
   private getRoleNames(): string[] {
     const me = this.getCurrentMe();
+    const roleSet = new Set<string>();
+    const pushRole = (value: any) => {
+      const v = String(value ?? '').toLowerCase().trim();
+      if (v) roleSet.add(v);
+    };
+
     const roles = Array.isArray(me?.roles) ? me.roles : [];
-    return roles.map((r: any) =>
-      String(
-        r?.name ??
-        r?.nombre ??
-        r?.rol ??
-        r?.role ??
-        r
-      ).toLowerCase().trim()
-    );
+    roles.forEach((r: any) => {
+      pushRole(r?.name);
+      pushRole(r?.nombre);
+      pushRole(r?.rol);
+      pushRole(r?.role);
+      pushRole(r);
+    });
+
+    // Algunos backends exponen el rol principal fuera de roles[].
+    pushRole(me?.rol);
+    pushRole(me?.role);
+    pushRole(me?.tipo_usuario);
+    pushRole(me?.tipoUsuario);
+    pushRole(me?.user?.rol);
+    pushRole(me?.user?.role);
+
+    return Array.from(roleSet);
   }
 
   private isAdminRole(): boolean {
@@ -1498,20 +1692,24 @@ export class EnviosFeature implements OnInit {
     (this.newEnvio as any).remitente = (p as any).id;
     this.remitenteQuery = this.personaLabel(p);
     this.showRemitenteOptions = false;
-    this.remitenteDocType = ((p as any).tipo_documento || this.remitenteDocType) as any;
+    this.remitenteDocType = this.normalizeDocTypeOr((p as any).tipo_documento, this.remitenteDocType as any);
     this.remitenteDocNumber = String((p as any).nro_documento || this.remitenteDocNumber || '');
     this.remitenteNombre = String((p as any).nombre || '');
     this.remitenteApellido = String((p as any).apellido || '');
+    this.specialDocNotFoundRem = false;
+    this.remLookupError = null;
     this.loadRemitenteCreditoByDoc(String((p as any).nro_documento || ''));
   }
   selectDestinatario(p: Persona) {
     (this.newEnvio as any).destinatario = (p as any).id;
     this.destinatarioQuery = this.personaLabel(p);
-    this.destinatarioDocType = ((p as any).tipo_documento || this.destinatarioDocType) as any;
+    this.destinatarioDocType = this.normalizeDocTypeOr((p as any).tipo_documento, this.destinatarioDocType as any);
     this.destinatarioDocNumber = String((p as any).nro_documento || this.destinatarioDocNumber || '');
     this.destinatarioNombre = String((p as any).nombre || '');
     this.destinatarioApellido = String((p as any).apellido || '');
     this.destinatarioCelular = String((p as any).celular || '');
+    this.specialDocNotFoundDest = false;
+    this.destLookupError = null;
     this.showDestinatarioOptions = false;
   }
   clearRemitente() {
@@ -1519,6 +1717,7 @@ export class EnviosFeature implements OnInit {
     this.remitenteQuery = '';
     this.remitenteNombre = '';
     this.remitenteApellido = '';
+    this.specialDocNotFoundRem = false;
     this.resetRemitenteCredito();
   }
   clearDestinatario() {
@@ -1526,6 +1725,7 @@ export class EnviosFeature implements OnInit {
     this.destinatarioQuery = '';
     this.destinatarioNombre = '';
     this.destinatarioApellido = '';
+    this.specialDocNotFoundDest = false;
   }
 
   isSpecialDocType(type: any): boolean { return type === 'CE' || type === 'P'; }
@@ -1546,15 +1746,46 @@ export class EnviosFeature implements OnInit {
   private isValidDoc(type: 'RUC' | 'DNI' | 'CE' | 'P', nro: string): boolean {
     if (type === 'CE' || type === 'P') return String(nro || '').trim().length > 0;
     const d = (nro || '').replace(/[^0-9]/g, '');
-    return type === 'RUC' ? d.length === 11 : d.length === 8;
+    return d.length >= 8;
+  }
+  private docMinLengthError(): string {
+    return 'El número de documento debe tener al menos 8 dígitos';
+  }
+  private normalizeDocType(value: any): 'RUC' | 'DNI' | 'CE' | 'P' | '' {
+    const raw = String(value || '').trim().toUpperCase();
+    if (!raw) return '';
+    if (raw === 'RUC') return 'RUC';
+    if (raw === 'DNI') return 'DNI';
+    if (raw === 'CE' || raw.includes('CARN')) return 'CE';
+    if (raw === 'P' || raw.includes('PASAP')) return 'P';
+    return '' as any;
+  }
+  private normalizeDocTypeOr(value: any, fallback: 'RUC' | 'DNI' | 'CE' | 'P' = 'DNI'): 'RUC' | 'DNI' | 'CE' | 'P' {
+    return this.normalizeDocType(value) || fallback;
+  }
+  private isSameDocType(requested: any, candidate: any): boolean {
+    const req = this.normalizeDocType(requested);
+    const cand = this.normalizeDocType(candidate);
+    return !!req && !!cand && req === cand;
+  }
+  private findPersonaByDoc(list: Persona[] | any[], type: 'RUC' | 'DNI' | 'CE' | 'P', nro: string): Persona | null {
+    const target = String(nro || '').trim();
+    const found = (list || []).find((p: any) =>
+      String((p as any)?.nro_documento || '').trim() === target &&
+      this.isSameDocType(type, (p as any)?.tipo_documento)
+    );
+    return (found || null) as any;
   }
   private fetchPersonaByDocumento(type: 'RUC' | 'DNI' | 'CE' | 'P', nro: string, next: (persona: Persona | null) => void) {
     this.personasSrv.getPersonaComplete({ tipo_documento: type, nro_documento: nro }).subscribe({
       next: (res: any) => {
-        const item = (res?.items || []).find((p: any) =>
-          String((p as any)?.nro_documento || '').trim() === nro &&
-          String((p as any)?.tipo_documento || '').trim().toUpperCase() === String(type || '').trim().toUpperCase()
-        ) || (res?.items || [])[0] || null;
+        const items = (res?.items || []) as any[];
+        const item = items.find((p: any) =>
+          String((p as any)?.nro_documento || '').trim() === String(nro || '').trim() &&
+          this.isSameDocType(type, (p as any)?.tipo_documento)
+        ) || items.find((p: any) =>
+          String((p as any)?.nro_documento || '').trim() === String(nro || '').trim()
+        ) || items[0] || null;
         if (!item) { next(null); return; }
         const persona: Persona = {
           id: Number((item as any)?.id || 0),
@@ -1575,20 +1806,10 @@ export class EnviosFeature implements OnInit {
   lookupRemitente() {
     this.remLookupError = null; const type = this.remitenteDocType; const nro = (this.remitenteDocNumber || '').trim();
     if (!type || !nro) { this.remLookupError = 'Ingrese tipo y numero'; return; }
-    if (!this.isValidDoc(type, nro)) { this.remLookupError = (type === 'RUC' ? 'RUC debe tener 11 digitos' : 'DNI debe tener 8 digitos'); return; }
-    const found = (this.personas || []).find(p => (p as any).nro_documento === nro && (p as any).tipo_documento === type);
+    if (!this.isValidDoc(type, nro)) { this.remLookupError = this.docMinLengthError(); return; }
+    const found = this.findPersonaByDoc(this.personas, type as any, nro);
     if (found) { this.selectRemitente(found); return; }
     this.remLookupLoading = true;
-    const createSpecial = () => {
-      const nombre = String(this.remitenteNombre || '').trim();
-      const apellido = String(this.remitenteApellido || '').trim();
-      if (!nombre || !apellido) { this.remLookupLoading = false; this.remLookupError = 'Ingrese nombre y apellido'; return; }
-      const body = this.buildPersonaFromSpecial(type as any, nro, nombre, apellido);
-      this.personasSrv.createPersona(body).subscribe({
-        next: (created: any) => { this.personas = [created as any, ...this.personas]; this.selectRemitente(created as any); this.remLookupLoading = false; },
-        error: () => { this.remLookupLoading = false; this.remLookupError = 'No se pudo crear'; }
-      });
-    };
     this.fetchPersonaByDocumento(type, nro, (persona) => {
       if (persona && Number((persona as any).id || 0) > 0) {
         const existingLocal = (this.personas || []).find(p => Number((p as any).id) === Number((persona as any).id));
@@ -1599,7 +1820,9 @@ export class EnviosFeature implements OnInit {
         return;
       }
       if (this.isSpecialDocType(type)) {
-        createSpecial();
+        this.specialDocNotFoundRem = true;
+        this.remLookupLoading = false;
+        this.remLookupError = 'No se encontró el documento. Complete nombre y apellido para registrarlo.';
         return;
       }
       if (type === 'RUC') {
@@ -1612,20 +1835,10 @@ export class EnviosFeature implements OnInit {
   lookupDestinatario() {
     this.destLookupError = null; const type = this.destinatarioDocType; const nro = (this.destinatarioDocNumber || '').trim();
     if (!type || !nro) { this.destLookupError = 'Ingrese tipo y numero'; return; }
-    if (!this.isValidDoc(type, nro)) { this.destLookupError = (type === 'RUC' ? 'RUC debe tener 11 digitos' : 'DNI debe tener 8 digitos'); return; }
-    const found = (this.personas || []).find(p => (p as any).nro_documento === nro && (p as any).tipo_documento === type);
+    if (!this.isValidDoc(type, nro)) { this.destLookupError = this.docMinLengthError(); return; }
+    const found = this.findPersonaByDoc(this.personas, type as any, nro);
     if (found) { this.selectDestinatario(found); return; }
     this.destLookupLoading = true;
-    const createSpecial = () => {
-      const nombre = String(this.destinatarioNombre || '').trim();
-      const apellido = String(this.destinatarioApellido || '').trim();
-      if (!nombre || !apellido) { this.destLookupLoading = false; this.destLookupError = 'Ingrese nombre y apellido'; return; }
-      const body = this.buildPersonaFromSpecial(type as any, nro, nombre, apellido);
-      this.personasSrv.createPersona(body).subscribe({
-        next: (created: any) => { this.personas = [created as any, ...this.personas]; this.selectDestinatario(created as any); this.destLookupLoading = false; },
-        error: () => { this.destLookupLoading = false; this.destLookupError = 'No se pudo crear'; }
-      });
-    };
     this.fetchPersonaByDocumento(type, nro, (persona) => {
       if (persona && Number((persona as any).id || 0) > 0) {
         const existingLocal = (this.personas || []).find(p => Number((p as any).id) === Number((persona as any).id));
@@ -1636,7 +1849,9 @@ export class EnviosFeature implements OnInit {
         return;
       }
       if (this.isSpecialDocType(type)) {
-        createSpecial();
+        this.specialDocNotFoundDest = true;
+        this.destLookupLoading = false;
+        this.destLookupError = 'No se encontró el documento. Complete nombre y apellido para registrarlo.';
         return;
       }
       if (type === 'RUC') {
@@ -1650,7 +1865,7 @@ export class EnviosFeature implements OnInit {
   lookupCliente() {
     this.compLookupError = null; const type = this.compDocType; const nro = (this.compDocNumber || '').trim();
     if (!type || !nro) { this.compLookupError = 'Ingrese tipo y numero'; return; }
-    if (!this.isValidDoc(type, nro)) { this.compLookupError = (type === 'RUC' ? 'RUC debe tener 11 digitos' : 'DNI debe tener 8 digitos'); return; }
+    if (!this.isValidDoc(type, nro)) { this.compLookupError = this.docMinLengthError(); return; }
     const found = (this.personas || []).find(p => (p as any).nro_documento === nro && (p as any).tipo_documento === type);
     if (found) { this.compClienteId = (found as any).id; return; }
     this.compLookupLoading = true;
@@ -1660,7 +1875,107 @@ export class EnviosFeature implements OnInit {
       this.personasSrv.getDatosDNI(type, nro).subscribe({ next: (data: any) => { const body = this.buildPersonaFromDNI(data); if (!(body as any).nro_documento) { this.compLookupLoading = false; this.compLookupError = 'No encontrado'; return; } this.personasSrv.createPersona(body).subscribe({ next: (created: any) => { this.personas = [created as any, ...this.personas]; this.compClienteId = (created as any).id || null; this.compLookupLoading = false; }, error: () => { this.compLookupLoading = false; this.compLookupError = 'No se pudo crear'; } }); }, error: () => { this.compLookupLoading = false; this.compLookupError = 'No encontrado'; } });
     }
   }
-  get compValid(): boolean { return !!this.compTipoId && !!this.compFormaPagoId && !!this.compNumeroComprobante && (!!this.compDocNumber); }
+
+  onSpecialApellidoEnter(role: 'remitente' | 'destinatario'): void {
+    if (role === 'remitente') {
+      if (this.isSpecialDocType(this.remitenteDocType)) this.tryCreateSpecialPersonaFromInputs('remitente');
+      return;
+    }
+    if (this.isSpecialDocType(this.destinatarioDocType)) this.tryCreateSpecialPersonaFromInputs('destinatario');
+  }
+
+  onSpecialApellidoBlur(role: 'remitente' | 'destinatario'): void {
+    if (role === 'remitente') {
+      if (!this.isSpecialDocType(this.remitenteDocType)) return;
+      if (String(this.remitenteNombre || '').trim() && String(this.remitenteApellido || '').trim()) {
+        this.remLookupError = null;
+      }
+      this.tryCreateSpecialPersonaFromInputs('remitente');
+      return;
+    }
+    if (!this.isSpecialDocType(this.destinatarioDocType)) return;
+    if (String(this.destinatarioNombre || '').trim() && String(this.destinatarioApellido || '').trim()) {
+      this.destLookupError = null;
+    }
+    this.tryCreateSpecialPersonaFromInputs('destinatario');
+  }
+
+  private tryCreateSpecialPersonaFromInputs(role: 'remitente' | 'destinatario'): void {
+    const isRem = role === 'remitente';
+    const docType = (isRem ? this.remitenteDocType : this.destinatarioDocType) as any;
+    if (!this.isSpecialDocType(docType)) return;
+    const currentId = Number((this.newEnvio as any)?.[role] || 0);
+    if (currentId > 0) return;
+
+    const nro = String(isRem ? this.remitenteDocNumber : this.destinatarioDocNumber).trim();
+    const nombre = String(isRem ? this.remitenteNombre : this.destinatarioNombre).trim();
+    const apellido = String(isRem ? this.remitenteApellido : this.destinatarioApellido).trim();
+    if (!nro || !nombre || !apellido) return;
+
+    const foundLocal = this.findPersonaByDoc(this.personas, docType, nro);
+    if (foundLocal) {
+      if (isRem) this.selectRemitente(foundLocal); else this.selectDestinatario(foundLocal);
+      return;
+    }
+
+    const isLoading = isRem ? this.remLookupLoading : this.destLookupLoading;
+    if (isLoading) return;
+    if (isRem) this.remLookupLoading = true; else this.destLookupLoading = true;
+
+    const createNow = () => {
+      const body = this.buildPersonaFromSpecial(docType, nro, nombre, apellido);
+      this.personasSrv.createPersona(body).subscribe({
+        next: (created: any) => {
+          this.personas = [created as any, ...this.personas];
+          if (isRem) {
+            this.specialDocNotFoundRem = false;
+            this.remLookupLoading = false;
+            this.selectRemitente(created as any);
+          } else {
+            this.specialDocNotFoundDest = false;
+            this.destLookupLoading = false;
+            this.selectDestinatario(created as any);
+          }
+        },
+        error: () => {
+          if (isRem) {
+            this.remLookupLoading = false;
+            this.remLookupError = 'No se pudo crear el remitente especial';
+          } else {
+            this.destLookupLoading = false;
+            this.destLookupError = 'No se pudo crear el destinatario especial';
+          }
+        }
+      });
+    };
+
+    const notFoundFlag = isRem ? this.specialDocNotFoundRem : this.specialDocNotFoundDest;
+    if (notFoundFlag) {
+      createNow();
+      return;
+    }
+
+    this.fetchPersonaByDocumento(docType, nro, (persona) => {
+      if (persona && Number((persona as any).id || 0) > 0) {
+        const existingLocal = (this.personas || []).find(p => Number((p as any).id) === Number((persona as any).id));
+        const selected = existingLocal || persona;
+        if (!existingLocal) this.personas = [selected as any, ...this.personas];
+        if (isRem) {
+          this.remLookupLoading = false;
+          this.selectRemitente(selected as any);
+        } else {
+          this.destLookupLoading = false;
+          this.selectDestinatario(selected as any);
+        }
+        return;
+      }
+      createNow();
+    });
+  }
+
+  get compValid(): boolean {
+    return !!this.compTipoId && !!this.compFormaPagoId && !!this.compNumeroComprobante && this.isValidDoc(this.compDocType as any, this.compDocNumber);
+  }
   compClienteLabel(): string | null {
     const id = this.compClienteId;
     if (!id) return null;
@@ -1701,6 +2016,9 @@ export class EnviosFeature implements OnInit {
     this.resetRemitenteCredito();
     // Reset WhatsApp helpers
     this.sendWhatsapp = false; this.whatsappPhone = '';
+    this.tieneGuiaReferencia = false;
+    this.guiaReferenciaSerie = '';
+    this.guiaReferenciaNumero = '';
     this.applyDefaultOrigen();
   }
   closeCreate() { this.showCreate = false; this.editing = false;}
@@ -1726,10 +2044,12 @@ export class EnviosFeature implements OnInit {
       punto_origen_id: (item as any).punto_origen_id,
       punto_destino_id: (item as any).punto_destino_id,
       ticket_numero: (item as any).ticket_numero,
+      guia_referencia: String((item as any).guia_referencia || '').trim() || null,
     } as any;
+    this.applyGuiaReferenciaToForm((item as any).guia_referencia);
     const remitentePersona = (this.personas || []).find(p => Number((p as any).id) === Number((item as any).remitente));
     if (remitentePersona) {
-      this.remitenteDocType = ((remitentePersona as any).tipo_documento || 'DNI') as any;
+      this.remitenteDocType = this.normalizeDocTypeOr((remitentePersona as any).tipo_documento, 'DNI');
       this.remitenteDocNumber = String((remitentePersona as any).nro_documento || '');
       this.remitenteNombre = String((remitentePersona as any).nombre || '');
       this.remitenteApellido = String((remitentePersona as any).apellido || '');
@@ -1743,7 +2063,7 @@ export class EnviosFeature implements OnInit {
     }
     const destinatarioPersona = (this.personas || []).find(p => Number((p as any).id) === Number((item as any).destinatario));
     if (destinatarioPersona) {
-      this.destinatarioDocType = ((destinatarioPersona as any).tipo_documento || 'DNI') as any;
+      this.destinatarioDocType = this.normalizeDocTypeOr((destinatarioPersona as any).tipo_documento, 'DNI');
       this.destinatarioDocNumber = String((destinatarioPersona as any).nro_documento || '');
       this.destinatarioNombre = String((destinatarioPersona as any).nombre || '');
       this.destinatarioApellido = String((destinatarioPersona as any).apellido || '');
@@ -1801,8 +2121,10 @@ export class EnviosFeature implements OnInit {
     const e: any = this.newEnvio;
     const remDocOk = this.isValidDoc(this.remitenteDocType as any, this.remitenteDocNumber);
     const destDocOk = this.isValidDoc(this.destinatarioDocType as any, this.destinatarioDocNumber);
-    const remSpecialDataOk = !this.isSpecialDocType(this.remitenteDocType) || (!!String(this.remitenteNombre || '').trim() && !!String(this.remitenteApellido || '').trim());
-    const destSpecialDataOk = !this.isSpecialDocType(this.destinatarioDocType) || (!!String(this.destinatarioNombre || '').trim() && !!String(this.destinatarioApellido || '').trim());
+    const remNeedsSpecialData = this.isSpecialDocType(this.remitenteDocType) && Number(e?.remitente || 0) <= 0;
+    const destNeedsSpecialData = this.isSpecialDocType(this.destinatarioDocType) && Number(e?.destinatario || 0) <= 0;
+    const remSpecialDataOk = !remNeedsSpecialData || (!!String(this.remitenteNombre || '').trim() && !!String(this.remitenteApellido || '').trim());
+    const destSpecialDataOk = !destNeedsSpecialData || (!!String(this.destinatarioNombre || '').trim() && !!String(this.destinatarioApellido || '').trim());
     const okRemitente = Number(e?.remitente) > 0 || (this.isSpecialDocType(this.remitenteDocType) && remDocOk && remSpecialDataOk);
     const okDestinatario = Number(e?.destinatario) > 0 || (this.isSpecialDocType(this.destinatarioDocType) && destDocOk && destSpecialDataOk);
     const okFormaPago = !e?.estado_pago || this.hasComprobante || !!this.compFormaPagoId;
@@ -1813,7 +2135,8 @@ export class EnviosFeature implements OnInit {
     const lengthDetalle = this.stagedDetalles.length > 0;
     const clave = String(e?.clave_recojo || '');
     const okClave = !clave || clave === String(this.confirmClaveRecojo || '');
-    return okRemitente && okDestinatario && remDocOk && destDocOk && remSpecialDataOk && destSpecialDataOk && okFormaPago && okPeso && okFecha && okOrigen && okDestino && lengthDetalle && okClave;
+    const okGuiaReferencia = !this.tieneGuiaReferencia || (!!String(this.guiaReferenciaSerie || '').trim() && !!String(this.guiaReferenciaNumero || '').trim());
+    return okRemitente && okDestinatario && remDocOk && destDocOk && remSpecialDataOk && destSpecialDataOk && okFormaPago && okPeso && okFecha && okOrigen && okDestino && lengthDetalle && okClave && okGuiaReferencia;
   }
 
   cleanEnvio() {
@@ -1836,6 +2159,9 @@ export class EnviosFeature implements OnInit {
     };
     this.confirmClaveRecojo = '';
     this.destinatarioCelular = '';
+    this.tieneGuiaReferencia = false;
+    this.guiaReferenciaSerie = '';
+    this.guiaReferenciaNumero = '';
     //this.stagedDetalles = [];
   }
 
@@ -1852,15 +2178,16 @@ export class EnviosFeature implements OnInit {
       return;
     }
     const doSubmit = (ticketSerie: SerieComprobanteModel | null) => {
+    const guiaReferencia = this.buildGuiaReferenciaForPayload();
     const ticketNumero = ticketSerie ? this.buildTicketNumero(ticketSerie) : (String(e.ticket_numero || '').trim() || null);
     const payload: any = {
-      remitente: Number(e.remitente), destinatario: Number(e.destinatario), entrega_domicilio: !!e.entrega_domicilio, direccion_envio: String(e.direccion_envio || '').toUpperCase().trim(), estado_pago: !!e.estado_pago, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id), ticket_numero: ticketNumero, placa_vehiculo: String(e.placa_vehiculo || '').trim() || null
+      remitente: Number(e.remitente), destinatario: Number(e.destinatario), entrega_domicilio: !!e.entrega_domicilio, direccion_envio: String(e.direccion_envio || '').toUpperCase().trim(), estado_pago: !!e.estado_pago, pago_destino: !e.estado_pago, guia_referencia: guiaReferencia, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id), ticket_numero: ticketNumero, placa_vehiculo: String(e.placa_vehiculo || '').trim() || null
     };
     this.saving = true; this.saveError = null;
     if (this.editing && this.editingId) {
       this.enviosSrv.updateEnvios(this.editingId, payload).subscribe({
         next: (res: any) => {
-          const updated: Envio = { id: res?.id ?? this.editingId!, remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio, ticket_numero: res?.ticket_numero ?? payload.ticket_numero, estado_whatsapp: res?.estado_whatsapp, estado_envio: res?.estado_envio, id_tracking: res?.id_tracking, usuario_crea: res?.usuario_crea, precio_envio: res?.precio_envio, placa_vehiculo: res?.placa_vehiculo ?? payload.placa_vehiculo } as Envio;
+          const updated: Envio = { id: res?.id ?? this.editingId!, remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, pago_destino: res?.pago_destino ?? payload.pago_destino, guia_referencia: res?.guia_referencia ?? payload.guia_referencia, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio, ticket_numero: res?.ticket_numero ?? payload.ticket_numero, estado_whatsapp: res?.estado_whatsapp, estado_envio: res?.estado_envio, id_tracking: res?.id_tracking, usuario_crea: res?.usuario_crea, precio_envio: res?.precio_envio, placa_vehiculo: res?.placa_vehiculo ?? payload.placa_vehiculo } as Envio;
           this.lista_envios = this.lista_envios.map(v => (v as any).id === this.editingId ? updated : v);
           this.saving = false; this.editing = false; this.editingId = null; this.onFilterChange();
           this.closeEdit(); this.showNotif('Env\u00edo actualizado');
@@ -1872,7 +2199,7 @@ export class EnviosFeature implements OnInit {
     this.enviosSrv.createEnvios(payload).subscribe({
       next: (res: any) => {
         const newId = Number(res?.id);
-        const updated: Envio = { id: newId || (Math.max(0, ...(this.lista_envios.map((x: any) => x.id).filter(Number))) + 1), remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio, ticket_numero: res?.ticket_numero ?? payload.ticket_numero, estado_whatsapp: 'Pendiente', estado_envio: 'Recepción', id_tracking: res?.id_tracking, usuario_crea: res?.usuario_crea, precio_envio: res?.precio_envio, placa_vehiculo: res?.placa_vehiculo ?? payload.placa_vehiculo } as Envio;
+        const updated: Envio = { id: newId || (Math.max(0, ...(this.lista_envios.map((x: any) => x.id).filter(Number))) + 1), remitente: res?.remitente ?? payload.remitente, destinatario: res?.destinatario ?? payload.destinatario, estado_pago: res?.estado_pago ?? payload.estado_pago, pago_destino: res?.pago_destino ?? payload.pago_destino, guia_referencia: res?.guia_referencia ?? payload.guia_referencia, clave_recojo: res?.clave_recojo ?? payload.clave_recojo, peso: res?.peso ?? payload.peso, fecha_envio: res?.fecha_envio ?? payload.fecha_envio, fecha_recepcion: res?.fecha_recepcion ?? payload.fecha_recepcion, tipo_contenido: res?.tipo_contenido ?? payload.tipo_contenido, guia: res?.guia ?? payload.guia, manifiesto: res?.manifiesto ?? payload.manifiesto, valida_restricciones: res?.valida_restricciones ?? payload.valida_restricciones, punto_origen_id: res?.punto_origen_id ?? payload.punto_origen_id, punto_destino_id: res?.punto_destino_id ?? payload.punto_destino_id, estado_entrega: res?.estado_entrega ?? payload.estado_entrega, entrega_domicilio: res?.entrega_domicilio ?? payload.entrega_domicilio, direccion_envio: res?.direccion_envio ?? payload.direccion_envio, ticket_numero: res?.ticket_numero ?? payload.ticket_numero, estado_whatsapp: 'Pendiente', estado_envio: 'Recepción', id_tracking: res?.id_tracking, usuario_crea: res?.usuario_crea, precio_envio: res?.precio_envio, placa_vehiculo: res?.placa_vehiculo ?? payload.placa_vehiculo } as Envio;
         const detalles = (this.stagedDetalles || []).map((d, i) => ({ id: 0, numero_item: i + 1, cantidad: Number(d.cantidad) || 0, descripcion: (d.descripcion as any), precio_unitario: Number(d.precio_unitario) || 0, precio_total: this.getDetalleTotal(d), envio_id: newId })) as DetalleEnvioCreate[];
         if (newId && detalles.length) {
           forkJoin(detalles.map(d => this.detalleSrv.createDetalleEnvio(d))).subscribe({ next: () => this.afterCreate(updated, newId, payload, ticketSerie), error: () => { this.saving = false; this.saveError = 'No se pudo crear el detalle del env\u00edo'; this.showNotif(this.saveError as string, 'error'); } });
@@ -2165,7 +2492,7 @@ export class EnviosFeature implements OnInit {
       return;
     }
 
-    const found = (this.personas || []).find(p => (p as any).nro_documento === nro && (p as any).tipo_documento === docType);
+    const found = this.findPersonaByDoc(this.personas, docType as any, nro);
     if (found) {
       if (isRem) this.selectRemitente(found); else this.selectDestinatario(found);
       next(true);
@@ -2187,7 +2514,7 @@ export class EnviosFeature implements OnInit {
       }
     });
   }
-  loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; this.syncDestinatarioCelular(); const remId = Number((this.newEnvio as any)?.remitente || 0); if (remId && !this.remitenteDocNumber) { const p = (this.personas || []).find(x => Number((x as any).id) === remId); if (p) { this.remitenteDocType = ((p as any).tipo_documento || 'DNI') as any; this.remitenteDocNumber = String((p as any).nro_documento || ''); this.loadRemitenteCreditoByDoc(this.remitenteDocNumber); } } }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }
+  loadPersonas() { this.personasLoading = true; this.personasError = null; this.personasSrv.getPersonas().subscribe({ next: (res: Persona[]) => { this.personas = res || []; this.personasLoading = false; this.syncDestinatarioCelular(); const remId = Number((this.newEnvio as any)?.remitente || 0); if (remId && !this.remitenteDocNumber) { const p = (this.personas || []).find(x => Number((x as any).id) === remId); if (p) { this.remitenteDocType = this.normalizeDocTypeOr((p as any).tipo_documento, 'DNI'); this.remitenteDocNumber = String((p as any).nro_documento || ''); this.loadRemitenteCreditoByDoc(this.remitenteDocNumber); } } }, error: () => { this.personasLoading = false; this.personasError = 'No se pudieron cargar personas'; }, }); }
   loadPuntos() {
     this.puntosLoading = true; this.puntosError = null;
     this.puntosSrv.getPuntos().subscribe({
@@ -2200,6 +2527,7 @@ export class EnviosFeature implements OnInit {
     this.loadCatalogos();
     this.loadCompaniaConfig();
     try { const vm = localStorage.getItem('envios.viewMode') as any; if (vm === 'table' || vm === 'cards') this.viewMode = vm; } catch { }
+    this.initPagosDestinoControl();
     this.loadEnvios(); this.loadPersonas(); this.loadPuntos();
   }
   // Generar comprobante desde el inline de entrega no pagada
