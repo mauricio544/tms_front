@@ -18,8 +18,9 @@ export class Manifiestos {
   private readonly router = inject(Router);
   private readonly manifiesto: Manifiesto[] = [];
 
-  getManifiestos(): Observable<Manifiesto[]> {
-    return this.api.get('/envios/manifiestos');
+  getManifiestos(fecha?: string | null): Observable<Manifiesto[]> {
+    const query = this.buildFechaQuery(fecha);
+    return this.api.get(`/envios/manifiestos${query}`);
   }
 
   createManifiestos(body: { conductor_id: number; codigo_punto_origen: number; codigo_punto_destino: number; serie: string; numero: string, copiloto_id: number, turno: string; fecha_traslado: string }): Observable<Manifiesto> {
@@ -43,8 +44,11 @@ export class Manifiestos {
     return this.api.patch(`/envios/manifiestos/${id}/estado`, body);
   }
 
-  getManifiestoPunto(punto_id: number): Observable<Manifiesto[]> {
-    return this.api.get(`/envios/manifiestos/por-punto?punto_id=${punto_id}`);
+  getManifiestoPunto(punto_id: number, fecha?: string | null): Observable<Manifiesto[]> {
+    const params = [`punto_id=${punto_id}`];
+    const fechaValue = this.normalizeFecha(fecha);
+    if (fechaValue) params.push(`fecha=${encodeURIComponent(fechaValue)}`);
+    return this.api.get(`/envios/manifiestos/por-punto?${params.join('&')}`);
   }
 
   getLastManifiesto(): Observable<any> {
@@ -59,5 +63,15 @@ export class Manifiestos {
   // Resumen manifiesto y generación de guías lista de emitidas y no emitidas
   getManifiestoResumenGuias(manifiesto_id: number): Observable<ManifiestoGuiasSunatResumenRead> {
     return this.api.get(`/envios/manifiestos/${manifiesto_id}/guias-sunat/resumen`)
+  }
+
+  private buildFechaQuery(fecha?: string | null): string {
+    const fechaValue = this.normalizeFecha(fecha);
+    return fechaValue ? `?fecha=${encodeURIComponent(fechaValue)}` : '';
+  }
+
+  private normalizeFecha(fecha?: string | null): string | null {
+    const value = String(fecha || '').trim();
+    return value ? value : null;
   }
 }

@@ -9,6 +9,7 @@
 
   <div class="mt-4 flex flex-wrap items-center gap-2">
     <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar (serie, Número, conductor, puntos)" class="h-10 w-80 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+    <input type="date" [(ngModel)]="filterFecha" (ngModelChange)="onFechaFilterChange()" class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
     <select [(ngModel)]="filterOrigenId" (ngModelChange)="onFilterChange()" class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
       <option [ngValue]="null">Origen: Todos</option>
       <option *ngFor="let p of puntos" [ngValue]="p.id">{{ p.nombre.toUpperCase() }}</option>

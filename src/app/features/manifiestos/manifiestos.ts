@@ -73,6 +73,7 @@ export class ManifiestosFeature implements OnInit {
   // Filtros adicionales
   filterOrigenId: number | null = null;
   filterDestinoId: number | null = null;
+  filterFecha = this.localDateInput();
   defaultOrigenId: number | null = null;
   origenLocked = false;
 
@@ -182,6 +183,10 @@ export class ManifiestosFeature implements OnInit {
   get pageEnd(): number { return Math.min(this.page * this.pageSize, this.total); }
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
   onFilterChange() { this.page = 1; }
+  onFechaFilterChange() {
+    this.page = 1;
+    this.loadManifiestos();
+  }
   openDetailContext(item: Manifiesto, tab: 'resumen' | 'envios' | 'guias' | 'documento' | 'mapa' | 'historial' = 'resumen') {
     const id = Number((item as any)?.id || 0);
     if (!id) return;
@@ -550,15 +555,15 @@ export class ManifiestosFeature implements OnInit {
           this.lista_manifiestos = [updated, ...this.lista_manifiestos];
         }
         const wasEditing = this.editing;
-        if (!wasEditing) {
+        /*if (!wasEditing) {
           this.attachEnviosByDestino(updated);
-        }
+        }*/
         this.saving = false;
         this.editing = false;
         this.editingId = null;
         this.onFilterChange();
         this.closeModal();
-        this.showNotif(wasEditing ? 'Manifiesto actualizado' : 'Manifiesto creado');
+        this.showNotif(wasEditing ? 'Manifiesto actualizado' : 'Manifiesto creado y envíos añadidos');
       },
       error: () => {
         this.saving = false;
@@ -645,9 +650,10 @@ export class ManifiestosFeature implements OnInit {
     this.loading = true;
     this.error = null;
     const puntoId = this.getUserPuntoId();
+    const fecha = this.filterFecha || this.localDateInput();
     const source$ = this.useManifiestoPuntoEndpoint()
-      ? this.manifiestosSrv.getManifiestoPunto(puntoId)
-      : this.manifiestosSrv.getManifiestos();
+      ? this.manifiestosSrv.getManifiestoPunto(puntoId, fecha)
+      : this.manifiestosSrv.getManifiestos(fecha);
     source$.subscribe({
       next: (response) => {
         this.lista_manifiestos = (response as any) || [];
@@ -1651,7 +1657,7 @@ ngOnInit(): void {
       detalles.forEach((det: any) => {
         const cantidad = Number(det?.cantidad) || 0;
         const precio = Number(det?.precio_unitario) || 0;
-        const subtotal = cantidad * precio;
+        const subtotal = Number(det?.precio_total) || 0;
         total += subtotal;
         rows.push({
           envio,

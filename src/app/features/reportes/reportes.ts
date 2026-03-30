@@ -87,7 +87,7 @@ export class ReportesFeature implements OnInit {
       next: (res) => { this.puntos = res || []; puntosLoaded = true; done(); },
       error: () => { this.puntos = []; puntosLoaded = true; done(); }
     });
-    this.manifiestosSrv.getManifiestos().subscribe({
+    this.manifiestosSrv.getManifiestos(this.manifiestosFechaParam()).subscribe({
       next: (res) => { this.manifiestos = res || []; manifiestosLoaded = true; done(); },
       error: () => { this.manifiestos = []; manifiestosLoaded = true; done(); }
     });
@@ -421,8 +421,35 @@ export class ReportesFeature implements OnInit {
 
   onDateChange() {
     if (this.isOperario) return;
+    this.refreshManifiestosByDate();
     this.updateLeafletMarkers();
     this.refreshMovimientosByRange();
+  }
+
+  private refreshManifiestosByDate() {
+    this.manifiestosSrv.getManifiestos(this.manifiestosFechaParam()).subscribe({
+      next: (res) => { this.manifiestos = res || []; },
+      error: () => { this.manifiestos = []; }
+    });
+  }
+
+  private manifiestosFechaParam(): string {
+    return (this.fromDate || this.toDate || this.localDateInput()).trim();
+  }
+
+  private localDateInput(value?: string | Date | null): string {
+    if (!value) {
+      const d = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+    if (value instanceof Date) {
+      const d = value;
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+    const s = String(value);
+    return s.includes('T') ? s.slice(0, 10) : s;
   }
 
   private refreshMovimientosByRange() {

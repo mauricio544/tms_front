@@ -2180,8 +2180,10 @@ export class EnviosFeature implements OnInit {
     const doSubmit = (ticketSerie: SerieComprobanteModel | null) => {
     const guiaReferencia = this.buildGuiaReferenciaForPayload();
     const ticketNumero = ticketSerie ? this.buildTicketNumero(ticketSerie) : (String(e.ticket_numero || '').trim() || null);
+    const estadoPago = !!e.estado_pago;
+    const pagoDestino = estadoPago ? false : true;
     const payload: any = {
-      remitente: Number(e.remitente), destinatario: Number(e.destinatario), entrega_domicilio: !!e.entrega_domicilio, direccion_envio: String(e.direccion_envio || '').toUpperCase().trim(), estado_pago: !!e.estado_pago, pago_destino: !e.estado_pago, guia_referencia: guiaReferencia, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id), ticket_numero: ticketNumero, placa_vehiculo: String(e.placa_vehiculo || '').trim() || null
+      remitente: Number(e.remitente), destinatario: Number(e.destinatario), entrega_domicilio: !!e.entrega_domicilio, direccion_envio: String(e.direccion_envio || '').toUpperCase().trim(), estado_pago: estadoPago, pago_destino: pagoDestino, guia_referencia: guiaReferencia, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id), ticket_numero: ticketNumero, placa_vehiculo: String(e.placa_vehiculo || '').trim() || null
     };
     this.saving = true; this.saveError = null;
     if (this.editing && this.editingId) {
