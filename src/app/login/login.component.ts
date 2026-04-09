@@ -61,8 +61,9 @@ export class LoginComponent {
               });
               const isAdminSede = hasRole('admin_sede');
               const isOperario = hasRole('operario') && !isAdminSede;
+              const isAdminZona = hasRole('admin_zona');
               this.loading = false;
-              this.router.navigateByUrl(isOperario ? 'envios' : 'dashboard');
+              this.router.navigateByUrl(isAdminZona ? 'gastos' : (isOperario ? 'envios' : 'dashboard'));
             },
             error: () => {
               this.loading = false;

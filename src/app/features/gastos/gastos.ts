@@ -8,6 +8,8 @@ import { SerieComprobante as SerieComprobanteService } from '../../../../core/se
 import { DetalleFull as Detalle, CabeceraCreate, DetalleCreate, Persona, SerieComprobante as SerieComprobanteModel } from '../../../../core/mapped';
 import { UiConfirmComponent } from '../../shared/ui/confirm/confirm';
 
+type UserSedeOption = { id: number; nombre: string; visible: boolean };
+
 @Component({
   selector: 'feature-gastos',
   standalone: true,
@@ -21,6 +23,7 @@ export class GastosFeature implements OnInit {
   private readonly personasSrv = inject(Personas);
   private readonly serieSrv = inject(SerieComprobanteService);
   isOperario = false;
+  isAdminZona = false;
 
   loading = false;
   error: string | null = null;
@@ -29,6 +32,7 @@ export class GastosFeature implements OnInit {
   // Filtro
   search = '';
   selectedDate: string | null = null;
+  filterSedeId: number | null = null;
 
   // Paginación
   page = 1;
@@ -44,6 +48,10 @@ export class GastosFeature implements OnInit {
   setPage(n: number) { this.page = Math.min(Math.max(1, n), this.totalPages); }
   private syncPageBounds() { this.page = Math.min(Math.max(1, this.page), this.totalPages); }
   onFilterChange() { this.page = 1; }
+  onSedeFilterChange() {
+    this.page = 1;
+    this.load();
+  }
 
   private todayIso(): string {
     const d = new Date();
@@ -53,6 +61,10 @@ export class GastosFeature implements OnInit {
 
   ngOnInit(): void {
     this.isOperario = this.hasOperarioRole();
+    this.isAdminZona = this.hasAdminZonaRole();
+    this.userSedes = this.getUserSedes();
+    this.filterSedeId = this.defaultFilterSedeId();
+    this.selectedSedeId = this.defaultCreateSedeId();
     if (!this.selectedDate) {
       this.selectedDate = this.todayIso();
     }
@@ -118,14 +130,17 @@ export class GastosFeature implements OnInit {
     this.loading = true;
     this.error = null;
     const usePuntoEndpoint = this.useDetallesPuntoEndpoint();
+    const useZonaEndpoint = this.useDetallesZonaEndpoint();
     const selected = String(this.selectedDate || '').trim();
     const fecha = selected || this.todayIso();
     const source$ = usePuntoEndpoint
       ? this.detalleSrv.getDetallesListFullPunto(this.getUserSedeId(), fecha)
-      : this.detalleSrv.getDetallesListFull();
+      : (useZonaEndpoint
+        ? this.detalleSrv.getDetallesByZonaFecha(fecha, this.getUserZonaId() || undefined)
+        : this.detalleSrv.getDetallesListFull());
     source$.subscribe({
       next: (res) => {
-        this.detalles = usePuntoEndpoint ? (res || []) : this.filterDetallesBySelectedDate(res || []);
+        this.detalles = usePuntoEndpoint ? (res || []) : this.filterDetallesBySelectedDateAndSede(res || []);
         this.syncPageBounds();
         this.loading = false;
       },
@@ -168,6 +183,8 @@ export class GastosFeature implements OnInit {
   showAddModal = false;
   savingAdd = false;
   addError: string | null = null;
+  userSedes: UserSedeOption[] = [];
+  selectedSedeId: number | null = null;
   cabeceraForm: Partial<CabeceraCreate> = { tipo_movimiento: 'E', monto: undefined as any, vale_gastos: undefined as any, fecha_movimiento: this.todayIso() } as any;
   detalleForm: Partial<DetalleCreate> = { tipo_comprobante_sunat: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
   deactivatingCabeceraId: number | null = null;
@@ -184,7 +201,8 @@ export class GastosFeature implements OnInit {
     const okTipoC = Number(d.tipo_comprobante_sunat) >= 0;
     const okNumC = String(d.numero_comprobante || '').trim().length > 0;
     const okMontoDet = Number(d.monto ?? c.monto) > 0;
-    return okTM && okMonto && okTipoC && okNumC;
+    const okSede = !this.isAdminZona || Number(this.selectedSedeId || 0) > 0;
+    return okTM && okMonto && okTipoC && okNumC && okMontoDet && okSede;
   }
 
   openAddMovimiento() {
@@ -194,6 +212,7 @@ export class GastosFeature implements OnInit {
     this.addError = null;
     this.cabeceraForm = { tipo_movimiento: 'E', monto: undefined as any, vale_gastos: undefined as any, fecha_movimiento: this.todayIso() } as any;
     this.detalleForm = { tipo_comprobante_sunat: undefined as any, numero_comprobante: '', descripcion: '', tipo_gasto: undefined, monto: undefined as any } as any;
+    this.selectedSedeId = this.defaultCreateSedeId();
     this.selectedSerieId = this.seriesFiltered.length ? Number(this.seriesFiltered[0].id) : null;
     if (this.selectedSerieId) { this.onSerieChange(this.selectedSerieId); }
     this.personaQuery = '';
@@ -210,7 +229,7 @@ export class GastosFeature implements OnInit {
     const cabBody: any = {
       tipo_movimiento: String(c.tipo_movimiento),
       monto: Number(c.monto),
-      sede_id: this.getUserSedeId() || undefined,
+      sede_id: this.resolveCreateSedeId() || undefined,
       persona_id: c.persona_id != null ? Number(c.persona_id) : undefined,
       placa: String(c.placa || '').trim() || undefined,
       vale_gastos: c.vale_gastos != null && String(c.vale_gastos).trim() !== '' ? String(c.vale_gastos).trim() : undefined,
@@ -284,7 +303,7 @@ export class GastosFeature implements OnInit {
     onDateChange() {
       const d = (this.selectedDate || '').trim();
       this.page = 1;
-      if (this.useDetallesPuntoEndpoint()) {
+      if (this.useDetallesPuntoEndpoint() || this.useDetallesZonaEndpoint()) {
         this.load();
         return;
       }
@@ -292,13 +311,13 @@ export class GastosFeature implements OnInit {
       this.loading = true; this.error = null;
       const param = 'fecha=' + encodeURIComponent(d);
       this.detalleSrv.getDetallesByFecha(param).subscribe({
-        next: (res) => { this.detalles = res || []; this.syncPageBounds(); this.loading = false; },
+        next: (res) => { this.detalles = this.filterDetallesBySelectedDateAndSede(res || []); this.syncPageBounds(); this.loading = false; },
         error: () => { this.loading = false; this.error = 'No se pudieron cargar los movimientos por fecha'; }
       });
     }
 
   clearDate() {
-      this.selectedDate = this.useDetallesPuntoEndpoint() ? this.todayIso() : null;
+      this.selectedDate = (this.useDetallesPuntoEndpoint() || this.useDetallesZonaEndpoint()) ? this.todayIso() : null;
       this.page = 1;
       this.load();
     }
@@ -314,9 +333,16 @@ export class GastosFeature implements OnInit {
       });
       return;
     }
+    if (this.useDetallesZonaEndpoint()) {
+      this.detalleSrv.getDetallesByZonaFecha(fecha, this.getUserZonaId() || undefined).subscribe({
+        next: (res) => { this.detalles = this.filterDetallesBySelectedDateAndSede(res || []); this.syncPageBounds(); this.loading = false; },
+        error: () => { this.loading = false; this.error = 'No se pudieron cargar los movimientos'; }
+      });
+      return;
+    }
     const param = 'fecha=' + encodeURIComponent(fecha);
     this.detalleSrv.getDetallesByFecha(param).subscribe({
-      next: (res) => { this.detalles = res || []; this.syncPageBounds(); this.loading = false; },
+      next: (res) => { this.detalles = this.filterDetallesBySelectedDateAndSede(res || []); this.syncPageBounds(); this.loading = false; },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los movimientos'; }
     });
   }
@@ -402,6 +428,10 @@ export class GastosFeature implements OnInit {
     }
   }
 
+  private hasAdminZonaRole(): boolean {
+    return this.getRoleNames().includes('admin_zona');
+  }
+
   private getCurrentMe(): any | null {
     try {
       const raw = localStorage.getItem('me');
@@ -418,11 +448,59 @@ export class GastosFeature implements OnInit {
     return roles.map((r: any) => String(r?.name ?? r?.nombre ?? r?.rol ?? r?.role ?? r).toLowerCase().trim());
   }
 
+  private getUserSedes(): UserSedeOption[] {
+    const me = this.getCurrentMe();
+    const sedes = Array.isArray(me?.sedes) ? me.sedes : [];
+    return sedes
+      .map((s: any) => ({
+        id: Number(s?.id || 0),
+        nombre: String(s?.nombre ?? s?.sede ?? s?.descripcion ?? s?.label ?? `SEDE ${s?.id ?? ''}`).trim(),
+        visible: Boolean(s?.visible),
+      }))
+      .filter((s: UserSedeOption) => s.id > 0);
+  }
+
+  private getPreferredVisibleSedeId(): number | null {
+    const visibleSede = (this.userSedes || []).find((s: UserSedeOption) => s.visible);
+    return Number(visibleSede?.id || 0) || null;
+  }
+
+  private defaultCreateSedeId(): number | null {
+    if (this.isAdminZona) {
+      return Number(this.filterSedeId || this.getPreferredVisibleSedeId() || this.userSedes[0]?.id || 0) || null;
+    }
+    const sedeId = this.getUserSedeId();
+    return sedeId > 0 ? sedeId : null;
+  }
+
+  private defaultFilterSedeId(): number | null {
+    if (!this.isAdminZona) return null;
+    return Number(this.getPreferredVisibleSedeId() || this.userSedes[0]?.id || 0) || null;
+  }
+
+  private resolveCreateSedeId(): number {
+    if (this.isAdminZona) {
+      return Number(this.selectedSedeId || 0);
+    }
+    return this.getUserSedeId();
+  }
+
+  private getUserZonaId(): number {
+    const me = this.getCurrentMe();
+    const sedes = Array.isArray(me?.sedes) ? me.sedes : [];
+    const withZona = sedes.find((s: any) => Number(s?.zona_id || 0) > 0);
+    return Number(withZona?.zona_id || 0);
+  }
+
   private useDetallesPuntoEndpoint(): boolean {
     const sedeId = this.getUserSedeId();
     if (sedeId <= 0) return false;
     const roles = this.getRoleNames();
     return roles.includes('operario') || roles.includes('admin_sede') || roles.includes('adm_sede');
+  }
+
+  private useDetallesZonaEndpoint(): boolean {
+    return this.isAdminZona && this.getUserZonaId() > 0;
   }
 
   private parseDate(value: any): Date | null {
@@ -435,18 +513,25 @@ export class GastosFeature implements OnInit {
     return isNaN(d.getTime()) ? null : d;
   }
 
-  private filterDetallesBySelectedDate(list: Detalle[]): Detalle[] {
+  private filterDetallesBySelectedDateAndSede(list: Detalle[]): Detalle[] {
     const d = String(this.selectedDate || '').trim();
-    if (!d) return list;
     const target = this.parseDate(d);
-    if (!target) return list;
-    target.setHours(0, 0, 0, 0);
     return (list || []).filter((it: any) => {
-      const raw = it?.cabecera?.fecha || it?.cabecera?.created_at || it?.cabecera?.fecha_movimiento || it?.fecha;
-      const current = this.parseDate(raw);
-      if (!current) return false;
-      current.setHours(0, 0, 0, 0);
-      return current.getTime() === target.getTime();
+      if (target) {
+        const raw = it?.cabecera?.fecha || it?.cabecera?.created_at || it?.cabecera?.fecha_movimiento || it?.fecha;
+        const current = this.parseDate(raw);
+        if (!current) return false;
+        current.setHours(0, 0, 0, 0);
+        const normalizedTarget = new Date(target);
+        normalizedTarget.setHours(0, 0, 0, 0);
+        if (current.getTime() !== normalizedTarget.getTime()) return false;
+      }
+      if (this.isAdminZona) {
+        const sedeId = Number(it?.cabecera?.sede_id ?? it?.sede_id ?? 0);
+        const filterSedeId = Number(this.filterSedeId || 0);
+        if (filterSedeId > 0 && sedeId !== filterSedeId) return false;
+      }
+      return true;
     });
   }
 
@@ -499,13 +584,3 @@ export class GastosFeature implements OnInit {
     });
   }
 }
-
-
-
-
-
-
-
-
-
-

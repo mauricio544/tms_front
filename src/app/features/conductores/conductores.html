@@ -78,12 +78,25 @@
     <h3 class="text-lg font-semibold text-slate-800">{{ editing ? 'Editar conductor' : 'Nuevo conductor' }}</h3>
 
     <div class="mt-4 space-y-4">
-      <div>
+      <div class="relative">
         <label class="block text-sm text-slate-700">Persona</label>
-        <select [(ngModel)]="newConductor.persona_id" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
-          <option [ngValue]="null">Seleccione</option>
-          <option *ngFor="let p of personas" [ngValue]="p.id">{{ (getNombre(p)) || ('ID ' + p.id) }}</option>
-        </select>
+        <div class="mt-1 flex items-center gap-2">
+          <input
+            type="text"
+            [(ngModel)]="personaQuery"
+            (focus)="showPersonaOptions = true"
+            (input)="showPersonaOptions = true"
+            (ngModelChange)="newConductor.persona_id = undefined"
+            placeholder="Buscar persona"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+          <button type="button" (click)="clearPersona()" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50">Limpiar</button>
+        </div>
+        <div *ngIf="showPersonaOptions" class="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow">
+          <button *ngFor="let p of filteredPersonas" type="button" (click)="selectPersona(p)" class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50">
+            {{ getNombre(p) || ('ID ' + p.id) }}
+          </button>
+          <div *ngIf="!filteredPersonas.length" class="px-3 py-2 text-sm text-slate-500">Sin resultados</div>
+        </div>
       </div>
       <div>
         <label class="block text-sm text-slate-700">Licencia</label>

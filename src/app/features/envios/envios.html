@@ -8,7 +8,7 @@
               (closed)="notif=null"></ui-alert>
   </div>
   <div class="flex flex-wrap items-center gap-2">
-    <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar envío"
+    <input type="text" [(ngModel)]="search" autocomplete="off" (ngModelChange)="onFilterChange()" placeholder="Buscar envío"
            class="h-10 w-64 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
     <select [(ngModel)]="pageSize" (ngModelChange)="setPage(1)"
             class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]">
@@ -366,7 +366,7 @@
 
       <div class="grid grid-cols-2 gap-3">
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" class="h-4 w-4 accent-[#2F455C]"/>
+          <input type="checkbox" [(ngModel)]="newEnvio.estado_pago" [disabled]="editing && !!newEnvio.estado_pago" class="h-4 w-4 accent-[#2F455C]"/>
           Pagado
         </label>
 
@@ -406,14 +406,14 @@
               <option *ngFor="let t of compTipos" [ngValue]="t">{{ compTipoLabel(t) }}</option>
             </select>
           </div>
-          <div>
+          <div class="hidden">
             <label class="block text-sm text-slate-700">Serie</label>
-            <input type="text" [value]="compSerie" readonly
+            <input type="text" [value]="compSerie" readonly disabled
                    class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
-          <div>
+          <div class="hidden">
             <label class="block text-sm text-slate-700">N&uacute;mero</label>
-            <input type="text" [value]="compNumeroComprobante" readonly
+            <input type="text" [value]="compNumeroComprobante" readonly disabled
                    class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
           <div>
@@ -430,7 +430,7 @@
           </div>
           <div>
             <label class="block text-sm text-slate-700">Fecha pago</label>
-            <input type="date" [(ngModel)]="compFechaPago"
+            <input type="date" [(ngModel)]="compFechaPago" [readonly]="true" [disabled]="true"
                    class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
           <div class="sm:col-span-3"></div>
@@ -517,14 +517,14 @@
               <option *ngFor="let t of compTipos" [ngValue]="t">{{ compTipoLabel(t) }}</option>
             </select>
           </div>
-          <div>
+          <div class="hidden">
             <label class="block text-sm text-slate-700">Serie</label>
-            <input type="text" [value]="compSerie" readonly
+            <input type="text" [value]="compSerie" readonly disabled
                    class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
-          <div>
+          <div class="hidden">
             <label class="block text-sm text-slate-700">N&uacute;mero</label>
-            <input type="text" [value]="compNumeroComprobante" readonly
+            <input type="text" [value]="compNumeroComprobante" readonly disabled
                    class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
           <div>
@@ -541,7 +541,7 @@
           </div>
           <div>
             <label class="block text-sm text-slate-700">Fecha pago</label>
-            <input type="date" [(ngModel)]="compFechaPago"
+            <input type="date" [(ngModel)]="compFechaPago" [readonly]="true" [disabled]="true"
                    class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
           <div class="sm:col-span-3"></div>
@@ -579,15 +579,16 @@
 
       <div class="mt-6 flex items-center justify-between gap-2">
 
-        <button (click)="closeCreate()"
+        <button (click)="closeCreate()" [disabled]="saving"
                 class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-white/60">Cancelar
         </button>
-        <div class="text-sm text-red-600" *ngIf="saveError">{{ saveError }}</div>
+        <div class="text-sm text-slate-600" *ngIf="saving">Realizando operaciones, espere por favor...</div>
+        <div class="text-sm text-red-600" *ngIf="saveError && !saving">{{ saveError }}</div>
         <button (click)="submitEnvio()" [disabled]="!isValidEnvio || saving"
 
 
                 class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 disabled:opacity-50">
-          Guardar
+          {{ saving ? 'Procesando...' : 'Guardar' }}
         </button>
 
 
@@ -876,12 +877,12 @@
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm text-slate-700">Clave de recojo</label>
-          <input type="password" [(ngModel)]="newEnvio.clave_recojo" autocomplete="new-password" autocapitalize="off" spellcheck="false"
+          <input type="password" [(ngModel)]="newEnvio.clave_recojo" [disabled]="isEditLockedForOperario()" autocomplete="new-password" autocapitalize="off" spellcheck="false"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
         </div>
         <div>
           <label class="block text-sm text-slate-700">Confirmar clave</label>
-          <input type="password" [(ngModel)]="confirmClaveRecojo" autocomplete="new-password" autocapitalize="off" spellcheck="false"
+          <input type="password" [(ngModel)]="confirmClaveRecojo" [disabled]="isEditLockedForOperario()" autocomplete="new-password" autocapitalize="off" spellcheck="false"
                  class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
           <div class="mt-1 text-xs text-red-600" *ngIf="newEnvio.clave_recojo && confirmClaveRecojo && newEnvio.clave_recojo !== confirmClaveRecojo">
             Las claves no coinciden.
@@ -949,14 +950,14 @@
               <option *ngFor="let t of compTipos" [ngValue]="t">{{ compTipoLabel(t) }}</option>
             </select>
           </div>
-          <div>
+          <div class="hidden">
             <label class="block text-sm text-slate-700">Serie</label>
-            <input type="text" [value]="compSerie" readonly
+            <input type="text" [value]="compSerie" readonly disabled
                    class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
-          <div>
+          <div class="hidden">
             <label class="block text-sm text-slate-700">N&uacute;mero</label>
-            <input type="text" [value]="compNumeroComprobante" readonly
+            <input type="text" [value]="compNumeroComprobante" readonly disabled
                    class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
           <div>
@@ -973,7 +974,7 @@
           </div>
           <div>
             <label class="block text-sm text-slate-700">Fecha pago</label>
-            <input type="date" [(ngModel)]="compFechaPago"
+            <input type="date" [(ngModel)]="compFechaPago" [readonly]="true" [disabled]="true"
                    class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
           </div>
           <div class="sm:col-span-3"></div>
@@ -1076,19 +1077,22 @@
       <div class="mt-6 flex items-center justify-between gap-2">
 
 
-        <button (click)="closeEdit()"
+        <button (click)="closeEdit()" [disabled]="saving"
                 class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-white/60">Cancelar
         </button>
 
 
-        <div class="text-sm text-red-600" *ngIf="saveError">{{ saveError }}</div>
+        <div class="text-sm text-slate-600" *ngIf="saving">Realizando operaciones, espere por favor...</div>
+
+
+        <div class="text-sm text-red-600" *ngIf="saveError && !saving">{{ saveError }}</div>
 
 
         <button (click)="submitEnvio()" [disabled]="!isValidEnvio || saving"
 
 
                 class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm font-medium text-white hover:bg-[#21D0B2]/90 disabled:opacity-50">
-          Guardar
+          {{ saving ? 'Procesando...' : 'Guardar' }}
         </button>
 
 
@@ -1122,14 +1126,14 @@
           <option *ngFor="let t of compTipos" [ngValue]="t">{{ compTipoLabel(t) }}</option>
         </select>
       </div>
-      <div>
+      <div class="hidden">
         <label class="block text-sm text-slate-700">Serie</label>
-        <input type="text" [value]="compSerie" readonly
+        <input type="text" [value]="compSerie" readonly disabled
                class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm"  style="background-color: #ffffff;"/>
       </div>
-      <div>
+      <div class="hidden">
         <label class="block text-sm text-slate-700">N&uacute;mero</label>
-        <input type="text" [value]="compNumeroComprobante" readonly
+        <input type="text" [value]="compNumeroComprobante" readonly disabled
                class="mt-1 w-full rounded-md border border-slate-300 bg-white/60 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
       </div>
       <div>
@@ -1145,7 +1149,7 @@
       </div>
       <div>
         <label class="block text-sm text-slate-700">Fecha pago</label>
-        <input type="date" [(ngModel)]="compFechaPago"
+        <input type="date" [(ngModel)]="compFechaPago" [readonly]="true" [disabled]="true"
                class="mt-1 w-full rounded-md border border-slate-300 px-2 py-2 text-sm" style="background-color: #ffffff;"/>
       </div>
       <div class="sm:col-span-3"></div>
@@ -1213,7 +1217,7 @@
     <div class="mt-4 flex items-center justify-end gap-2">
 
 
-      <button type="button" (click)="compInlineForEntrega=false; compEnvioId=null"
+      <button type="button" (click)="resetEntregaComprobanteFlow()"
               class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar
       </button>
 
@@ -1304,48 +1308,52 @@
 
 
         <div class="mt-4 flex items-center justify-end gap-2 flex-wrap">
-
-
           <span *ngIf="item.fecha_recepcion"
                 class="rounded-md border border-red-200 bg-red-300 px-2.5 py-1.5 text-xs text-red-900 hover:bg-primary/20">Entregado <i
             class=""></i></span>
 
-
-          <button type="button" *ngIf="canConfirmEntrega(item)"
-                  class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100"
-                  (click)="openEntrega(item); $event.stopPropagation()">Entregar
-          </button>
-          <button type="button"
-                  class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60 disabled:opacity-50"
-                  [disabled]="!canSendText(item)"
-                  (click)="sendEnvioText(item, $event)">Enviar SMS
-          </button>
-          <button type="button"
-                  class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
-                  (click)="openDeclaracion(item)">Declaración
-          </button>
-          <button type="button"
-                  class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
-                  (click)="reprintTicket(item)">Reimprimir ticket
-          </button>
-          <button type="button" *ngIf="item.estado_pago"
-                  class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
-                  (click)="reprintComprobante(item)">Reimprimir comprobante
-          </button>
-          <button type="button"
-                  class="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
-                  (click)="openEdit(item)">
-            <ng-icon name="heroPencil" size="16"></ng-icon>
-            <span class="sr-only">Editar</span></button>
-
-
-          <button type="button"
-                  class="rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-xs text-primary hover:bg-primary/20"
-                  (click)="askDelete(item)">
-            <ng-icon name="heroNoSymbol" size="16"></ng-icon>
-            <span class="sr-only">Eliminar</span></button>
-
-
+          <div class="relative" (click)="$event.stopPropagation()">
+            <button type="button"
+                    class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    (click)="toggleActionMenu(item, $event)">
+              Acciones
+            </button>
+            <div *ngIf="isActionMenuOpen(item)"
+                 class="fixed z-[1000] min-w-[220px] rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+                 [style.top.px]="actionMenuTop"
+                 [style.left.px]="actionMenuLeft">
+              <button type="button" *ngIf="canConfirmEntrega(item)"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      (click)="closeActionMenu(); openEntrega(item)">Entregar</button>
+              <button type="button" *ngIf="showRegularActions(item)"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      [disabled]="!canSendText(item)"
+                      (click)="closeActionMenu(); sendEnvioText(item, $event)">Enviar SMS</button>
+              <button type="button" *ngIf="showRegularActions(item)"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      (click)="closeActionMenu(); openDeclaracion(item)">Declaración</button>
+              <button type="button" *ngIf="canReprintTicket(item)"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      (click)="closeActionMenu(); reprintTicket(item)">Reimprimir ticket</button>
+              <button type="button" *ngIf="canPreview(item)"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      [disabled]="previewLoading[item.id]"
+                      (click)="closeActionMenu(); previewEnvio(item, $event)">{{ previewLoading[item.id] ? 'Enviando...' : 'Preview' }}</button>
+              <button type="button" *ngIf="canPrintDirect(item)"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      [disabled]="printLoading[item.id]"
+                      (click)="closeActionMenu(); printEnvio(item, $event)">{{ printLoading[item.id] ? 'Enviando...' : 'Imprimir' }}</button>
+              <button type="button" *ngIf="item.estado_pago"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      (click)="closeActionMenu(); reprintComprobante(item)">Reimprimir comprobante</button>
+              <button type="button" *ngIf="showRegularActions(item)"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      (click)="closeActionMenu(); openEdit(item)">Editar</button>
+              <button type="button" *ngIf="showRegularActions(item) && canDeleteEnvio()"
+                      class="block w-full px-3 py-2 text-left text-xs text-red-700 hover:bg-red-50"
+                      (click)="closeActionMenu(); askDelete(item)">Eliminar</button>
+            </div>
+          </div>
         </div>
 
 
@@ -1355,7 +1363,7 @@
     </div>
 
 
-    <div *ngIf="viewMode==='table'" class="mt-4 overflow-x-auto">
+    <div *ngIf="viewMode==='table'" class="mt-4 overflow-x-auto overflow-y-visible">
       <table class="min-w-full divide-y divide-slate-200 bg-white rounded-md border border-slate-200">
         <thead class="bg-white/60 text-slate-700 text-sm">
         <tr>
@@ -1401,36 +1409,51 @@
             class=""></i></span>
           </td>
           <td class="px-3 py-2 text-right">
-            <button type="button"
-                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
-                    (click)="openEtiquetas(item)">Etiquetas</button>
-            <button type="button"
-                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60 disabled:opacity-50"
-                    [disabled]="!canSendText(item)"
-                    (click)="sendEnvioText(item, $event)">Enviar SMS</button>
-            <button type="button"
-                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
-                    (click)="openDeclaracion(item)">Declaración</button>
-            <button type="button"
-                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
-                    (click)="reprintTicket(item)">Reimprimir ticket</button>
-            <button type="button" *ngIf="item.estado_pago"
-                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
-                    (click)="reprintComprobante(item)">Reimprimir comprobante</button>
-            <button type="button" *ngIf="canConfirmEntrega(item)"
-                    class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-800 hover:bg-emerald-100"
-                    (click)="openEntrega(item)">Confirmar entrega
-            </button>
-            <button type="button"
-                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 hover:bg-white/60"
-                    (click)="openEdit(item)">
-              <ng-icon name="heroPencil" size="16"></ng-icon>
-              <span class="sr-only">Editar</span></button>
-            <button type="button"
-                    class="rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-xs text-primary hover:bg-primary/20"
-                    (click)="askDelete(item)">
-              <ng-icon name="heroNoSymbol" size="16"></ng-icon>
-              <span class="sr-only">Eliminar</span></button>
+            <div class="relative inline-block text-left" (click)="$event.stopPropagation()">
+              <button type="button"
+                      class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      (click)="toggleActionMenu(item, $event)">
+                Acciones
+              </button>
+              <div *ngIf="isActionMenuOpen(item)"
+                   class="fixed z-[1000] min-w-[220px] rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+                   [style.top.px]="actionMenuTop"
+                   [style.left.px]="actionMenuLeft">
+                <button type="button" *ngIf="showRegularActions(item)"
+                        class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                        (click)="closeActionMenu(); openEtiquetas(item)">Etiquetas</button>
+                <button type="button" *ngIf="showRegularActions(item)"
+                        class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="!canSendText(item)"
+                        (click)="closeActionMenu(); sendEnvioText(item, $event)">Enviar SMS</button>
+                <button type="button" *ngIf="showRegularActions(item)"
+                        class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                        (click)="closeActionMenu(); openDeclaracion(item)">Declaración</button>
+                <button type="button" *ngIf="canReprintTicket(item)"
+                        class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                        (click)="closeActionMenu(); reprintTicket(item)">Reimprimir ticket</button>
+                <button type="button" *ngIf="canPreview(item)"
+                        class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="previewLoading[item.id]"
+                        (click)="closeActionMenu(); previewEnvio(item, $event)">{{ previewLoading[item.id] ? 'Enviando...' : 'Preview' }}</button>
+                <button type="button" *ngIf="canPrintDirect(item)"
+                        class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="printLoading[item.id]"
+                        (click)="closeActionMenu(); printEnvio(item, $event)">{{ printLoading[item.id] ? 'Enviando...' : 'Imprimir' }}</button>
+                <button type="button" *ngIf="item.estado_pago"
+                        class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                        (click)="closeActionMenu(); reprintComprobante(item)">Reimprimir comprobante</button>
+                <button type="button" *ngIf="canConfirmEntrega(item)"
+                        class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                        (click)="closeActionMenu(); openEntrega(item)">Confirmar entrega</button>
+                <button type="button" *ngIf="showRegularActions(item)"
+                        class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                        (click)="closeActionMenu(); openEdit(item)">Editar</button>
+                <button type="button" *ngIf="showRegularActions(item) && canDeleteEnvio()"
+                        class="block w-full px-3 py-2 text-left text-xs text-red-700 hover:bg-red-50"
+                        (click)="closeActionMenu(); askDelete(item)">Eliminar</button>
+              </div>
+            </div>
           </td>
         </tr>
         </tbody>
@@ -1555,6 +1578,8 @@
           <div><span
             class="font-medium">Destinatario:</span> {{ personaLabelById(ticketEnvio?.destinatario) || ticketEnvio?.destinatario }}
           </div>
+          <div *ngIf="personaCelularById(ticketEnvio?.destinatario)"><span
+            class="font-medium">Teléfono destinatario:</span> {{ personaCelularById(ticketEnvio?.destinatario) }}</div>
           <div class="text-[13px]"><span class="font-semibold">Origen:</span> {{ getPuntoNombre(ticketEnvio?.punto_origen_id) }}</div>
           <div class="text-[13px]"><span class="font-semibold">Destino:</span> {{ getPuntoNombre(ticketEnvio?.punto_destino_id) }}</div>
           <div class="text-[12px]"><span class="font-semibold">Dirección destino:</span> {{ getPuntoDireccion(ticketEnvio?.punto_destino_id) }}</div>
@@ -1672,22 +1697,6 @@
 
 
         </div>
-
-
-      </div>
-
-
-      <div>
-
-
-        <label class="block text-sm text-slate-700">Fecha de recepci&oacute;n</label>
-
-
-        <input type="date" [(ngModel)]="entregaFecha"
-               class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#26A69A] focus:outline-none focus:ring-1 focus:ring-[#26A69A]"/>
-
-
-        <div class="mt-1 text-xs text-slate-500">Se registrarán.</div>
 
 
       </div>

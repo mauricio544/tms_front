@@ -54,11 +54,13 @@ export class Conductores implements OnInit {
   // Edicion
   editing = false;
   editingId: number | null = null;
+  personaQuery = '';
+  showPersonaOptions = false;
 
   newConductor: Partial<Conductor> = {
     licencia: '',
     tipo_licencia: '',
-    persona_id: null as any,
+    persona_id: undefined,
   } as any;
 
   // Lista filtrada / paginacion
@@ -84,6 +86,13 @@ export class Conductores implements OnInit {
 
   getNombre(p: any): string {
     return `${(p.nombre).toUpperCase() ?? ''} ${(p.apellido).toUpperCase() ?? ''}`.trim() || (p.razon_social ?? '').toUpperCase();
+  }
+
+  get filteredPersonas(): Persona[] {
+    const q = (this.personaQuery || '').toLowerCase().trim();
+    const list = this.personas || [];
+    if (!q) return list.slice(0, 10);
+    return list.filter((p: any) => this.getNombre(p).toLowerCase().includes(q)).slice(0, 10);
   }
 
   get totalPages(): number {
@@ -115,7 +124,9 @@ export class Conductores implements OnInit {
   openModal() {
     this.editing = false;
     this.editingId = null;
-    this.newConductor = {licencia: '', tipo_licencia: '', persona_id: null as any} as any;
+    this.newConductor = {licencia: '', tipo_licencia: '', persona_id: undefined} as any;
+    this.personaQuery = '';
+    this.showPersonaOptions = false;
     this.saveError = null;
     this.showModal = true;
   }
@@ -128,12 +139,33 @@ export class Conductores implements OnInit {
       tipo_licencia: item.tipo_licencia,
       persona_id: (item as any).persona_id,
     } as any;
+    const persona = this.personas.find((p: any) => Number((p as any).id || 0) === Number((item as any).persona_id || 0));
+    this.personaQuery = persona ? this.getNombre(persona) : '';
+    this.showPersonaOptions = false;
     this.saveError = null;
     this.showModal = true;
   }
 
   closeModal() {
     this.showModal = false;
+  }
+
+  selectPersona(persona: Persona) {
+    this.newConductor = {
+      ...this.newConductor,
+      persona_id: Number((persona as any).id || 0),
+    } as any;
+    this.personaQuery = this.getNombre(persona);
+    this.showPersonaOptions = false;
+  }
+
+  clearPersona() {
+    this.newConductor = {
+      ...this.newConductor,
+      persona_id: undefined,
+    } as any;
+    this.personaQuery = '';
+    this.showPersonaOptions = false;
   }
 
   get isValidConductor(): boolean {

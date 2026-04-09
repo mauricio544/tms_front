@@ -46,29 +46,29 @@
               class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60">
         Refrescar totales
       </button>
-      <button *ngIf="isAdmin" type="button" (click)="loadTotalesGenerales()"
+      <button *ngIf="canViewTotalesGenerales" type="button" (click)="loadTotalesGenerales()"
               class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60">
         Refrescar generales
       </button>
-      <button *ngIf="isAdmin" type="button" (click)="printTotalesGenerales()"
+      <button *ngIf="canViewTotalesGenerales" type="button" (click)="printTotalesGenerales()"
               class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-white/60">
         Imprimir generales
       </button>
     </div>
   </div>
 
-  <div class="mt-4" *ngIf="isAdmin">
+  <div class="mt-4" *ngIf="canViewTotalesGenerales">
     <h2 class="text-lg font-semibold text-slate-800">Totales generales</h2>
   </div>
 
-  <div class="mt-4" *ngIf="isAdmin && totalesGeneralesLoading">
+  <div class="mt-4" *ngIf="canViewTotalesGenerales && totalesGeneralesLoading">
     <div class="rounded-md border border-slate-200 bg-white p-4 text-slate-600">Cargando totales generales...</div>
   </div>
-  <div class="mt-4" *ngIf="isAdmin && totalesGeneralesError">
+  <div class="mt-4" *ngIf="canViewTotalesGenerales && totalesGeneralesError">
     <div class="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">{{ totalesGeneralesError }}</div>
   </div>
 
-  <div id="liquidaciones-generales-grid" class="mt-4 overflow-x-auto" *ngIf="isAdmin && !totalesGeneralesLoading && !totalesGeneralesError">
+  <div id="liquidaciones-generales-grid" class="mt-4 overflow-x-auto" *ngIf="canViewTotalesGenerales && !totalesGeneralesLoading && !totalesGeneralesError">
     <table class="min-w-full divide-y divide-slate-200 bg-white rounded-md border border-slate-200">
       <thead class="bg-white/60 text-slate-700 text-sm">
       <tr>

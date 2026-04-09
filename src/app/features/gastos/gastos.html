@@ -6,6 +6,10 @@
     </div>
     <div class="flex items-center gap-2">
       <input type="text" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Buscar" class="h-9 w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
+      <select *ngIf="isAdminZona" [(ngModel)]="filterSedeId" (ngModelChange)="onSedeFilterChange()" class="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
+        <option [ngValue]="null">Todas las sedes</option>
+        <option *ngFor="let sede of userSedes" [ngValue]="sede.id">{{ sede.nombre.toUpperCase() }}</option>
+      </select>
       <input type="date" [(ngModel)]="selectedDate" (ngModelChange)="onDateChange()" class="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary" />
       <button (click)="clearDate()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Limpiar fecha</button>
       <button (click)="load()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm hover:bg-slate-50">Refrescar</button>
@@ -135,6 +139,13 @@
             <select [(ngModel)]="cabeceraForm.tipo_movimiento" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
               <option [ngValue]="'I'">Ingreso</option>
               <option [ngValue]="'E'">Egreso</option>
+            </select>
+          </div>
+          <div *ngIf="isAdminZona">
+            <label class="block text-sm text-slate-700">Sede</label>
+            <select [(ngModel)]="selectedSedeId" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary">
+              <option [ngValue]="null">Seleccione…</option>
+              <option *ngFor="let sede of userSedes" [ngValue]="sede.id">{{ sede.nombre.toUpperCase() }}</option>
             </select>
           </div>
           <div>

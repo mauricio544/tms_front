@@ -29,6 +29,10 @@ export class DetalleMovimientos {
   getDetallesByFecha(fecha: string): Observable<DetalleFull[]> {
     return this.api.get(`/envios/movimientos/detalle/full/by-date?${fecha}`);
   }
+  // movimientos por zona
+  getDetallesByZonaFecha(fecha: string, zona_id?: number): Observable<DetalleFull[]> {
+    return this.api.get(`/envios/movimientos/detalle/full/by-zone?zona_id=${zona_id}&fecha=${fecha}`);
+  }
 
   getDetallesByFechaRange(fecha_inicio: string, fecha_fin: string): Observable<DetalleFull[]> {
     return this.api.get(`/envios/movimientos/detalle/full/by-date-range?${fecha_inicio}&${fecha_fin}`);

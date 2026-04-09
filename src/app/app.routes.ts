@@ -3,6 +3,7 @@ import { LoginComponent } from './login/login.component';
 import { Dashboard } from './dashboard/dashboard';
 import { authGuard } from '../../core/guards/auth.guard';
 import { maestrosGuard } from '../../core/guards/maestros.guard';
+import { roleAccessGuard } from '../../core/guards/role-access.guard';
 import { LayoutComponent } from './layout/layout';
 
 // Feature components
@@ -39,6 +40,7 @@ export const routes: Routes = [
     path: '',
     component: LayoutComponent,
     canActivate: [authGuard],
+    canActivateChild: [roleAccessGuard],
     children: [
       { path: 'dashboard', component: Dashboard, data: { breadcrumb: 'Dashboard' } },
       { path: 'conductores', component: Conductores, canActivate: [maestrosGuard], data: { breadcrumb: 'Conductores' } },

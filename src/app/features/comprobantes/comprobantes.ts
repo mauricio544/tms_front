@@ -140,6 +140,7 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
       impuesto: Number(c.impuesto) || 0,
       serie: String(c.serie || '').trim(),
       numero: String(c.numero || '').trim(),
+      sede_id: this.getUserSedeId() || undefined,
       estado_comprobante: this.estado,
     } as any;
 
@@ -286,6 +287,18 @@ export class ComprobantesModalComponent implements OnInit, OnChanges {
       return roleNames.includes('operario') && !roleNames.includes('admin_sede');
     } catch {
       return false;
+    }
+  }
+
+  private getUserSedeId(): number {
+    try {
+      const raw = localStorage.getItem('me');
+      if (!raw) return 0;
+      const me = JSON.parse(raw) as any;
+      const sede = Array.isArray(me?.sedes) ? me.sedes[0] : null;
+      return Number(sede?.id || 0);
+    } catch {
+      return 0;
     }
   }
 }

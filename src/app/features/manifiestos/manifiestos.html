@@ -225,9 +225,9 @@
     <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGenerarManifiestoContext(menuItem, $event)">Generar Manifiesto</button>
     <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGuiaSunatContext(menuItem, $event)">Generar Guía Sunat</button>
     <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGrtContext(menuItem, $event)">Generar Compilado Guías</button>
-    <button *ngIf="canShowPublicLink(menuItem)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[menuItem.id]" (click)="openPublicLinkContext(menuItem, $event)">{{ publicLinkLoading[menuItem.id] ? 'Generando...' : 'Enlace público' }}</button>
-    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openAddEnviosContext(menuItem, $event)">Añadir Envío</button>
-    <button class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openEditContext(menuItem, $event)">Editar</button>
+    <button *ngIf="canShowLlegadaVehiculoAction(menuItem)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[menuItem.id]" (click)="openPublicLinkContext(menuItem, $event)">{{ publicLinkLoading[menuItem.id] ? 'Generando...' : 'Confirmar  Vehículo' }}</button>
+    <button *ngIf="canManageDestinoManifiesto(menuItem)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openAddEnviosContext(menuItem, $event)">Añadir Envío</button>
+    <button *ngIf="canManageDestinoManifiesto(menuItem)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openEditContext(menuItem, $event)">Editar</button>
     <button *ngIf="hasGeo(menuItem)" class="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50" (click)="openGeoContext(menuItem, $event)">Ver mapa</button>
     <button class="block w-full rounded px-2 py-1.5 text-left text-xs text-red-700 hover:bg-red-50" (click)="askDeleteContext(menuItem, $event)">Eliminar</button>
   </div>
@@ -253,6 +253,7 @@
           <button class="rounded-md px-3 py-1.5" [class.bg-slate-900]="activeTab==='guias'" [class.text-white]="activeTab==='guias'" [class.text-slate-700]="activeTab!=='guias'" (click)="setActiveTab('guias')">Guías</button>
           <button class="rounded-md px-3 py-1.5" [class.bg-slate-900]="activeTab==='documento'" [class.text-white]="activeTab==='documento'" [class.text-slate-700]="activeTab!=='documento'" (click)="setActiveTab('documento')">Documento</button>
           <button class="rounded-md px-3 py-1.5" [class.bg-slate-900]="activeTab==='mapa'" [class.text-white]="activeTab==='mapa'" [class.text-slate-700]="activeTab!=='mapa'" (click)="setActiveTab('mapa')">Mapa</button>
+          <button class="rounded-md px-3 py-1.5" [class.bg-slate-900]="activeTab==='transito'" [class.text-white]="activeTab==='transito'" [class.text-slate-700]="activeTab!=='transito'" (click)="setActiveTab('transito')">Tránsito</button>
         </div>
 
         <div class="flex-1 overflow-auto p-4">
@@ -273,14 +274,15 @@
                   <button class="rounded-md bg-[#21D0B2] px-3 py-2 text-sm text-white hover:bg-[#21D0B2]/90" (click)="openEnviosContext(sel, $event)">Ver envíos</button>
                   <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="openGenerarManifiestoContext(sel, $event)">Generar manifiesto</button>
                   <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="openGuiaSunatContext(sel, $event)">Generar guía Sunat</button>
-                  <button class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="openAddEnviosContext(sel, $event)">Añadir envío</button>
+                  <button *ngIf="canManageDestinoManifiesto(sel)" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="openAddEnviosContext(sel, $event)">Añadir envío</button>
+                  <button *ngIf="canShowPublicLink(sel)" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50" (click)="setActiveTab('transito')">Ver tránsito</button>
                 </div>
               </div>
 
               <div *ngSwitchCase="'envios'" class="space-y-3">
                 <div class="flex items-center justify-between">
                   <h3 class="text-sm font-semibold text-slate-800">Envíos del manifiesto</h3>
-                  <button class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50" (click)="openAddEnviosContext(sel, $event)">Añadir envío</button>
+                  <button *ngIf="canManageDestinoManifiesto(sel)" class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:bg-slate-50" (click)="openAddEnviosContext(sel, $event)">Añadir envío</button>
                 </div>
                 <div *ngIf="enviosLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando.</div>
                 <div *ngIf="enviosError" class="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{{ enviosError }}</div>
@@ -571,6 +573,76 @@
                 </div>
               </div>
 
+              <div *ngSwitchCase="'transito'" class="space-y-3">
+                <div class="flex flex-wrap items-center gap-2">
+                  <button *ngIf="canShowPublicLink(sel)" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50" [disabled]="publicLinkLoading[sel.id]" (click)="generarPublicLink(sel)">
+                    {{ publicLinkLoading[sel.id] ? 'Abriendo...' : 'Abrir vista pública' }}
+                  </button>
+                </div>
+                <div *ngIf="transitoLoading" class="rounded-md border border-slate-200 bg-white p-3 text-slate-600">Cargando detalle operativo.</div>
+                <div *ngIf="transitoError" class="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{{ transitoError }}</div>
+                <div *ngIf="transitoSuccess" class="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-emerald-700">{{ transitoSuccess }}</div>
+                <div *ngIf="!transitoLoading && !transitoError && !transitoData" class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                  No se encontró detalle operativo para este manifiesto.
+                </div>
+                <ng-container *ngIf="transitoData as transito">
+                <div *ngIf="!transitoLoading && !transitoError" class="space-y-3">
+                  <div class="rounded-md border border-slate-200 bg-white p-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <div class="text-sm font-semibold text-slate-800">Manifiesto en tránsito</div>
+                      <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">Estado: {{ transito.estado || '-' }}</span>
+                    </div>
+                    <div class="mt-3 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
+                      <div><span class="text-slate-500">Piloto:</span> <span class="font-medium text-slate-800">{{ transito.piloto_nombre || '-' }}</span></div>
+                      <div><span class="text-slate-500">Copiloto:</span> <span class="font-medium text-slate-800">{{ transito.copiloto_nombre || '-' }}</span></div>
+                      <div><span class="text-slate-500">Origen:</span> <span class="font-medium text-slate-800">{{ transito.origen_nombre || '-' }}</span></div>
+                      <div><span class="text-slate-500">Destino:</span> <span class="font-medium text-slate-800">{{ transito.destino_nombre || '-' }}</span></div>
+                      <div><span class="text-slate-500">Llegada:</span> <span class="font-medium text-slate-800">{{ transito.arrived_at ? (transito.arrived_at | ymd) : '-' }}</span></div>
+                      <div *ngIf="transito.arrived_lat || transito.arrived_lng"><span class="text-slate-500">Geo:</span> <span class="font-medium text-slate-800">{{ transito.arrived_lat }} / {{ transito.arrived_lng }}</span></div>
+                    </div>
+                  </div>
+                  <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <label class="block text-xs font-medium text-slate-700">Observaciones</label>
+                    <textarea [(ngModel)]="transitoArrivedNote" rows="2" class="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-700 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary"></textarea>
+                    <div *ngIf="!isManifiestoEnTransito(transito)" class="mt-2 text-xs text-emerald-700">
+                      La llegada ya ha sido marcada.
+                    </div>
+                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                      <button class="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600/90 disabled:opacity-50" [disabled]="transitoSaving || !isManifiestoEnTransito(transito)" (click)="marcarLlegadaTransito()">
+                        {{ isManifiestoEnTransito(transito) ? (transitoSaving ? 'Actualizando...' : 'Marcar llegada') : 'La llegada ya fue marcada' }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="rounded-md border border-slate-200 bg-white p-3">
+                    <div class="mb-2 text-sm font-semibold text-slate-800">Envíos del manifiesto</div>
+                    <div *ngIf="!transito.envios?.length" class="text-sm text-slate-500">Sin envíos en este manifiesto.</div>
+                    <div *ngIf="transito.envios?.length" class="space-y-3">
+                      <div *ngFor="let env of transito.envios" class="rounded-md border border-slate-100 bg-slate-50 p-3">
+                        <div class="text-sm font-medium text-slate-800">Envío {{ transitoEnvioLabel(env) }}</div>
+                        <div class="mt-1 text-xs text-slate-600">
+                          <span class="font-medium text-slate-700">Origen:</span> {{ env?.origen_nombre || '-' }}
+                          <span class="ml-2 font-medium text-slate-700">Destino:</span> {{ env?.destino_nombre || '-' }}
+                        </div>
+                        <div class="mt-1 text-xs text-slate-600">
+                          <span *ngIf="env?.fecha_envio">Fecha envío: {{ env.fecha_envio | ymd }}</span>
+                          <span *ngIf="env?.fecha_recepcion" class="ml-2">Fecha recepción: {{ env.fecha_recepcion | ymd }}</span>
+                        </div>
+                        <div class="mt-2">
+                          <div class="text-xs text-slate-500">Detalles: {{ env?.detalles?.length || 0 }}</div>
+                          <div *ngIf="env?.detalles?.length" class="mt-2 grid gap-2 md:grid-cols-2">
+                            <div *ngFor="let det of env.detalles" class="rounded border border-slate-200 bg-white p-2 text-xs text-slate-700">
+                              <div class="font-medium">{{ det?.descripcion || 'Sin descripción' }}</div>
+                              <div class="mt-1 text-slate-600">Cantidad: {{ det?.cantidad || 0 }}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                </ng-container>
+              </div>
+
               <div *ngSwitchDefault class="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 Sin contenido para esta pestaña.
               </div>
@@ -696,7 +768,7 @@
       </div>
       <div>
         <label class="block text-sm text-slate-700">Número</label>
-        <input type="text" [(ngModel)]="newManifiesto.numero" name="numero" [readonly]="!editing" [disabled]="!editing || numeroAutoLoading" placeholder="000123" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-slate-100 disabled:text-slate-500" />
+        <input type="text" [(ngModel)]="newManifiesto.numero" name="numero" [readonly]="true" [disabled]="true" placeholder="000123" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-slate-100 disabled:text-slate-500" />
       </div>
       <div class="md:col-span-2 mt-2 flex items-center justify-end gap-2">
         <button type="button" (click)="closeModal()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50">Cancelar</button>

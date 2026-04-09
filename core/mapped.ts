@@ -307,6 +307,7 @@ export interface ComprobanteCreate {
   total_icbper?: number;
   total_descuentos?: number;
   total_otros_cargos?: number;
+  sede_id?: number;
 }
 
 export interface ComprobanteDetraccionRead {
@@ -952,4 +953,58 @@ export interface ResumenSedeDetalleRead {
   envios: EnvioReporteRead[] | [];
   comprobantes: ComprobanteReporteRead[] | [];
   movimientos_sin_comprobante: MovimientoDetalleReporteRead[] | []
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////// Printing mode ///////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export interface PrintPayloadOptions {
+  paper_width?: number;
+  cut: boolean | true;
+  open_drawer: boolean | false;
+  preview_only: boolean | false;
+}
+
+export interface PrintPayloadMetadata {
+  requested_by: string;
+  document_id: number;
+  document_type: DocumentType
+  shipment_id?: number;
+  invoice_id?: number;
+  guide_id?: number;
+  settlement_id?: number;
+  station_id?: number;
+  tenant_id: string;
+  extras: Record<string, any>;
+}
+
+export enum DocumentType {
+  TICKET = 'ticket',
+  LABEL = 'label',
+  AFFIDAVIT = 'affidavit',
+  INVOICE = 'invoice',
+  GUIDE = 'guide',
+  SETTLEMENT = 'settlement'
+}
+
+export enum OutputMode {
+  THERMAL = "thermal",
+  PDF = "pdf",
+  SYSTEM = "system",
+  PREVIEW = "preview"
+}
+
+// payload para impresión desde el printer agent
+export interface PrintPayloadResponse {
+  tenant_id: string;
+  station_id: string;
+  document_type: DocumentType
+  template_code: string;
+  output_mode: OutputMode
+  printer_target: string;
+  copies: number;
+  data: Record<string, any>;
+  options: PrintPayloadOptions;
+  metadata: PrintPayloadMetadata;
 }

@@ -19,6 +19,7 @@ import { Comprobantes } from '../../../../core/services/comprobantes';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
 import { Movimientos } from '../../../../core/services/movimientos';
 import { DetalleMovimientos } from '../../../../core/services/detalle-movimientos';
+import { Guias } from '../../../../core/services/guias';
 import { Clientes } from '../../../../core/services/clientes';
 import {
   Envio,
@@ -31,11 +32,14 @@ import {
   SerieComprobante as SerieComprobanteModel,
   EnvioTrackingPublicLinkRequest,
   EnvioListRead,
-  CompaniaConfigRead
+  CompaniaConfigRead,
+  DespachoCreate,
+  GuiaCreate
 } from '../../../../core/mapped';
 import { Utilitarios } from '../../../../core/services/utilitarios';
 import { forkJoin } from 'rxjs';
 import { SerieComprobante as SerieComprobanteService } from '../../../../core/services/serie-comprobante';
+import { Printing } from '../../../../core/services/printing';
 import { ComprobantePreview, ComprobantePreviewComponent } from '../../shared/comprobante-preview/comprobante-preview.component';
 import { DeclaracionJuradaComponent, DeclaracionJuradaData } from '../../shared/declaracion-jurada/declaracion-jurada.component';
 
@@ -62,10 +66,12 @@ export class EnviosFeature implements OnInit {
   private readonly detCompSrv = inject(DetallesComprobante);
   private readonly movsSrv = inject(Movimientos);
   private readonly detMovsSrv = inject(DetalleMovimientos);
+  private readonly guiasSrv = inject(Guias);
   private readonly clientesSrv = inject(Clientes);
   private readonly messageSrv = inject(Message);
   private readonly utilSrv = inject(Utilitarios);
   private readonly serieSrv = inject(SerieComprobanteService);
+  private readonly printingSrv = inject(Printing);
   // Estado principal
   lista_envios: Envio[] = [];
   loading = false;
@@ -122,6 +128,13 @@ export class EnviosFeature implements OnInit {
   // Notificaciones
   notif: string | null = null;
   notifType: 'success' | 'error' = 'success';
+  guiaCreateLoading: Record<number, boolean> = {};
+  guiaPrintLoading: Record<number, boolean> = {};
+  previewLoading: Record<number, boolean> = {};
+  printLoading: Record<number, boolean> = {};
+  activeActionMenuId: number | null = null;
+  actionMenuTop = 0;
+  actionMenuLeft = 0;
 
   // Edición
   editing = false;
@@ -152,6 +165,7 @@ export class EnviosFeature implements OnInit {
     const origen = this.getPuntoNombre(e.punto_origen_id);
     const destino = this.getPuntoNombre(e.punto_destino_id);
     const ticket = String(e.ticket_numero || e.id || '-').trim();
+    const pagoDestino = !!e?.pago_destino;
     const tracking = String(publicUrl || '').trim() || this.trackingUrl(e.id);
     const qr = tracking ? `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(tracking)}` : '';
     const labels = dets.map((d, i) => {
@@ -159,6 +173,7 @@ export class EnviosFeature implements OnInit {
       const qty = Math.max(1, Number(d.cantidad || 0));
       const perUnit = Array.from({ length: qty }).map((_, unitIdx) => `<div class="label">
   <div class="title">ETIQUETA ENVIO</div>
+  ${pagoDestino ? `<div class="flag">PAGO DESTINO</div>` : ''}
   <div class="id">Ticket: ${this.escHtml(ticket)} · ${i + 1}.${unitIdx + 1}</div>
   <div class="sep"></div>
   <div class="row"><span class="k">Item</span><span class="v">${i + 1}</span></div>
@@ -183,9 +198,11 @@ export class EnviosFeature implements OnInit {
 <style>
   @page { size: 80mm auto; margin: 2.5mm; }
   html,body{width:80mm;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#000;font-size:11px;line-height:1.25;}
-  .sheet{width:74mm;margin:0 auto;display:flex;flex-direction:column;gap:1.5mm;}
-  .label{width:74mm;box-sizing:border-box;border:0.5px solid #000;border-radius:1mm;padding:2mm;break-inside:avoid;page-break-inside:avoid;}
+  .sheet{width:74mm;margin:0 auto;}
+  .label{width:74mm;box-sizing:border-box;border:0.5px solid #000;border-radius:1mm;padding:2mm;break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}
+  .label:last-child{break-after:auto;page-break-after:auto;}
   .title{font-size:12px;font-weight:700;line-height:1.2;color:#000;}
+  .flag{display:inline-block;margin-top:1mm;padding:1.1mm 2.8mm;border:0.6px solid #000;border-radius:999px;font-size:14px;font-weight:900;letter-spacing:.08em;line-height:1;background:#000;color:#fff;}
   .id{margin-top:1mm;font-size:10px;color:#000;line-height:1.2;}
   .sep{border-top:1px solid #000;margin:1.3mm 0;}
   .row{display:flex;gap:2mm;font-size:11px;line-height:1.22;margin:0.7mm 0;}
@@ -201,7 +218,7 @@ export class EnviosFeature implements OnInit {
   .detail-value{margin-top:0.7mm;font-size:12px;font-weight:700;line-height:1.18;word-break:break-word;}
   .qr-wrap{display:flex;justify-content:center;margin-top:1.2mm;}
   .qr-wrap img{width:30mm;height:30mm;object-fit:contain;image-rendering:crisp-edges;}
-  @media print { .sheet{width:74mm;} .label{page-break-inside:avoid;} *{-webkit-print-color-adjust:exact; print-color-adjust:exact;} }
+  @media print { .sheet{width:74mm;} .label{page-break-inside:avoid;break-after:page;page-break-after:always;} .label:last-child{break-after:auto;page-break-after:auto;} *{-webkit-print-color-adjust:exact; print-color-adjust:exact;} }
 </style>
 </head><body>
   <div class="sheet">${labels}</div>
@@ -214,6 +231,59 @@ export class EnviosFeature implements OnInit {
 
   printEtiquetas() {
     this.printEtiquetasFor(this.ticketEnvio, this.ticketDetalles, this.publicTrackingUrl);
+  }
+
+  toggleActionMenu(item: Envio, event?: Event) {
+    try { event?.stopPropagation(); } catch {}
+    const envioId = Number((item as any)?.id || 0);
+    if (!envioId) return;
+    if (this.activeActionMenuId === envioId) {
+      this.closeActionMenu();
+      return;
+    }
+    const trigger = event?.currentTarget as HTMLElement | null;
+    if (trigger) {
+      const rect = trigger.getBoundingClientRect();
+      const menuWidth = 220;
+      const menuHeight = 260;
+      const margin = 8;
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const left = Math.min(
+        Math.max(margin, rect.right - menuWidth),
+        Math.max(margin, viewportWidth - menuWidth - margin)
+      );
+      const openUp = rect.bottom + menuHeight + margin > viewportHeight;
+      const top = openUp
+        ? Math.max(margin, rect.top - menuHeight - margin)
+        : Math.min(Math.max(margin, viewportHeight - menuHeight - margin), rect.bottom + margin);
+      this.actionMenuLeft = left;
+      this.actionMenuTop = top;
+    }
+    this.activeActionMenuId = envioId;
+  }
+
+  closeActionMenu() {
+    this.activeActionMenuId = null;
+  }
+
+  isActionMenuOpen(item: Envio | null | undefined): boolean {
+    return Number((item as any)?.id || 0) > 0 && this.activeActionMenuId === Number((item as any)?.id || 0);
+  }
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.closeActionMenu();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.closeActionMenu();
+  }
+
+  @HostListener('window:scroll')
+  onWindowScroll() {
+    this.closeActionMenu();
   }
 
   private mapTicketDetalles(list: any[]): Array<{ numero_item: number; cantidad: number; descripcion: any; precio_unitario: number; precio_total?: number }> {
@@ -268,6 +338,62 @@ export class EnviosFeature implements OnInit {
     this.detalleSrv.getDetallesEnvio(envioId).subscribe({
       next: (list: any[]) => { this.printEtiquetasFor(item, list || []); },
       error: () => { this.showNotif('No se pudo cargar el detalle para etiquetas', 'error'); }
+    });
+  }
+  canPreview(item: Envio | null | undefined): boolean {
+    return this.isAdminRole() && Number((item as any)?.id || 0) > 0;
+  }
+  previewEnvio(item: Envio, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    const envioId = Number((item as any)?.id || 0);
+    if (!envioId || !this.isAdminRole()) return;
+    if (this.previewLoading[envioId]) return;
+    this.previewLoading[envioId] = true;
+    this.printingSrv.getPayload(envioId).subscribe({
+      next: (payload: any) => {
+        this.printingSrv.preview(payload).subscribe({
+          next: () => {
+            this.previewLoading[envioId] = false;
+            this.showNotif('Preview enviado al agente de impresión');
+          },
+          error: () => {
+            this.previewLoading[envioId] = false;
+            this.showNotif('No se pudo enviar el preview al agente local', 'error');
+          }
+        });
+      },
+      error: () => {
+        this.previewLoading[envioId] = false;
+        this.showNotif('No se pudo obtener el payload de impresión', 'error');
+      }
+    });
+  }
+  canPrintDirect(item: Envio | null | undefined): boolean {
+    return this.isAdminRole() && Number((item as any)?.id || 0) > 0;
+  }
+  printEnvio(item: Envio, ev?: Event) {
+    try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    const envioId = Number((item as any)?.id || 0);
+    if (!envioId || !this.isAdminRole()) return;
+    if (this.printLoading[envioId]) return;
+    this.printLoading[envioId] = true;
+    this.printingSrv.getPayload(envioId).subscribe({
+      next: (payload: any) => {
+        this.printingSrv.print(payload).subscribe({
+          next: () => {
+            this.printLoading[envioId] = false;
+            this.showNotif('Impresión enviada al agente local');
+          },
+          error: () => {
+            this.printLoading[envioId] = false;
+            this.showNotif('No se pudo enviar la impresión al agente local', 'error');
+          }
+        });
+      },
+      error: () => {
+        this.printLoading[envioId] = false;
+        this.showNotif('No se pudo obtener el payload de impresión', 'error');
+      }
     });
   }
   private resolveClientePersonaId(): number {
@@ -393,6 +519,8 @@ export class EnviosFeature implements OnInit {
   entregaFecha = '';
   entregaSaving = false;
   entregaError: string | null = null;
+  entregaPendingAutoConfirmId: number | null = null;
+  entregaPendingAutoConfirmFecha = '';
   private entregaRef: OverlayRef | null = null;
   @ViewChild('entregaTpl') entregaTpl!: TemplateRef<any>;
 
@@ -621,6 +749,7 @@ export class EnviosFeature implements OnInit {
         destinoDireccion: this.getPuntoDireccion(refEnv?.punto_destino_id),
         remitente: this.personaLabelById(refEnv?.remitente) || String(refEnv?.remitente || ''),
         destinatario: this.personaLabelById(refEnv?.destinatario) || String(refEnv?.destinatario || ''),
+        destinatarioTelefono: this.personaCelularById(refEnv?.destinatario) || '',
         guiaReferencia: String(refEnv?.guia_referencia || c?.guia_referencia || c?.envio_guia_referencia || '').trim(),
       } : ((ticketNumero || codigoSeguimiento) ? {
         envioId: codigoEnvio,
@@ -695,6 +824,7 @@ export class EnviosFeature implements OnInit {
     if (!env) return;
     const remitente = this.personaLabelById(env?.remitente) || env?.remitente || '-';
     const destinatario = this.personaLabelById(env?.destinatario) || env?.destinatario || '-';
+    const destinatarioTelefono = this.personaCelularById(env?.destinatario) || '';
     const creadoPor = String(env?.usuario_crea || '').trim();
     const origen = this.getPuntoNombre(env?.punto_origen_id);
     const destino = this.getPuntoNombre(env?.punto_destino_id);
@@ -754,6 +884,7 @@ export class EnviosFeature implements OnInit {
     <div class="row row-ticket"><b>Ticket:</b> ${this.escHtml(env?.ticket_numero || '-')}</div>
     <div class="row">Remitente: ${this.escHtml(remitente)}</div>
     <div class="row">Destinatario: ${this.escHtml(destinatario)}</div>
+    ${destinatarioTelefono ? `<div class="row">Teléfono destinatario: ${this.escHtml(destinatarioTelefono)}</div>` : ''}
     <div class="row row-lg"><b>Origen:</b> ${this.escHtml(origen)}</div>
     <div class="row row-lg"><b>Destino:</b> ${this.escHtml(destino)}</div>
     <div class="row"><b>Dirección destino:</b> ${this.escHtml(destinoDireccion)}</div>
@@ -823,6 +954,7 @@ export class EnviosFeature implements OnInit {
     const destinoDireccion = String(preview?.referencia?.destinoDireccion || '').trim();
     const remitente = String(preview?.referencia?.remitente || '').trim();
     const destinatario = String(preview?.referencia?.destinatario || '').trim();
+    const destinatarioTelefono = String(preview?.referencia?.destinatarioTelefono || '').trim();
     const guiaReferencia = String(preview?.referencia?.guiaReferencia || '').trim();
     const creadoPor = String(preview?.creadoPor || '').trim();
     const logo = this.companyLogoSrc();
@@ -885,6 +1017,7 @@ export class EnviosFeature implements OnInit {
     ${envioTicket ? `<div class="row row-lg"><b>Ticket:</b> ${this.escHtml(envioTicket)}</div>` : ''}
     ${remitente ? `<div class="row"><b>Remitente:</b> ${this.escHtml(remitente)}</div>` : ''}
     ${destinatario ? `<div class="row"><b>Destinatario:</b> ${this.escHtml(destinatario)}</div>` : ''}
+    ${destinatarioTelefono ? `<div class="row"><b>Teléfono destinatario:</b> ${this.escHtml(destinatarioTelefono)}</div>` : ''}
     ${origen ? `<div class="row row-lg"><b>Origen:</b> ${this.escHtml(origen)}</div>` : ''}
     ${destino ? `<div class="row row-lg"><b>Destino:</b> ${this.escHtml(destino)}</div>` : ''}
     ${destinoDireccion ? `<div class="row"><b>Dirección destino:</b> ${this.escHtml(destinoDireccion)}</div>` : ''}
@@ -1202,16 +1335,343 @@ export class EnviosFeature implements OnInit {
       impuesto: this.compImpuesto,
       total_igv: totalIgv,
       tipo_moneda: 'PEN',
-      serie: this.compSerie,
-      numero: this.compNumero,
       estado_comprobante: '',
       fecha_pago: this.compFechaPago || fecha,
       emisor: Number(localStorage.getItem('cia_id') || 0),
       cliente: clienteId,
+      sede_id: this.getUserSedeId() || undefined,
       emisor_ruc: String(localStorage.getItem('ruc') || ''),
       cliente_documento: this.compDocNumber || '',
       envio_id: envioId
     } as any;
+  }
+
+  private buildComprobanteIdempotencyKey(envioId: number): string {
+    return `comp-envio-${envioId}-v1`;
+  }
+
+  canCreateGuia(item: Envio | null | undefined): boolean {
+    const envioId = Number((item as any)?.id || 0);
+    const guiaId = Number((item as any)?.guia || 0);
+    return envioId > 0 && guiaId <= 0;
+  }
+
+  canPrintGuia(item: Envio | null | undefined): boolean {
+    const envioId = Number((item as any)?.id || 0);
+    return envioId > 0;
+  }
+
+  canDeleteEnvio(): boolean {
+    return this.isAdminRole();
+  }
+
+  createGuiaForEnvio(item: Envio) {
+    const envioId = Number((item as any)?.id || 0);
+    if (!this.canCreateGuia(item) || !envioId) {
+      this.showNotif('El envío no está listo para crear guía', 'error');
+      return;
+    }
+    if (this.guiaCreateLoading[envioId]) return;
+
+    this.guiaCreateLoading[envioId] = true;
+    const despachoPayload = this.buildDespachoPayloadForEnvio(item);
+    this.guiasSrv.createDespacho(despachoPayload).subscribe({
+      next: (despacho: any) => {
+        const despachoId = Number((despacho as any)?.id || 0);
+        if (!despachoId) {
+          this.guiaCreateLoading[envioId] = false;
+          this.showNotif('No se pudo identificar el despacho creado', 'error');
+          return;
+        }
+        const guiaPayload = this.buildGuiaPayloadForEnvio(despachoId);
+        const idempotencyKey = this.buildGuiaIdempotencyKey(despachoId);
+        this.guiasSrv.createGuia(guiaPayload, idempotencyKey).subscribe({
+          next: (guia: any) => {
+            const guiaId = Number((guia as any)?.id || 0);
+            this.guiaCreateLoading[envioId] = false;
+            this.lista_envios = (this.lista_envios || []).map((env: any) =>
+              Number((env as any)?.id || 0) === envioId
+                ? { ...env, guia: guiaId || (env as any)?.guia }
+                : env
+            );
+            this.onFilterChange();
+            this.showNotif('Despacho y guía creados');
+          },
+          error: () => {
+            this.guiaCreateLoading[envioId] = false;
+            this.showNotif('Se creó el despacho, pero no se pudo crear la guía', 'error');
+          }
+        });
+      },
+      error: () => {
+        this.guiaCreateLoading[envioId] = false;
+        this.showNotif('No se pudo crear el despacho', 'error');
+      }
+    });
+  }
+
+  printGuiaForEnvio(item: Envio) {
+    const envioId = Number((item as any)?.id || 0);
+    if (!this.canPrintGuia(item) || !envioId) {
+      this.showNotif('El envío aún no tiene guía para imprimir', 'error');
+      return;
+    }
+    if (this.guiaPrintLoading[envioId]) return;
+    this.guiaPrintLoading[envioId] = true;
+    this.guiasSrv.getTramaGuia(envioId).subscribe({
+      next: (trama: any) => {
+        this.guiaPrintLoading[envioId] = false;
+        const guiaDoc = this.buildGuiaDocFromTrama(trama);
+        this.openGuiaPrintWindow(guiaDoc);
+      },
+      error: () => {
+        this.guiaPrintLoading[envioId] = false;
+        this.showNotif('No se pudo cargar la guía', 'error');
+      }
+    });
+  }
+
+  private buildDespachoPayloadForEnvio(item: Envio): Partial<DespachoCreate> {
+    const me = this.getCurrentMe() || {};
+    const origenId = Number((item as any)?.punto_origen_id || 0);
+    const destinoId = Number((item as any)?.punto_destino_id || 0);
+    return {
+      manifiesto_id: null as any,
+      envio_id: Number((item as any)?.id || 0),
+      estado: 'B',
+      compania_id: Number(localStorage.getItem('cia_id') || 0),
+      origen_ubigeo: this.getPuntoUbigeo(origenId),
+      origen_direccion: this.getPuntoDireccionValue(origenId),
+      destino_ubigeo: this.getPuntoUbigeo(destinoId),
+      destino_direccion: this.getPuntoDireccionValue(destinoId),
+      razon_transferencia: `Envio ${String((item as any)?.ticket_numero || (item as any)?.id || '').trim()}`.trim(),
+      inicio: this.utilSrv.formatFecha(new Date()),
+      aprobado_by: Number((me as any)?.id || 0),
+      notas: '',
+    };
+  }
+
+  private buildGuiaPayloadForEnvio(despachoId: number): Partial<GuiaCreate> {
+    return {
+      despacho_id: Number(despachoId),
+      doc_type: 'GRT',
+    };
+  }
+
+  private buildGuiaIdempotencyKey(despachoId: number): string {
+    return `guia-despacho-${despachoId}-grt-v1`;
+  }
+
+  private buildGuiaDocFromTrama(trama: any) {
+    const guia = (trama as any)?.guia || {};
+    const despacho = (trama as any)?.despacho || {};
+    const envio = (trama as any)?.envio || {};
+    const conductor = (trama as any)?.conductor || null;
+    const vehiculo = (trama as any)?.vehiculo || null;
+    const me = this.getCurrentMe();
+    const currentCompany = Array.isArray((me as any)?.companies) ? (me as any).companies[0] : null;
+    const companyName = String(
+      localStorage.getItem('razon_social') ||
+      localStorage.getItem('nombre_comercial') ||
+      localStorage.getItem('company_name') ||
+      localStorage.getItem('cia_name') ||
+      (currentCompany as any)?.nombre ||
+      (currentCompany as any)?.name ||
+      ''
+    ).trim();
+    const companyRuc = String(
+      localStorage.getItem('ruc') ||
+      (currentCompany as any)?.ruc ||
+      ''
+    ).trim();
+    const items = (trama as any)?.items || [];
+    const mappedItems = (items || []).map((it: any) => ({
+      sku: `ENV-${envio?.id ?? ''}-${it?.numero_item ?? ''}`.trim(),
+      description: String(it?.descripcion ?? ''),
+      uom: 'UND',
+      qty: Number(it?.cantidad) || 0,
+      lot: '',
+      weightKg: Number(envio?.peso) || 0,
+    }));
+    const totalQty = mappedItems.reduce((acc: number, it: any) => acc + (Number(it.qty) || 0), 0);
+    const totalWeightKg = mappedItems.reduce((acc: number, it: any) => acc + (Number(it.weightKg) || 0), 0);
+    const fullNumber = String(guia?.numero_completo || `${guia?.series || ''}-${guia?.numero || ''}`).trim();
+    const hashSha = String(guia?.hash_sha || '');
+    const persona = (conductor as any)?.persona || {};
+    const origenId = Number((envio as any)?.punto_origen_id || 0) || null;
+    const destinoId = Number((envio as any)?.punto_destino_id || 0) || null;
+    return {
+      fullNumber,
+      issuedAt: guia?.emitido_en || null,
+      startDatetime: despacho?.inicio || null,
+      qrDataUrl: this.qrSrc(guia?.qr),
+      companyName: companyName || '-',
+      companyRuc: companyRuc || '-',
+      mtcNumber: '15178239CNG',
+      transferReason: despacho?.razon_transferencia || '',
+      notes: despacho?.notas || '',
+      originUbigeo: despacho?.origen_ubigeo || '',
+      originName: this.getPuntoNombre(origenId) || '',
+      originAddress: this.getPuntoDireccionValue(origenId) || String(despacho?.origen_direccion || '').trim(),
+      destUbigeo: despacho?.destino_ubigeo || '',
+      destName: this.getPuntoNombre(destinoId) || '',
+      destAddress: this.getPuntoDireccionValue(destinoId) || String(despacho?.destino_direccion || '').trim(),
+      vehiclePlate: vehiculo?.placa || '',
+      driverName: [persona?.nombre, persona?.apellido].filter(Boolean).join(' ').trim() || persona?.razon_social || '-',
+      driverDocType: persona?.tipo_documento || '',
+      driverDocNumber: persona?.nro_documento || '',
+      driverLicense: (conductor as any)?.licencia || '',
+      issuedBy: this.getCurrentUserLabel(),
+      items: mappedItems,
+      totalQty,
+      totalWeightKg,
+      hashSha256: hashSha,
+    };
+  }
+
+  private qrSrc(raw?: string): string {
+    const value = String(raw || '').trim();
+    if (!value) return '';
+    if (value.startsWith('data:image')) return value;
+    if (value.startsWith('http://') || value.startsWith('https://')) return value;
+    return `data:image/png;base64,${value}`;
+  }
+
+  private getCurrentUserLabel(): string {
+    const me = this.getCurrentMe();
+    const fullName = String(
+      me?.nombre_completo ||
+      me?.full_name ||
+      me?.name ||
+      me?.username ||
+      me?.email ||
+      ''
+    ).trim();
+    return fullName || '-';
+  }
+
+  private openGuiaPrintWindow(doc: any) {
+    if (!doc) {
+      this.showNotif('No se pudo preparar la impresión', 'error');
+      return;
+    }
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (!win) {
+      this.showNotif('No se pudo abrir la ventana de impresión', 'error');
+      return;
+    }
+    const issuedAt = this.formatPrintDateTime(doc.issuedAt);
+    const startDatetime = this.formatPrintDateTime(doc.startDatetime);
+    const logo = this.companyLogoSrc();
+    const itemsRows = (doc.items || []).length
+      ? (doc.items || []).map((it: any) => `
+          <div class="item">
+            <div class="line strong">${this.escHtml(it?.sku || '-')}</div>
+            <div class="line">${this.escHtml(it?.description || '-')}</div>
+            <div class="line">U.M.: ${this.escHtml(it?.uom || '-')} | Cant.: ${this.escHtml(it?.qty ?? '')}</div>
+            <div class="line">Peso: ${this.escHtml(it?.weightKg ?? '')} kg</div>
+          </div>
+        `).join('')
+      : `<div class="empty">Sin items</div>`;
+    const style = `
+      @page { size: 80mm auto; margin: 2.5mm; }
+      html, body { width: 80mm; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; line-height: 1.24; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .ticket { width: 74mm; margin: 0 auto; }
+      .logo { text-align: center; margin: 0 0 4px; }
+      .logo img { max-width: 34mm; max-height: 16mm; object-fit: contain; }
+      .title { text-align: center; font-size: 13px; font-weight: 700; }
+      .doc-number { text-align: center; font-size: 12px; font-weight: 700; margin-top: 2px; }
+      .sep { border-top: 1px dashed #000; margin: 5px 0; }
+      .section { border: 1px solid #000; margin-top: 6px; }
+      .section-title { background: #f3f4f6; font-size: 11px; font-weight: 700; padding: 4px 5px; text-transform: uppercase; }
+      .section-body { padding: 5px; }
+      .line { margin: 2px 0; word-break: break-word; }
+      .strong { font-weight: 700; }
+      .qr { text-align: center; margin-top: 6px; }
+      .qr img { width: 24mm; height: 24mm; object-fit: contain; border: 1px solid #ddd; padding: 2px; }
+      .item { border-bottom: 1px dotted #666; padding: 4px 0; }
+      .item:last-child { border-bottom: 0; }
+      .empty { text-align: center; color: #666; padding: 6px 0; }
+      .total { margin-top: 4px; font-size: 12px; font-weight: 700; text-align: right; }
+      .footer { margin-top: 6px; font-size: 10px; text-align: center; word-break: break-word; }
+      .mono { font-family: "Courier New", Courier, monospace; }
+    `;
+    const html = `
+      <div class="ticket">
+        ${logo ? `<div class="logo"><img src="${this.escHtml(logo)}" alt="Logo empresa" /></div>` : ''}
+        <div class="title">GUÍA DE REMISIÓN TRANSPORTISTA</div>
+        <div class="doc-number">${this.escHtml(doc.fullNumber || '-')}</div>
+        ${doc.qrDataUrl ? `<div class="qr"><img src="${this.escHtml(doc.qrDataUrl)}" alt="QR guía" /></div>` : ''}
+        <div class="sep"></div>
+
+        <div class="section">
+          <div class="section-title">Datos Generales</div>
+          <div class="section-body">
+            <div class="line"><span class="strong">Empresa:</span> ${this.escHtml(doc.companyName || '-')}</div>
+            <div class="line"><span class="strong">RUC:</span> ${this.escHtml(doc.companyRuc || '-')}</div>
+            <div class="line"><span class="strong">N° de Registro MTC:</span> ${this.escHtml(doc.mtcNumber || '-')}</div>
+            <div class="line"><span class="strong">Emitida:</span> ${this.escHtml(issuedAt)}</div>
+            <div class="line"><span class="strong">Inicio traslado:</span> ${this.escHtml(startDatetime)}</div>
+            <div class="line"><span class="strong">Motivo:</span> ${this.escHtml(doc.transferReason || '-')}</div>
+            <div class="line"><span class="strong">Observaciones:</span> ${this.escHtml(doc.notes || '-')}</div>
+            <div class="line"><span class="strong">Usuario:</span> ${this.escHtml(doc.issuedBy || '-')}</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Ruta</div>
+          <div class="section-body">
+            <div class="line"><span class="strong">Origen:</span> ${this.escHtml(doc.originName || '-')}</div>
+            <div class="line"><span class="strong">Dir. origen:</span> ${this.escHtml(doc.originAddress || '-')}</div>
+            <div class="line"><span class="strong">Ubigeo origen:</span> ${this.escHtml(doc.originUbigeo || '-')}</div>
+            <div class="line"><span class="strong">Destino:</span> ${this.escHtml(doc.destName || '-')}</div>
+            <div class="line"><span class="strong">Dir. destino:</span> ${this.escHtml(doc.destAddress || '-')}</div>
+            <div class="line"><span class="strong">Ubigeo destino:</span> ${this.escHtml(doc.destUbigeo || '-')}</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Transporte</div>
+          <div class="section-body">
+            <div class="line"><span class="strong">Placa:</span> ${this.escHtml(doc.vehiclePlate || '-')}</div>
+            <div class="line"><span class="strong">Conductor:</span> ${this.escHtml(doc.driverName || '-')}</div>
+            <div class="line"><span class="strong">Documento:</span> ${this.escHtml([doc.driverDocType, doc.driverDocNumber].filter(Boolean).join(' ') || '-')}</div>
+            <div class="line"><span class="strong">Licencia:</span> ${this.escHtml(doc.driverLicense || '-')}</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Bienes Trasladados</div>
+          <div class="section-body">
+            ${itemsRows}
+            <div class="total">Cant.: ${this.escHtml(doc.totalQty ?? 0)} | Peso: ${this.escHtml(doc.totalWeightKg ?? 0)} kg</div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div>Hash: <span class="mono">${this.escHtml(doc.hashSha256 || '-')}</span></div>
+        </div>
+      </div>
+    `;
+    win.document.write(`<!doctype html><html><head><title>Guía ${this.escHtml(doc.fullNumber || '')}</title><style>${style}</style></head><body>${html}</body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  }
+
+  private formatPrintDateTime(value: any): string {
+    const raw = String(value || '').trim();
+    if (!raw) return '-';
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return raw;
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mi = String(date.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
   }
   onCompTipoChange(selected?: any) {
     if (selected && typeof selected === 'object') {
@@ -1274,6 +1734,15 @@ export class EnviosFeature implements OnInit {
     const dir = String((p as any)?.direccion || '').trim();
     return dir || '-';
   }
+  private getPuntoDireccionValue(id: number | null | undefined): string {
+    const p = (this.puntos || []).find(x => (x as any).id === Number(id));
+    const dir = String((p as any)?.direccion || '').trim();
+    return dir || this.getPuntoNombre(id);
+  }
+  private getPuntoUbigeo(id: number | null | undefined): string {
+    const p = (this.puntos || []).find(x => (x as any).id === Number(id));
+    return String((p as any)?.ubigeo || '').trim();
+  }
 
   // Lista filtrada y paginaciÃ³n
   get filteredEnvios(): Envio[] {
@@ -1290,7 +1759,7 @@ export class EnviosFeature implements OnInit {
         String(e.peso ?? ''), String(e.fecha_envio ?? ''), String(e.punto_origen_id ?? ''), String(e.punto_destino_id ?? ''),
         String(e.ticket_numero ?? ''), String(e.guia ?? ''), String(e.manifiesto ?? ''), String(e.clave_recojo ?? ''),
       ].join(' ').toLowerCase();
-      if (this.origenFilterId && Number(e.punto_origen_id) !== Number(this.origenFilterId)) return false; if (this.destinoFilterId && Number(e.punto_destino_id) !== Number(this.destinoFilterId)) return false; if (this.personaSearchTarget === 'remitente') return remit.includes(term); if (this.personaSearchTarget === 'destinatario') return dest.includes(term); return remit.includes(term) || dest.includes(term) || values.includes(term);
+      if (this.origenFilterId && Number(e.punto_origen_id) !== Number(this.origenFilterId)) return false; if (this.destinoFilterId && Number(e.punto_destino_id) !== Number(this.destinoFilterId)) return false; if (this.personaSearchTarget === 'remitente') return remit.includes(term); if (this.personaSearchTarget === 'destinatario') return dest.includes(term); return remit.includes(term) || dest.includes(term) || values.includes(term) || this.ticketMatchesSearch(e?.ticket_numero, term);
     });
     return filtered.sort((a: any, b: any) => this.compareTicketDesc(a, b));
   }
@@ -1447,9 +1916,10 @@ export class EnviosFeature implements OnInit {
     if (this.exactSearchTried.has(key)) return;
     if (this.hasLocalSearchMatch(term)) return;
     this.exactSearchInFlight = true;
-    this.enviosSrv.getEnviosExacto(term).subscribe({
-      next: (res: Envio[]) => {
-        const incoming = (res || []) as Envio[];
+    const candidates = this.buildTicketSearchCandidates(term);
+    forkJoin(candidates.map((candidate) => this.enviosSrv.getEnviosExacto(candidate))).subscribe({
+      next: (responses: Envio[][]) => {
+        const incoming = (responses || []).flatMap((res) => (res || []) as Envio[]);
         if (incoming.length) {
           const byId = new Map<number, Envio>();
           for (const e of (this.lista_envios || [])) byId.set(Number((e as any)?.id || 0), e);
@@ -1483,8 +1953,62 @@ export class EnviosFeature implements OnInit {
       ].join(' ').toLowerCase();
       if (this.personaSearchTarget === 'remitente') return remit.includes(term);
       if (this.personaSearchTarget === 'destinatario') return dest.includes(term);
-      return remit.includes(term) || dest.includes(term) || values.includes(term);
+      return remit.includes(term) || dest.includes(term) || values.includes(term) || this.ticketMatchesSearch(e?.ticket_numero, term);
     });
+  }
+  private normalizeTicketCorrelativo(value: any): string {
+    const digits = String(value || '').replace(/\D/g, '');
+    const normalized = digits.replace(/^0+/, '');
+    return normalized || (digits ? '0' : '');
+  }
+  private normalizeTicketSearchText(value: any): string {
+    return String(value || '').trim().toUpperCase();
+  }
+  private ticketSeriesCandidates(): string[] {
+    const values = new Set<string>();
+    for (const e of (this.lista_envios || [])) {
+      const ticket = this.normalizeTicketSearchText((e as any)?.ticket_numero);
+      const idx = ticket.indexOf('-');
+      if (idx > 0) values.add(ticket.slice(0, idx));
+    }
+    for (const s of (this.compTipos || [])) {
+      const serie = this.normalizeTicketSearchText((s as any)?.serie);
+      if (serie) values.add(serie);
+    }
+    return Array.from(values).filter(Boolean);
+  }
+  private buildTicketSearchCandidates(termRaw: string): string[] {
+    const raw = this.normalizeTicketSearchText(termRaw);
+    if (!raw) return [];
+    const candidates = new Set<string>([raw]);
+    const idx = raw.indexOf('-');
+    if (idx > 0) {
+      const serie = raw.slice(0, idx).trim();
+      const correlativo = this.normalizeTicketCorrelativo(raw.slice(idx + 1));
+      if (serie && correlativo) candidates.add(`${serie}-${correlativo.padStart(8, '0')}`);
+      return Array.from(candidates);
+    }
+    const correlativo = this.normalizeTicketCorrelativo(raw);
+    if (!correlativo) return Array.from(candidates);
+    candidates.add(correlativo.padStart(8, '0'));
+    for (const serie of this.ticketSeriesCandidates()) {
+      candidates.add(`${serie}-${correlativo.padStart(8, '0')}`);
+    }
+    return Array.from(candidates);
+  }
+  private ticketMatchesSearch(ticketValue: any, termRaw: string): boolean {
+    const ticket = this.normalizeTicketSearchText(ticketValue);
+    const term = this.normalizeTicketSearchText(termRaw);
+    if (!ticket || !term) return false;
+    if (ticket.includes(term)) return true;
+    const ticketIdx = ticket.indexOf('-');
+    const ticketSerie = ticketIdx > 0 ? ticket.slice(0, ticketIdx) : '';
+    const ticketCorrelativo = this.normalizeTicketCorrelativo(ticketIdx > 0 ? ticket.slice(ticketIdx + 1) : ticket);
+    const termIdx = term.indexOf('-');
+    const termSerie = termIdx > 0 ? term.slice(0, termIdx) : '';
+    const termCorrelativo = this.normalizeTicketCorrelativo(termIdx > 0 ? term.slice(termIdx + 1) : term);
+    if (termSerie && ticketSerie) return ticketSerie === termSerie && !!termCorrelativo && ticketCorrelativo === termCorrelativo;
+    return !!termCorrelativo && ticketCorrelativo === termCorrelativo;
   }
   resetFilters() { this.search = ''; this.entregaFilter = 'all'; this.fechaFiltro = ''; this.setPage(1); this.loadEnvios(); }
   private compareTicketDesc(a: any, b: any): number {
@@ -1504,6 +2028,20 @@ export class EnviosFeature implements OnInit {
   personaLabel(p: Persona): string { const nombre = [p.nombre, p.apellido].filter(Boolean).join(' ').trim(); const razon = (p.razon_social || '').trim(); const base = (razon || nombre || '').trim(); const doc = (p.nro_documento || '').trim(); return [base, doc].filter(Boolean).join(' - '); }
   personaLabelById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? this.personaLabel(p) : null; }
   personaCelularById(id: any): string | null { const n = Number(id); if (!n) return null; const p = (this.personas || []).find(x => (x as any).id === n); return p ? String((p as any).celular || '') : null; }
+  isOperarioRole(): boolean { return this.getRoleNames().includes('operario'); }
+  isEditLockedForOperario(): boolean { return this.editing && this.isOperarioRole(); }
+  isOperarioDestinoEnvio(item: Envio | null | undefined): boolean {
+    if (!this.isOperarioRole()) return false;
+    const sedeId = this.getUserSedeId();
+    if (sedeId <= 0) return false;
+    return Number((item as any)?.punto_destino_id || 0) === sedeId;
+  }
+  showRegularActions(item: Envio | null | undefined): boolean {
+    return !this.isOperarioDestinoEnvio(item);
+  }
+  canReprintTicket(item: Envio | null | undefined): boolean {
+    return this.showRegularActions(item) || this.isOperarioRole();
+  }
   private resetRemitenteCredito() { this.remitenteCredito = null; this.remitenteCreditoLoading = false; this.remitenteCreditoError = null; }
   private hasCreditoFields(item: any): boolean {
     if (!item || typeof item !== 'object') return false;
@@ -2165,8 +2703,13 @@ export class EnviosFeature implements OnInit {
     //this.stagedDetalles = [];
   }
 
-  submitEnvio() {
+  submitEnvio(internal = false) {
+    if (this.saving && !internal) return;
     if (!this.isValidEnvio) return;
+    if (!internal) {
+      this.saving = true;
+      this.saveError = null;
+    }
     if (!this.editing && this.requiresSpecialPersonCreation()) {
       this.createSpecialPersonsThenSubmit();
       return;
@@ -2175,6 +2718,7 @@ export class EnviosFeature implements OnInit {
     if (e?.estado_pago && !this.hasComprobante && !this.compFormaPagoId) {
       this.saveError = 'Seleccione forma de pago para guardar el envio pagado';
       this.showNotif(this.saveError, 'error');
+      this.saving = false;
       return;
     }
     const doSubmit = (ticketSerie: SerieComprobanteModel | null) => {
@@ -2183,9 +2727,8 @@ export class EnviosFeature implements OnInit {
     const estadoPago = !!e.estado_pago;
     const pagoDestino = estadoPago ? false : true;
     const payload: any = {
-      remitente: Number(e.remitente), destinatario: Number(e.destinatario), entrega_domicilio: !!e.entrega_domicilio, direccion_envio: String(e.direccion_envio || '').toUpperCase().trim(), estado_pago: estadoPago, pago_destino: pagoDestino, guia_referencia: guiaReferencia, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id), ticket_numero: ticketNumero, placa_vehiculo: String(e.placa_vehiculo || '').trim() || null
+      remitente: Number(e.remitente), destinatario: Number(e.destinatario), entrega_domicilio: !!e.entrega_domicilio, direccion_envio: String(e.direccion_envio || '').toUpperCase().trim(), estado_pago: estadoPago, pago_destino: pagoDestino, guia_referencia: guiaReferencia, clave_recojo: String(e.clave_recojo || '').trim(), peso: Number(e.peso) || 0, fecha_envio: String(e.fecha_envio || '').trim(), fecha_recepcion: String(e.fecha_recepcion || '').trim() || null, tipo_contenido: !!e.tipo_contenido, guia: e.guia != null ? Number(e.guia) : null, manifiesto: e.manifiesto != null ? Number(e.manifiesto) : null, valida_restricciones: !!e.valida_restricciones, punto_origen_id: Number(e.punto_origen_id), punto_destino_id: Number(e.punto_destino_id), /* ticket_numero: ticketNumero, */ placa_vehiculo: String(e.placa_vehiculo || '').trim() || null
     };
-    this.saving = true; this.saveError = null;
     if (this.editing && this.editingId) {
       this.enviosSrv.updateEnvios(this.editingId, payload).subscribe({
         next: (res: any) => {
@@ -2224,12 +2767,14 @@ export class EnviosFeature implements OnInit {
         next: (series: SerieComprobanteModel[]) => {
           const ticketSerie = this.pickTicketSerie(series || []);
           if (!ticketSerie) {
+            this.saving = false;
             this.showNotif('No se encontro serie de ticket para la sede', 'error');
             return;
           }
           doSubmit(ticketSerie);
         },
         error: () => {
+          this.saving = false;
           this.showNotif('No se pudo obtener la serie del ticket', 'error');
         }
       });
@@ -2269,7 +2814,7 @@ export class EnviosFeature implements OnInit {
       const numeroComprobante = this.compNumeroComprobante;
       this.withClienteForComprobante((clienteId) => {
         const body: any = { ...this.buildComprobantePayload(newId, clienteId), estado_comprobante: estado_comp };
-        this.comprobantesSrv.createComprobantes(body).subscribe({
+        this.comprobantesSrv.createComprobantes(body, this.buildComprobanteIdempotencyKey(newId)).subscribe({
   next: (comp: any) => {
     const compHeader: any = comp && typeof comp === 'object' ? comp : body;
     const compId = Number((compHeader as any)?.id || 0);
@@ -2354,10 +2899,50 @@ export class EnviosFeature implements OnInit {
     this.entregaOpen = true; this.cdr.detectChanges();
   }
   closeEntrega() { if (this.entregaRef?.hasAttached()) this.entregaRef.detach(); this.entregaOpen = false; this.entregaItem = null; this.entregaClaveInput = ''; this.entregaError = null; }
+  resetEntregaComprobanteFlow() {
+    this.compInlineForEntrega = false;
+    this.compEnvioId = null;
+    this.entregaPendingAutoConfirmId = null;
+    this.entregaPendingAutoConfirmFecha = '';
+  }
+  private finalizeEntregaAfterComprobante(envioId: number) {
+    const shouldConfirmEntrega = this.entregaPendingAutoConfirmId === envioId;
+    const fechaEntrega = String(this.entregaPendingAutoConfirmFecha || '').trim();
+    const payload: any = shouldConfirmEntrega
+      ? { estado_pago: true, fecha_recepcion: fechaEntrega || null, estado_entrega: true }
+      : { estado_pago: true };
+    const successMessage = shouldConfirmEntrega ? 'Comprobante generado y entrega confirmada' : 'Comprobante generado';
+    this.resetEntregaComprobanteFlow();
+    this.enviosSrv.updateEnvios(envioId, payload).subscribe({
+      next: (res: any) => {
+        const fecha = res?.fecha_recepcion ?? payload.fecha_recepcion ?? null;
+        this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === envioId ? ({
+          ...v,
+          estado_pago: true,
+          estado_entrega: shouldConfirmEntrega ? true : (res?.estado_entrega ?? v?.estado_entrega),
+          fecha_recepcion: shouldConfirmEntrega ? fecha : (res?.fecha_recepcion ?? v?.fecha_recepcion)
+        }) : v);
+        try { this.onFilterChange(); } catch {}
+        this.showNotif(successMessage);
+      },
+      error: () => {
+        this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === envioId ? ({
+          ...v,
+          estado_pago: true,
+          estado_entrega: shouldConfirmEntrega ? true : v?.estado_entrega,
+          fecha_recepcion: shouldConfirmEntrega ? (payload.fecha_recepcion ?? v?.fecha_recepcion) : v?.fecha_recepcion
+        }) : v);
+        try { this.onFilterChange(); } catch {}
+        this.showNotif(successMessage);
+      }
+    });
+  }
   submitEntrega() {
     if (!this.entregaItem || !this.entregaClaveOk) return; const id = Number((this.entregaItem as any).id); if (!id) return;
     // Si no estï¿½ pagado, cerrar modal y mostrar inline para generar comprobante
     if (!(this.entregaItem as any).estado_pago) {
+      this.entregaPendingAutoConfirmId = id;
+      this.entregaPendingAutoConfirmFecha = this.entregaFecha;
       this.closeEntrega();
       this.compEnvioId = id;
       this.compInlineForEntrega = true;
@@ -2466,10 +3051,10 @@ export class EnviosFeature implements OnInit {
 
   private createSpecialPersonsThenSubmit() {
     this.resolveSpecialPersona('remitente', (okRemit) => {
-      if (!okRemit) return;
+      if (!okRemit) { this.saving = false; return; }
       this.resolveSpecialPersona('destinatario', (okDest) => {
-        if (!okDest) return;
-        this.submitEnvio();
+        if (!okDest) { this.saving = false; return; }
+        this.submitEnvio(true);
       });
     });
   }
@@ -2544,7 +3129,7 @@ export class EnviosFeature implements OnInit {
     const numeroComprobante = this.compNumeroComprobante;
     this.withClienteForComprobante((clienteId) => {
       const body: any = { ...this.buildComprobantePayload(envioId, clienteId), estado_comprobante: estado_comp };
-      this.comprobantesSrv.createComprobantes(body).subscribe({
+      this.comprobantesSrv.createComprobantes(body, this.buildComprobanteIdempotencyKey(envioId)).subscribe({
       next: (comp: any) => {
         const compHeader: any = comp && typeof comp === 'object' ? comp : body;
         const compId = Number((compHeader as any)?.id || 0);
@@ -2557,8 +3142,7 @@ export class EnviosFeature implements OnInit {
               const cabId = Number((cab as any)?.id || 0);
               // Aun si falla, marcar como pagado y refrescar
               const finalize = () => {
-                this.compInlineForEntrega = false; this.compEnvioId = null;
-                this.enviosSrv.updateEnvios(envioId, { estado_pago: true } as any).subscribe({ next: () => { this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === envioId ? ({ ...v, estado_pago: true }) : v); try { this.onFilterChange(); } catch { } this.showNotif('Comprobante generado'); }, error: () => { this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === envioId ? ({ ...v, estado_pago: true }) : v); try { this.onFilterChange(); } catch { } this.showNotif('Comprobante generado'); } });
+                this.finalizeEntregaAfterComprobante(envioId);
               };
               if (!cabId) { finalize(); return; }
               const descripcion = (this.stagedDetalles || []).map((x: any) => String(x.descripcion || '')).filter(Boolean).join(', ');
@@ -2567,8 +3151,7 @@ export class EnviosFeature implements OnInit {
             },
             error: () => {
               // No bloquear por error de movimiento
-              this.compInlineForEntrega = false; this.compEnvioId = null;
-              this.enviosSrv.updateEnvios(envioId, { estado_pago: true } as any).subscribe({ next: () => { this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === envioId ? ({ ...v, estado_pago: true }) : v); try { this.onFilterChange(); } catch { } this.showNotif('Comprobante generado'); }, error: () => { this.lista_envios = (this.lista_envios || []).map((v: any) => v.id === envioId ? ({ ...v, estado_pago: true }) : v); try { this.onFilterChange(); } catch { } this.showNotif('Comprobante generado'); } });
+              this.finalizeEntregaAfterComprobante(envioId);
             }
           });
         };
@@ -2590,7 +3173,7 @@ export class EnviosFeature implements OnInit {
     const numeroComprobante = this.compNumeroComprobante;
     this.withClienteForComprobante((clienteId) => {
       const body: any = { ...this.buildComprobantePayload(envioId, clienteId), estado_comprobante: estado_comp };
-      this.comprobantesSrv.createComprobantes(body).subscribe({
+      this.comprobantesSrv.createComprobantes(body, this.buildComprobanteIdempotencyKey(envioId)).subscribe({
       next: (comp: any) => {
         const compHeader: any = comp && typeof comp === 'object' ? comp : body;
         const compId = Number((compHeader as any)?.id || 0);

@@ -42,8 +42,9 @@ export class Guias {
     return this.api.get(`/guias/despachos/${despacho_id}/guias`);
   }
 
-  createGuia(body: Partial<GuiaCreate>): Observable<Guia> {
-    return this.api.post(`/guias/guias`, body);
+  createGuia(body: Partial<GuiaCreate>, idempotencyKey?: string): Observable<Guia> {
+    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined;
+    return this.api.post(`/guias/guias`, body, { headers });
   }
 
   updateGuia(id: number, body: Partial<GuiaCreate>): Observable<Guia> {

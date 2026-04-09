@@ -18,6 +18,7 @@ export class LiquidacionesFeature implements OnInit {
   private readonly puntosSrv = inject(PuntosService);
   isOperario = false;
   isAdminSede = false;
+  isAdminZona = false;
   isAdmin = false;
   resumen: EnviosDiariosResumenPorUsuarioRead[] = [];
   totales: EnviosDiariosAgrupadosRead[] = [];
@@ -55,7 +56,11 @@ export class LiquidacionesFeature implements OnInit {
     if (this.isAdmin) this.loadPuntos();
     this.loadResumen();
     this.loadTotales();
-    if (this.isAdmin) this.loadTotalesGenerales();
+    if (this.canViewTotalesGenerales) this.loadTotalesGenerales();
+  }
+
+  get canViewTotalesGenerales(): boolean {
+    return this.isAdmin || this.isAdminZona;
   }
 
   loadResumen() {
@@ -121,7 +126,7 @@ export class LiquidacionesFeature implements OnInit {
 
   isDetalleInformativoDestino(row: { envio: any; movimiento: any; comprobantes: any[] } | null | undefined): boolean {
     const envio = row?.envio || {};
-    return this.isNoCajaInformativo(envio) && this.toBoolean(envio?.pago_destino);
+    return this.toBoolean(envio?.pago_destino);
   }
 
   private montoPendienteDestino(envio: any): number {
@@ -334,14 +339,14 @@ export class LiquidacionesFeature implements OnInit {
     this.fechaFiltro = this.normalizeFechaValue(value);
     this.loadResumen();
     this.loadTotales();
-    if (this.isAdmin) this.loadTotalesGenerales();
+    if (this.canViewTotalesGenerales) this.loadTotalesGenerales();
   }
 
   clearFechaFiltro(): void {
     this.fechaFiltro = '';
     this.loadResumen();
     this.loadTotales();
-    if (this.isAdmin) this.loadTotalesGenerales();
+    if (this.canViewTotalesGenerales) this.loadTotalesGenerales();
   }
 
   onPuntoFiltroChange(value: string): void {
@@ -478,11 +483,14 @@ export class LiquidacionesFeature implements OnInit {
   }
 
   loadTotalesGenerales(): void {
-    if (!this.isAdmin) return;
+    if (!this.canViewTotalesGenerales) return;
     this.totalesGeneralesLoading = true;
     this.totalesGeneralesError = null;
     const fecha = this.fechaFiltroOrToday();
-    this.enviosSrv.getTotalesGenerales(fecha).subscribe({
+    const source$ = this.isAdminZona
+      ? this.enviosSrv.getTotalesGeneralesByFechaZona(fecha, this.getUserZonaId() || undefined)
+      : this.enviosSrv.getTotalesGenerales(fecha);
+    source$.subscribe({
       next: (res: any) => {
         const rows = this.normalizeTotalesGeneralesRows(res);
         this.totalesGeneralesSource = rows;
@@ -662,6 +670,9 @@ export class LiquidacionesFeature implements OnInit {
   }
 
   private getResumenSourceByRole(fecha?: string): Observable<EnviosDiariosResumenPorUsuarioRead[]> {
+    if (this.isAdminZona) {
+      return this.enviosSrv.getEnviosResumenByFechaZona(fecha, this.getUserZonaId() || undefined);
+    }
     if (this.isAdminSede) {
       return this.enviosSrv.getEnviosResumenByFechaSede(fecha, this.getUserSedeId() || undefined);
     }
@@ -672,6 +683,9 @@ export class LiquidacionesFeature implements OnInit {
   }
 
   private getTotalesSourceByRole(fecha?: string): Observable<EnviosDiariosAgrupadosRead[]> {
+    if (this.isAdminZona) {
+      return this.enviosSrv.getEnviosTotalesByFechaZona(fecha, this.getUserZonaId() || undefined);
+    }
     if (this.isAdminSede) {
       return this.enviosSrv.getEnviosTotalesByFechaSede(fecha, this.getUserSedeId() || undefined);
     }
@@ -705,13 +719,21 @@ export class LiquidacionesFeature implements OnInit {
   private resolveRoleFlags(): void {
     this.isAdminSede = this.hasRole('admin_sede', 'adm_sede');
     this.isOperario = !this.isAdminSede && this.hasRole('operario');
-    this.isAdmin = !this.isAdminSede && !this.isOperario && this.hasRole('admin');
+    this.isAdminZona = !this.isAdminSede && !this.isOperario && this.hasRole('admin_zona');
+    this.isAdmin = !this.isAdminSede && !this.isOperario && !this.isAdminZona && this.hasRole('admin');
   }
 
   private getUserSedeId(): number {
     const me = this.getCurrentMe();
     const sede = Array.isArray(me?.sedes) ? me.sedes[0] : null;
     return Number(sede?.id || 0);
+  }
+
+  private getUserZonaId(): number {
+    const me = this.getCurrentMe();
+    const sedes = Array.isArray(me?.sedes) ? me.sedes : [];
+    const withZona = sedes.find((s: any) => Number(s?.zona_id || 0) > 0);
+    return Number(withZona?.zona_id || 0);
   }
 
   private getUserId(): number {
@@ -721,6 +743,7 @@ export class LiquidacionesFeature implements OnInit {
 
   private roleLabel(): string {
     if (this.isAdminSede) return 'ADMIN_SEDE';
+    if (this.isAdminZona) return 'ADMIN_ZONA';
     if (this.isOperario) return 'OPERARIO';
     return 'ADMIN';
   }

@@ -70,6 +70,7 @@ export class LayoutComponent {
   isSidebarMini = false;
   readonly isAdminSede = this.hasRole('admin_sede');
   readonly isOperario = this.hasRole('operario') && !this.isAdminSede;
+  readonly isAdminZona = this.hasRole('admin_zona');
 
   get userLabel(): string {
     return this.auth.getUserLabel() || 'Usuario';
@@ -88,10 +89,14 @@ export class LayoutComponent {
   }
 
   get homeRoute(): string {
+    if (this.isAdminZona) return '/gastos';
     return this.isOperario ? '/envios' : '/dashboard';
   }
 
   get maestrosVisible(): NavItem[] {
+    if (this.isAdminZona) {
+      return [];
+    }
     if (this.isOperario) {
       return this.maestros.filter((m) => m.route === '/conductores' || m.route === '/personas');
     }
@@ -101,6 +106,13 @@ export class LayoutComponent {
     return this.maestros;
   }
   get funcionalidadesVisible(): NavItem[] {
+    if (this.isAdminZona) {
+      return this.funcionalidades.filter((f) =>
+        f.route === '/liquidaciones' ||
+        f.route === '/gastos' ||
+        f.route === '/comprobantes'
+      );
+    }
     if (this.isOperario) {
       return this.funcionalidades.filter((f) =>
         f.route !== '/reportes' &&
@@ -206,7 +218,5 @@ export class LayoutComponent {
     }
   }
 }
-
-
 
 

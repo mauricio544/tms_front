@@ -11,7 +11,7 @@ import { Manifiestos } from '../../../../core/services/manifiestos';
 import { Envios } from '../../../../core/services/envios';
 import { Puntos } from '../../../../core/services/puntos';
 import { Conductores as ConductoresService } from '../../../../core/services/conductores';
-import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate, Vehiculo, SerieComprobante as SerieComprobanteModel, GuiaTramaFinal, ManifiestoGuiasSunatResumenRead, ManifiestoGuiaSunatEstadoRead, ManifiestoEnvioPendienteGuiaRead } from '../../../../core/mapped';
+import { Manifiesto, Envio, Puntos as Points, Persona, DetalleComprobante, DespachoRead, Guia, ItemGuia, ItemGuiaCreate, Vehiculo, SerieComprobante as SerieComprobanteModel, GuiaTramaFinal, ManifiestoGuiasSunatResumenRead, ManifiestoGuiaSunatEstadoRead, ManifiestoEnvioPendienteGuiaRead, ManifiestoWithEnviosRead } from '../../../../core/mapped';
 import { Conductor } from '../../../../core/mapped';
 import { Personas } from '../../../../core/services/personas';
 import { DetallesComprobante } from '../../../../core/services/detalles-comprobante';
@@ -33,6 +33,14 @@ type SunatGuiaEstado = 'aceptado' | 'rechazado' | 'pendiente';
 type SunatGuiaItem = { envioId: number; envioTicket?: string; guiaId: number; numero: string; sunatCod?: string; sunatMsg?: string };
 type SunatPendingGuiaItem = { envioId: number; envioTicket?: string; fechaEnvio?: string; origenNombre?: string; destinoNombre?: string; motivo?: string };
 type SunatGenerationState = { total: number; done: number; errors: number; running: boolean; guias: SunatGuiaItem[]; pendingGuias: SunatPendingGuiaItem[]; totalPendientesGuia: number };
+type DetailTab = 'resumen' | 'envios' | 'guias' | 'documento' | 'mapa' | 'transito' | 'historial';
+type ManifiestoTransitoDetail = ManifiestoWithEnviosRead & {
+  arrived_at?: string | null;
+  arrived_lat?: number | null;
+  arrived_lng?: number | null;
+  arrived_accuracy_m?: number | null;
+  arrived_note?: string | null;
+};
 
 @Component({
   selector: 'feature-manifiestos',
@@ -82,7 +90,7 @@ export class ManifiestosFeature implements OnInit {
   // Estado base para detalle contextual (preparación para drawer)
   selectedManifiestoId: number | null = null;
   drawerOpen = false;
-  activeTab: 'resumen' | 'envios' | 'guias' | 'documento' | 'mapa' | 'historial' = 'resumen';
+  activeTab: DetailTab = 'resumen';
   actionMenuOpenId: number | null = null;
   actionMenuPos: { top: number; left: number } = { top: 0, left: 0 };
 
@@ -133,6 +141,12 @@ export class ManifiestosFeature implements OnInit {
   enviosConductorId: number | null = null;
   enviosOrigenId: number | null = null;
   enviosDestinoId: number | null = null;
+  transitoLoading = false;
+  transitoSaving = false;
+  transitoError: string | null = null;
+  transitoSuccess: string | null = null;
+  transitoData: ManifiestoTransitoDetail | null = null;
+  transitoArrivedNote = '';
 
   // Aï¿½adir envï¿½os a manifiesto
   showAddEnviosModal = false;
@@ -187,7 +201,7 @@ export class ManifiestosFeature implements OnInit {
     this.page = 1;
     this.loadManifiestos();
   }
-  openDetailContext(item: Manifiesto, tab: 'resumen' | 'envios' | 'guias' | 'documento' | 'mapa' | 'historial' = 'resumen') {
+  openDetailContext(item: Manifiesto, tab: DetailTab = 'resumen') {
     const id = Number((item as any)?.id || 0);
     if (!id) return;
     this.selectedManifiestoId = id;
@@ -196,6 +210,7 @@ export class ManifiestosFeature implements OnInit {
     this.syncDetailQueryParams();
     if (tab === 'envios') this.loadEnviosForManifiesto(item);
     if (tab === 'guias') this.loadSunatResumenForManifiesto(item);
+    if (tab === 'transito') this.loadTransitoForManifiesto(item);
   }
   closeDetailContext() {
     this.drawerOpen = false;
@@ -204,11 +219,12 @@ export class ManifiestosFeature implements OnInit {
     this.showGuiaGeneradaModal = false;
     this.syncDetailQueryParams();
   }
-  setActiveTab(tab: 'resumen' | 'envios' | 'guias' | 'documento' | 'mapa' | 'historial') {
+  setActiveTab(tab: DetailTab) {
     this.activeTab = tab;
     this.syncDetailQueryParams();
     if (tab === 'envios') this.loadEnviosForSelected();
     if (tab === 'guias') this.loadSunatResumenForSelected();
+    if (tab === 'transito') this.loadTransitoForSelected();
   }
   toggleActionMenu(item: Manifiesto, ev?: Event) {
     try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
@@ -264,6 +280,7 @@ export class ManifiestosFeature implements OnInit {
   }
   openAddEnviosContext(item: Manifiesto, ev?: Event) {
     try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    if (!this.canManageDestinoManifiesto(item)) return;
     this.openDetailContext(item, 'envios');
     this.closeActionMenu();
     this.anadirEnvio(item);
@@ -288,9 +305,9 @@ export class ManifiestosFeature implements OnInit {
   }
   openPublicLinkContext(item: Manifiesto, ev?: Event) {
     try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
-    this.openDetailContext(item, 'documento');
+    if (!this.canShowLlegadaVehiculoAction(item)) return;
+    this.openDetailContext(item, 'transito');
     this.closeActionMenu();
-    this.generarPublicLink(item);
   }
   canShowPublicLink(item: Manifiesto | null | undefined): boolean {
     const userSedeId = this.getUserPuntoId();
@@ -298,8 +315,23 @@ export class ManifiestosFeature implements OnInit {
     const destinoId = Number((item as any)?.codigo_punto_destino || 0);
     return destinoId > 0 && destinoId === userSedeId;
   }
+  canShowLlegadaVehiculoAction(item: Manifiesto | null | undefined): boolean {
+    return this.canShowPublicLink(item) && this.isManifiestoEnTransito(item);
+  }
+  isOperarioDestinoManifiesto(item: Manifiesto | null | undefined): boolean {
+    if (!this.hasRole('operario')) return false;
+    return this.canShowPublicLink(item);
+  }
+  canManageDestinoManifiesto(item: Manifiesto | null | undefined): boolean {
+    return !this.isOperarioDestinoManifiesto(item);
+  }
+  isManifiestoEnTransito(item: { estado?: string | null } | null | undefined): boolean {
+    const raw = String(item?.estado || '').trim().toUpperCase();
+    return raw !== 'LLEGADA';
+  }
   openEditContext(item: Manifiesto, ev?: Event) {
     try { ev?.preventDefault(); ev?.stopPropagation(); } catch {}
+    if (!this.canManageDestinoManifiesto(item)) return;
     this.openDetailContext(item, 'resumen');
     this.closeActionMenu();
     this.openEdit(item);
@@ -334,6 +366,77 @@ export class ManifiestosFeature implements OnInit {
     const item = this.selectedManifiesto;
     if (!item) return;
     this.loadSunatResumenForManifiesto(item);
+  }
+  private loadTransitoForSelected() {
+    const item = this.selectedManifiesto;
+    if (!item) return;
+    this.loadTransitoForManifiesto(item);
+  }
+  private loadTransitoForManifiesto(item: Manifiesto) {
+    const id = Number((item as any)?.id || 0);
+    if (!id) return;
+    this.transitoLoading = true;
+    this.transitoSaving = false;
+    this.transitoError = null;
+    this.transitoSuccess = null;
+    this.transitoData = null;
+    this.transitoArrivedNote = '';
+    this.manifiestosSrv.getManifiestoTransito(id).subscribe({
+      next: (res) => {
+        const data = (res || null) as ManifiestoTransitoDetail | null;
+        this.transitoData = data;
+        this.transitoArrivedNote = String(data?.arrived_note || '').trim();
+        this.transitoLoading = false;
+      },
+      error: () => {
+        this.loadTransitoFallback(item);
+      }
+    });
+  }
+  private loadTransitoFallback(item: Manifiesto) {
+    const id = Number((item as any)?.id || 0);
+    if (!id) {
+      this.transitoLoading = false;
+      this.transitoError = 'No pudimos mostrar la información del tránsito de este manifiesto. Intente nuevamente en unos segundos.';
+      return;
+    }
+    this.enviosSrv.getEnviosManifiesto(id).pipe(catchError(() => of([] as Envio[]))).subscribe({
+      next: (envios) => {
+        const data = this.buildFallbackTransitoData(item, envios || []);
+        this.transitoData = data;
+        this.transitoArrivedNote = String(data?.arrived_note || '').trim();
+        this.transitoLoading = false;
+        this.transitoError = null;
+      },
+      error: () => {
+        this.transitoLoading = false;
+        this.transitoError = 'No pudimos mostrar la información del tránsito de este manifiesto. Intente nuevamente en unos segundos.';
+      }
+    });
+  }
+  private buildFallbackTransitoData(item: Manifiesto, envios: Envio[]): ManifiestoTransitoDetail {
+    const source: any = item as any;
+    const mappedEnvios = (envios || []).map((env: any) => ({
+      ...env,
+      origen_nombre: String(env?.origen_nombre || this.nameFrom(Number(env?.punto_origen_id || 0)) || '-').trim(),
+      destino_nombre: String(env?.destino_nombre || this.nameFrom(Number(env?.punto_destino_id || 0)) || '-').trim(),
+      detalles: Array.isArray(env?.detalles) ? env.detalles : [],
+    }));
+    return {
+      ...(source || {}),
+      id: Number(source?.id || 0),
+      estado: String(source?.estado || 'EN-TRANSITO').trim() || 'EN-TRANSITO',
+      arrived_at: source?.arrived_at ?? null,
+      arrived_lat: source?.arrived_lat ?? null,
+      arrived_lng: source?.arrived_lng ?? null,
+      arrived_accuracy_m: source?.arrived_accuracy_m ?? null,
+      arrived_note: source?.arrived_note ?? null,
+      piloto_nombre: String(source?.piloto_nombre || this.conductorLabel(source?.conductor_id) || '-').trim(),
+      copiloto_nombre: String(source?.copiloto_nombre || this.conductorLabel(source?.copiloto_id) || '-').trim(),
+      origen_nombre: String(source?.origen_nombre || this.nameFrom(this.safeOrigen(source)) || '-').trim(),
+      destino_nombre: String(source?.destino_nombre || this.nameFrom(this.safeDestino(source)) || '-').trim(),
+      envios: mappedEnvios as any,
+    } as ManifiestoTransitoDetail;
   }
   private loadSunatResumenForManifiesto(item: Manifiesto) {
     const mid = Number((item as any)?.id || 0);
@@ -378,7 +481,7 @@ export class ManifiestosFeature implements OnInit {
     const qp = this.route.snapshot.queryParamMap;
     const selected = Number(qp.get('selected') || 0);
     const tab = String(qp.get('tab') || '').toLowerCase();
-    const validTabs = ['resumen', 'envios', 'guias', 'documento', 'mapa', 'historial'];
+    const validTabs = ['resumen', 'envios', 'guias', 'documento', 'mapa', 'transito', 'historial'];
     if (!selected) return;
     this.selectedManifiestoId = selected;
     this.drawerOpen = true;
@@ -433,6 +536,7 @@ export class ManifiestosFeature implements OnInit {
     this.showModal = true;
   }
   openEdit(item: Manifiesto) {
+    if (!this.canManageDestinoManifiesto(item)) return;
     this.editing = true;
     this.editingId = (item as any).id ?? null;
     this.newManifiesto = {
@@ -656,9 +760,10 @@ export class ManifiestosFeature implements OnInit {
       : this.manifiestosSrv.getManifiestos(fecha);
     source$.subscribe({
       next: (response) => {
-        this.lista_manifiestos = (response as any) || [];
+    this.lista_manifiestos = (response as any) || [];
         this.loading = false;
         if (this.drawerOpen && this.activeTab === 'envios') this.loadEnviosForSelected();
+        if (this.drawerOpen && this.activeTab === 'transito') this.loadTransitoForSelected();
       },
       error: () => { this.loading = false; this.error = 'No se pudieron cargar los manifiestos'; },
     });
@@ -849,6 +954,99 @@ ngOnInit(): void {
   sunatPendingCreateLoading: Record<number, boolean> = {};
   publicLinkLoading: Record<number, boolean> = {};
   publicLinkError: Record<number, string | null> = {};
+
+  transitoEnvioLabel(envio: any): string {
+    const ticket = String(envio?.ticket_numero || envio?.ticket || '').trim();
+    if (ticket) return ticket;
+    const id = String(envio?.id || '').trim();
+    return id || '-';
+  }
+
+  private nowLocalIso(): string {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  private getGeo(): Promise<{ lat: number; lng: number; accuracy: number | null }> {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('geolocation'));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy ?? null,
+        }),
+        () => reject(new Error('geo')),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  }
+
+  async marcarLlegadaTransito() {
+    const mid = Number(this.transitoData?.id || this.selectedManifiestoId || 0);
+    if (!mid || !this.transitoData) {
+      this.transitoError = 'Manifiesto inválido';
+      return;
+    }
+    if (!this.isManifiestoEnTransito(this.transitoData)) {
+      this.transitoSuccess = 'La llegada ya ha sido marcada.';
+      return;
+    }
+    this.transitoSaving = true;
+    this.transitoError = null;
+    this.transitoSuccess = null;
+    try {
+      const pos = await this.getGeo();
+      const now = this.nowLocalIso();
+      const note = String(this.transitoArrivedNote || '').trim();
+      this.manifiestosSrv.updateManifiestosEstado(mid, {
+        estado: 'LLEGADA',
+        arrived_at: now,
+        arrived_lat: pos?.lat ?? 0,
+        arrived_lng: pos?.lng ?? 0,
+        arrived_accuracy_m: pos?.accuracy ?? undefined,
+        arrived_note: note,
+      }).subscribe({
+        next: () => {
+          this.transitoSaving = false;
+          this.transitoData = {
+            ...this.transitoData!,
+            estado: 'LLEGADA',
+            arrived_at: now,
+            arrived_lat: pos?.lat ?? 0,
+            arrived_lng: pos?.lng ?? 0,
+            arrived_accuracy_m: pos?.accuracy ?? null,
+            arrived_note: note,
+          };
+          this.lista_manifiestos = (this.lista_manifiestos || []).map((man: any) =>
+            Number((man as any)?.id || 0) === mid
+              ? {
+                  ...man,
+                  estado: 'LLEGADA',
+                  arrived_at: now,
+                  arrived_lat: pos?.lat ?? 0,
+                  arrived_lng: pos?.lng ?? 0,
+                  arrived_accuracy_m: pos?.accuracy ?? null,
+                }
+              : man
+          );
+          this.transitoSuccess = 'Llegada marcada con éxito.';
+          this.showNotif('Llegada registrada');
+        },
+        error: () => {
+          this.transitoSaving = false;
+          this.transitoError = 'No se pudo actualizar el estado';
+        }
+      });
+    } catch {
+      this.transitoSaving = false;
+      this.transitoError = 'No se pudo obtener la ubicación';
+    }
+  }
 
   generarManifiesto(item: Manifiesto) { this.showEnviosModal = false; this.showAddEnviosModal = false;
     this.showOnlyView('manifiesto');
@@ -1484,6 +1682,7 @@ ngOnInit(): void {
   }
 
   anadirEnvio(item: Manifiesto) { this.showGuiaModal = false; this.showEnviosModal = false;
+    if (!this.canManageDestinoManifiesto(item)) return;
     const id = (item as any)?.id;
     if (!id) return;
     this.addConductorId = (item as any)?.conductor_id ?? null;
@@ -1518,7 +1717,7 @@ ngOnInit(): void {
     const eid = (envio as any)?.id;
     if (!mid || !eid) return;
     this.addEnviosLoading = true;
-    this.enviosSrv.updateEnvios(Number(eid), { manifiesto: Number(mid) } as any).subscribe({
+    this.enviosSrv.updateEnvios(Number(eid), { manifiesto: Number(mid), estado_envio: 'EN TRÁNSITO' } as any).subscribe({
       next: () => {
         this.addEnviosLoading = false;
         this.addEnviosLista = (this.addEnviosLista || []).filter((e:any) => e.id !== eid);
@@ -1533,7 +1732,7 @@ ngOnInit(): void {
     const list = (this.filteredAddEnvios || []).filter((e: any) => !!e?.id);
     if (!mid || !list.length) return;
     this.addEnviosLoading = true;
-    const calls = list.map((e: any) => this.enviosSrv.updateEnvios(Number(e.id), { manifiesto: Number(mid) } as any));
+    const calls = list.map((e: any) => this.enviosSrv.updateEnvios(Number(e.id), { manifiesto: Number(mid), estado_envio: 'EN TRÁNSITO' } as any));
     forkJoin(calls).subscribe({
       next: () => {
         const ids = new Set(list.map((e: any) => Number(e.id)));
@@ -1554,7 +1753,7 @@ ngOnInit(): void {
   onConfirmDetach() {
     const eid = this.pendingDetachEnvioId;
     if (!eid) { this.onCancelDetach(); return; }
-    this.enviosSrv.updateEnvios(Number(eid), { manifiesto: null } as any).subscribe({
+    this.enviosSrv.updateEnvios(Number(eid), { manifiesto: null, estado_envio: 'RECEPCIÓN' } as any).subscribe({
       next: () => {
         this.enviosLista = (this.enviosLista || []).filter((e: any) => e.id !== eid);
         this.onCancelDetach();
@@ -1714,7 +1913,7 @@ ngOnInit(): void {
       const numeroRaw = String(correlativo || '');
       this.guiaGenTitle = `Guía de remisión transportista ${this.guiaGenSerie}-${numeroRaw} (${index}/${total})`.trim();
       this.createDespachoForEnvio(item, envio, (despacho) => {
-        this.createSunatGuiaAndItemsForEnvio(item, envio, despacho, sunatSerie, numeroRaw, (result) => {
+        this.createSunatGuiaAndItemsForEnvio(item, envio, despacho, (result) => {
           const guiaRes = result?.guia;
           if (this.sunatGenState[mid]) {
             this.sunatGenState[mid].done += 1;
@@ -1753,7 +1952,7 @@ ngOnInit(): void {
       next: (despacho) => {
         this.guiaGenDespacho = despacho;
         if (sunatSerie) {
-          this.createSunatGuiaAndItems(item, envios, despacho, sunatSerie);
+          this.createSunatGuiaAndItems(item, envios, despacho);
         } else {
           this.ensureGuiaItemsForDespacho(item, envios, despacho);
         }
@@ -1796,7 +1995,10 @@ ngOnInit(): void {
           this.showNotif('Guia ya generada');
           return;
         }
-        const guia$ = guia ? of(guia) : this.guiasSrv.createGuia(this.buildGuiaPayload(item, despacho.id));
+        const guia$ = guia ? of(guia) : this.guiasSrv.createGuia(
+          this.buildGuiaPayload(despacho.id),
+          this.buildGuiaIdempotencyKey(despacho.id)
+        );
         guia$.subscribe({
           next: (guiaRes) => {
             this.guiaGenGuia = guiaRes as Guia;
@@ -1822,26 +2024,15 @@ ngOnInit(): void {
     });
   }
 
-  private createSunatGuiaAndItems(item: Manifiesto, envios: Envio[], despacho: DespachoRead, sunatSerie: SerieComprobanteModel) {
+  private createSunatGuiaAndItems(item: Manifiesto, envios: Envio[], despacho: DespachoRead) {
     this.guiasSrv.getItemsDespacho(despacho.id).subscribe({
       next: (items: ItemGuia[]) => {
         const existingItems = (items || []) as ItemGuia[];
-        const correlativo = Number((sunatSerie as any).correlativo || 0);
-        const series = String((sunatSerie as any).serie || '');
-        const payload = this.buildGuiaPayload(item, despacho.id, {
-          series,
-          numeroRaw: String(correlativo || ''),
-          docType: 'GRT',
-        });
-        this.guiasSrv.createGuia(payload).subscribe({
+        const payload = this.buildGuiaPayload(despacho.id);
+        this.guiasSrv.createGuia(payload, this.buildGuiaIdempotencyKey(despacho.id)).subscribe({
           next: (guiaRes) => {
             this.guiaGenGuia = guiaRes as Guia;
             this.guiaGenEstado = String((despacho as any)?.estado || 'B');
-            const updateSerie = () => {
-              const nextCorr = (Number((sunatSerie as any).correlativo || 0) || 0) + 1;
-              const body: SerieComprobanteModel = { ...sunatSerie, correlativo: nextCorr };
-              this.serieSrv.updateSeries(Number((sunatSerie as any).id), body).subscribe({ next: () => {}, error: () => { this.showNotif('Guía creada, pero no se pudo actualizar la serie Sunat', 'error'); } });
-            };
             if (existingItems.length) {
               this.guiaGenItems = existingItems;
               this.guiaDoc = this.buildGuiaDoc(item, despacho, guiaRes as Guia, existingItems);
@@ -1850,7 +2041,6 @@ ngOnInit(): void {
                 Number((guiaRes as any)?.id || 0),
                 () => {
                   this.showNotif('Guía de remisión transportista generada');
-                  updateSerie();
                 }
               );
               return;
@@ -1860,7 +2050,6 @@ ngOnInit(): void {
                 Number((guiaRes as any)?.id || 0),
                 () => {
                   this.showNotif('Guía de remisión transportista generada');
-                  updateSerie();
                 }
               );
             });
@@ -1882,21 +2071,14 @@ ngOnInit(): void {
     item: Manifiesto,
     envio: Envio,
     despacho: DespachoRead,
-    sunatSerie: SerieComprobanteModel,
-    numeroRaw: string,
     done: (result: { guia: Guia | null; sunatCod: string; sunatMsg: string }) => void,
     onError: () => void
   ) {
     this.guiasSrv.getItemsDespacho(despacho.id).subscribe({
       next: (items: ItemGuia[]) => {
         const existingItems = (items || []) as ItemGuia[];
-        const series = String((sunatSerie as any).serie || '');
-        const payload = this.buildGuiaPayload(item, despacho.id, {
-          series,
-          numeroRaw,
-          docType: 'GRT',
-        });
-        this.guiasSrv.createGuia(payload).subscribe({
+        const payload = this.buildGuiaPayload(despacho.id);
+        this.guiasSrv.createGuia(payload, this.buildGuiaIdempotencyKey(despacho.id)).subscribe({
           next: (guiaRes) => {
             this.guiaGenGuia = guiaRes as Guia;
             this.guiaGenEstado = String((despacho as any)?.estado || 'B');
@@ -2386,19 +2568,15 @@ ngOnInit(): void {
     };
   }
 
-  private buildGuiaPayload(item: Manifiesto, despachoId: number, opts?: { series?: string; numeroRaw?: string; docType?: string }): any {
-    const series = String(opts?.series ?? (item as any)?.serie ?? '');
-    const numeroRaw = String(opts?.numeroRaw ?? (item as any)?.numero ?? '');
-    const numero = String(numeroRaw.replace(/\D+/g, '')) || 0;
-    const numeroCompleto = [series, numeroRaw].filter(Boolean).join('-');
+  private buildGuiaPayload(despachoId: number): any {
     return {
       despacho_id: Number(despachoId),
-      doc_type: String(opts?.docType || 'GRTI'),
-      series,
-      numero,
-      numero_completo: numeroCompleto,
-      emitido_en: this.utilSrv.formatFecha(new Date()),
+      doc_type: 'GRT',
     };
+  }
+
+  private buildGuiaIdempotencyKey(despachoId: number): string {
+    return `guia-despacho-${despachoId}-grt-v1`;
   }
 
   private extractNumeroGuiasResumen(resumen: ManifiestoGuiasSunatResumenRead | null | undefined): string[] {

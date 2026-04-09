@@ -85,6 +85,11 @@ export class Envios {
     const query = fecha ? `&fecha=${encodeURIComponent(fecha)}` : '';
     return this.api.get(`/envios/reporte-envios-dia-agrupado/liquidaciones-por-sede?sede_id=${sede_id}${query}`);
   }
+  // admin zona
+  getEnviosTotalesByFechaZona(fecha?: string, zona_id?: number): Observable<EnviosDiariosAgrupadosRead[]> {
+    const query = fecha ? `&fecha=${encodeURIComponent(fecha)}` : '';
+    return this.api.get(`/envios/reporte-envios-dia-agrupado/por-zona?zona_id=${zona_id}${query}`);
+  }
 
   // operario
   getEnviosTotalesByFechaUsuario(fecha?: string, usuario_id?: number): Observable<EnviosDiariosAgrupadosRead[]> {
@@ -106,6 +111,11 @@ export class Envios {
   getEnviosResumenByFechaSede(fecha?: string, sede_id?: number): Observable<EnviosDiariosResumenPorUsuarioRead[]> {
     const query = fecha ? `&fecha=${encodeURIComponent(fecha)}` : '';
     return this.api.get(`/envios/reporte-envios-dia-resumen/liquidaciones-por-sede?sede_id=${sede_id}${query}`);
+  }
+  // admin_zona
+  getEnviosResumenByFechaZona(fecha?: string, zona_id?: number): Observable<EnviosDiariosResumenPorUsuarioRead[]> {
+    const query = fecha ? `&fecha=${encodeURIComponent(fecha)}` : '';
+    return this.api.get(`/envios/reporte-envios-dia-resumen/por-zona?zona_id=${zona_id}${query}`);
   }
 
   // operario
@@ -134,5 +144,10 @@ export class Envios {
   //totales resumen agrupado por sede
   getTotalesGenerales(fecha: string): Observable<ResumenSedeDetalleRead> {
     return this.api.get(`/envios/reporte-envios-dia-resumen/detalle-por-sede?fecha=${fecha}`);
+  }
+  // totales resumen agrupado por zona
+  getTotalesGeneralesByFechaZona(fecha?: string, zona_id?: number): Observable<ResumenSedeDetalleRead> {
+    const query = fecha ? `&fecha=${encodeURIComponent(fecha)}` : '';
+    return this.api.get(`/envios/reporte-envios-dia-resumen/detalle-por-zona?zona_id=${zona_id}${query}`);
   }
 }

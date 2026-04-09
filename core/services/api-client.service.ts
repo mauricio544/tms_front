@@ -1,5 +1,5 @@
 ﻿import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { environment } from "../../src/environments/environment.development";
 // import { environment } from "../../src/environments/environment"
 import {Observable} from 'rxjs';
@@ -23,8 +23,9 @@ export class ApiClientService {
     return this.http.get<T>(`${this.baseUrl}${url}`, { params: httpParams, observe: 'body' as const });
   }
 
-  post<T>(url: string, body?: unknown) {
-    return this.http.post<T>(`${this.baseUrl}${url}`, body, { observe: 'body' as const });
+  post<T>(url: string, body?: unknown, options?: { headers?: Record<string, string> }) {
+    const headers = options?.headers ? new HttpHeaders(options.headers) : undefined;
+    return this.http.post<T>(`${this.baseUrl}${url}`, body, { headers, observe: 'body' as const });
   }
 
   put<T>(url: string, body: unknown) {

@@ -31,7 +31,7 @@
         {{ comprobante?.cliente?.tipoDocumento || 'DOC' }}: {{ comprobante?.cliente?.numeroDocumento || '-' }}
       </div>
       <div *ngIf="comprobante?.cliente?.direccion">{{ comprobante?.cliente?.direccion }}</div>
-      <div>Emisi&oacute;n: {{ formatFecha(comprobante?.fechaEmision) }}</div>
+      <div>Emisi&oacute;n: {{ formatFechaShort(comprobante?.fechaEmision) }}</div>
       <div *ngIf="comprobante?.formaPago">Forma de pago: {{ comprobante?.formaPago }}</div>
       <div>Moneda: {{ comprobante?.moneda || 'PEN' }}</div>
       <div *ngIf="comprobante?.creadoPor"><span class="font-semibold">Creado por:</span> {{ comprobante?.creadoPor }}</div>
@@ -49,6 +49,7 @@
       <div *ngIf="comprobante?.referencia?.guiaReferencia"><strong>Guía de remisión de referencia: {{ comprobante?.referencia?.guiaReferencia }}</strong></div>
       <div *ngIf="comprobante?.referencia?.remitente">Remitente: {{ comprobante?.referencia?.remitente }}</div>
       <div *ngIf="comprobante?.referencia?.destinatario">Destinatario: {{ comprobante?.referencia?.destinatario }}</div>
+      <div *ngIf="comprobante?.referencia?.destinatarioTelefono">Teléfono destinatario: {{ comprobante?.referencia?.destinatarioTelefono }}</div>
     </div>
 
     <div class="border-b border-dashed border-slate-300 py-2">

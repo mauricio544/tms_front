@@ -18,8 +18,9 @@ export class Comprobantes {
     return this.api.get('/envios/comprobantes');
   }
 
-  createComprobantes(body: Partial<ComprobanteCreate>): Observable<Comprobante> {
-    return this.api.post('/envios/comprobantes', body);
+  createComprobantes(body: Partial<ComprobanteCreate>, idempotencyKey?: string): Observable<Comprobante> {
+    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined;
+    return this.api.post('/envios/comprobantes', body, { headers });
   }
 
   updateComprobantes(id: number, body: Partial<Comprobante>): Observable<Comprobante> {
